@@ -1674,6 +1674,7 @@ fun DashboardScreen(
                                 JournalFloatingActionMenu(
                                     visible = journalEnabled,
                                     selectedTimestamp = actionTimestamp,
+                                    onDismissRequest = { clearJournalAction() },
                                     viewportSnapshot = dashboardChartViewport,
                                     onTypeSelected = {
                                         lastJournalType = it
@@ -1913,6 +1914,7 @@ fun DashboardScreen(
                                 JournalFloatingActionMenu(
                                     visible = journalEnabled,
                                     selectedTimestamp = actionTimestamp,
+                                    onDismissRequest = { clearJournalAction() },
                                     viewportSnapshot = dashboardChartViewport,
                                     onTypeSelected = {
                                         lastJournalType = it
