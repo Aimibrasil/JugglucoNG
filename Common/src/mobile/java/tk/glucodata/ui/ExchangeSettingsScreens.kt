@@ -245,7 +245,6 @@ fun WatchSettingsScreen(navController: NavController) {
                         } else {
                             "Enable WearOS to configure routes"
                         },
-                        showArrow = true,
                         icon = Icons.Filled.Settings,
                         iconTint = MaterialTheme.colorScheme.primary,
                         position = CardPosition.BOTTOM,
@@ -284,7 +283,6 @@ fun WatchSettingsScreen(navController: NavController) {
                         } else {
                             "Enable Kerfstok to view status"
                         },
-                        showArrow = true,
                         icon = Icons.Filled.Link,
                         iconTint = MaterialTheme.colorScheme.secondary,
                         position = CardPosition.BOTTOM,

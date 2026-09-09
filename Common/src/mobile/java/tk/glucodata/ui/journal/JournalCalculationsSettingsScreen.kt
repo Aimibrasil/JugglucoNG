@@ -120,7 +120,6 @@ fun JournalCalculationsSettingsScreen(
                                 predictionModelProfile.blocks.size
                             )
                         },
-                        showArrow = true,
                         onClick = if (journalEnabled) {
                             { navController.navigate("settings/predictive-simulation/model-profile") }
                         } else {

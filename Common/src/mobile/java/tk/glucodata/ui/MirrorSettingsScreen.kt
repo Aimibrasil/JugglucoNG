@@ -425,7 +425,6 @@ fun MirrorSettingsScreen(navController: NavController) {
                                 Text(device.name, style = MaterialTheme.typography.titleSmall)
                                 Text("${device.ip}:${device.port}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f))
                             }
-                            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.5f))
                         }
                     }
                 }
@@ -441,7 +440,6 @@ fun MirrorSettingsScreen(navController: NavController) {
                     subtitle = stringResource(R.string.mirror_turn_server_desc),
                     icon = Icons.Filled.Cloud,
                     iconTint = MaterialTheme.colorScheme.tertiary,
-                    showArrow = true,
                     position = CardPosition.SINGLE,
                     onClick = { navController.navigate("settings/turnserver") }
                 )
