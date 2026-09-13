@@ -2774,4 +2774,12 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_pairing_key_delete">Выдаліць ключ</string>
     <string name="aidex_pairing_key_delete_confirm">Выдаліць гэты ключ спалучэння? Каб атрымаць новы, трэба зноў спалучыць датчык.</string>
     <string name="aidex_pairing_key_deleted">Ключ спалучэння выдалены</string>
+    <string name="rearm_margin_label">Запас да паўторнага спрацоўвання</string>
+    <string name="rearm_min_interval_label">Мінімальны інтэрвал паміж трывогамі</string>
+    <string name="pre_high_iob_coverage_label">Пакрыццё інсулінам</string>
+    <string name="alert_feature_off">Выкл.</string>
+    <string name="same_direction_suppression_title">Ціхі перыяд пасля сігналу таго ж кірунку</string>
+    <string name="same_direction_suppression_summary">Пасля адхілення або адкладання сігналу пра падзенне або рост іншыя сігналы таго ж кірунку маўчаць на працягу гэтага часу. Нізкі, вельмі нізкі і вельмі высокі спрацоўваюць заўсёды.</string>
+    <string name="acknowledged_high_coverage_title">Пацверджаныя сігналы росту замяняюць «Высокі»</string>
+    <string name="acknowledged_high_coverage_summary">Пасля адхілення або адкладання сігналу «Хуткі рост», «Прагназаваны высокі» ці «Высокі» іншыя з іх маўчаць на працягу часу вышэй. «Вельмі высокі» спрацоўвае заўсёды.</string>
 </resources>

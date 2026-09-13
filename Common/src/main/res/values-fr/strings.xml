@@ -2709,4 +2709,12 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_pairing_key_delete">Supprimer la clé</string>
     <string name="aidex_pairing_key_delete_confirm">Supprimer cette clé d’association ? Vous devrez réassocier le capteur pour en obtenir une nouvelle.</string>
     <string name="aidex_pairing_key_deleted">Clé d’association supprimée</string>
+    <string name="rearm_margin_label">Marge de réarmement</string>
+    <string name="rearm_min_interval_label">Délai minimal entre alarmes</string>
+    <string name="pre_high_iob_coverage_label">Couverture insuline</string>
+    <string name="alert_feature_off">Désactivé</string>
+    <string name="same_direction_suppression_title">Période de silence après une alerte de même direction</string>
+    <string name="same_direction_suppression_summary">Après avoir ignoré ou reporté une alerte de baisse ou de hausse, les autres alertes de même direction restent muettes pendant cette durée. Bas, très bas et très haut se déclenchent toujours.</string>
+    <string name="acknowledged_high_coverage_title">Les alertes de hausse acquittées couvrent « Haut »</string>
+    <string name="acknowledged_high_coverage_summary">Après avoir ignoré ou reporté une alerte « Hausse rapide », « Haut prévu » ou « Haut », les autres restent silencieuses pendant la durée ci-dessus. « Très haut » se déclenche toujours.</string>
 </resources>

@@ -2938,4 +2938,12 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_pairing_key_delete">Delete key</string>
     <string name="aidex_pairing_key_delete_confirm">Delete this pairing key? You will need to pair the sensor again to get a new one.</string>
     <string name="aidex_pairing_key_deleted">Pairing key deleted</string>
+    <string name="rearm_margin_label">Re-arm margin</string>
+    <string name="rearm_min_interval_label">Minimum time between alarms</string>
+    <string name="pre_high_iob_coverage_label">Insulin coverage</string>
+    <string name="alert_feature_off">Off</string>
+    <string name="same_direction_suppression_title">Quiet period after a same-direction alert</string>
+    <string name="same_direction_suppression_summary">After you dismiss or snooze one falling or rising alert, other alerts of the same direction stay quiet for this long. Low, very low and very high always fire.</string>
+    <string name="acknowledged_high_coverage_title">Acknowledged rising alerts cover High</string>
+    <string name="acknowledged_high_coverage_summary">After you dismiss or snooze Rising fast, Predicted high or High, another of these alerts stays quiet for the period above. Very high always fires.</string>
 </resources>
