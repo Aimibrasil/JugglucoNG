@@ -104,6 +104,7 @@ class MQBleManager(
     private var charRxWrite: BluetoothGattCharacteristic? = null
 
     private val profile = MQProfileResolver.resolve()
+    @Volatile private var observedProtocol02 = false
 
     // Per-sensor config snapshot (populated in restoreFromPersistence).
     @Volatile private var protocolType: Int = MQConstants.SERVER_DEFAULT_PROTOCOL_TYPE
@@ -673,10 +674,7 @@ class MQBleManager(
 
     override fun resetSensor(): Boolean {
         val resetGatt = mBluetoothGatt
-        val frame = when {
-            protocolType == 2 || crcXorOut == 0x0100 -> MagicAck.reset00.copyOf()
-            else -> MQParser.buildConfirmReset(0)
-        }
+        val frame = MQResetCommand.build(protocolType, observedProtocol02)
         if (!writeFrameNow(frame, "confirmReset")) {
             Log.w(TAG, "MQ reset rejected: GATT write path not ready")
             return false
@@ -708,6 +706,33 @@ class MQBleManager(
     // ---- BLE lifecycle ----
 
     override fun getService(): UUID = MQConstants.NUS_SERVICE
+
+    override fun reconnect(now: Long): Boolean {
+        if (stop) return true
+        // The shared othersworking() path passes a glucose-age-adjusted time. Use wall time
+        // and actual protocol activity: warmup packets carry no usable glucose yet.
+        val actualNow = System.currentTimeMillis()
+        if ((phase == Phase.CONNECTING || phase == Phase.DISCOVERING) &&
+            MQLinkPolicy.hasRecentActivity(actualNow, connectTime, 0L, 60_000L, 60_000L)
+        ) return true
+        if (phase == Phase.STREAMING && mBluetoothGatt != null && MQLinkPolicy.hasRecentActivity(
+                actualNow, connectTime, lastProtocolFrameAtMs, firstFrameTimeoutMs(), protocolFrameTimeoutMs(),
+            )
+        ) return true
+        phase = Phase.IDLE
+        if (mBluetoothGatt != null) {
+            Log.w(TAG, "MQ generic reconnect after protocol silence")
+            noteLossOfSignal(actualNow)
+            flushPendingBgBurst("stale-generic-reconnect")
+            clearLinkWatchdogs()
+            mActiveBluetoothDevice = null
+            charTxNotify = null
+            charRxWrite = null
+            nusService = null
+            closeGattTransport()
+        }
+        return connectDevice(0)
+    }
 
     @Synchronized
     override fun connectDevice(delayMillis: Long): Boolean {
@@ -873,6 +898,11 @@ class MQBleManager(
             return
         }
         lastProtocolFrameAtMs = System.currentTimeMillis()
+        noteLiveFrameWithoutReading(lastProtocolFrameAtMs)
+        if (!observedProtocol02 && MQResetCommand.isProtocol02Marker(frame)) {
+            observedProtocol02 = true
+            Log.i(TAG, "MQ Protocol02 confirmed by session marker; using captured reset command")
+        }
         handler.removeCallbacks(firstFrameWatchdog)
         armProtocolFrameWatchdog()
         learnCrcVariant(frame)
@@ -958,8 +988,6 @@ class MQBleManager(
         val bgData00: ByteArray = byteArrayOf(0x5A, -0x5B, 0x02, 0x01, 0x00, 0x49, 0x7F)
         // confirmWithoutInit (cmd=0x03, payload=0x00) — observed (Modbus^0x0100 form).
         val withoutInit00: ByteArray = byteArrayOf(0x5A, -0x5B, 0x03, 0x01, 0x00, 0x50, -0x51)
-        // confirmReset (cmd=0x11, payload=0x00) — fixed Protocol02 bytes from the official app.
-        val reset00: ByteArray = byteArrayOf(0x5A, -0x5B, 0x11, 0x01, 0x00, -0x56, 0x07)
     }
 
     private data class AckCandidate(
