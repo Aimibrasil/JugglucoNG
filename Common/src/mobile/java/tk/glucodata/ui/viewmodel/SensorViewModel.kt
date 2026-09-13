@@ -1479,7 +1479,7 @@ class SensorViewModel : ViewModel() {
             val accountState = MQRegistry.loadAccountState(context)
             val result = MQBootstrapClient.fetchBestEffort(
                 context = context,
-                bleId = record.address.takeIf { it.isNotBlank() },
+                bleId = tk.glucodata.drivers.mq.MQVendorIdentity.bleId(record.displayName),
                 qrCode = normalizedQr,
                 authToken = accountState.authToken,
                 credentials = accountState.credentials,
@@ -1487,6 +1487,7 @@ class SensorViewModel : ViewModel() {
             )
             result.refreshedToken?.let { MQRegistry.saveAuthToken(context, it) }
             result.config?.let { MQRegistry.applyBootstrapConfig(context, record.sensorId, it) }
+            tk.glucodata.drivers.mq.MQBootstrapHistory.import(record.sensorId, result.history)
             android.util.Log.i("SensorVM", "MQ refreshVendorBootstrap($serial) fallback result: ${result.config != null}")
             refreshSensors()
         }

@@ -70,3 +70,44 @@ Short-gap BLE replay and cloud snapshot restore are separate mechanisms. No
 full-history BLE request command has been verified. Disconnect diagnostics now
 include phase, connection duration and protocol-frame age; the older trace's
 status 147 alone does not establish the cause of link loss.
+
+## Serial identity and the 03:09 trace
+
+`juggluco-trace-20260914-030941.log` contains packet 237/current 87, QR
+sensitivity 2.93, `transmitter10=0`, and calculated 29.0 mmol/L. The shared
+log initially prints 522.5 mg/dL, then 26.627777 after the unit setting changes.
+These are not different wire units. The start endpoint fails with
+`For input string: "FD8EBDDF969"`.
+
+The official app sends the printed transmitter serial (`W25101399`) as `bleId`.
+`RuGlutec_Begin_Wearing07.checkPhoneAndBleId` receives the scanned serial
+without its four-character label and uses it in `findByBleId`.
+`RuGlutec_Begin_Wearing05` and `RuGlutec_BGD_UpData_Service` independently read
+`IdentNumber`, strip the UI label, and submit it as `bleId`, with the colon-form
+Bluetooth MAC in a separate `mac` field. JugglucoNG instead used its native
+MAC identity for both, including metadata lookup and session comparison.
+`MQVendorIdentity` separates these identifiers without changing native storage
+ownership. Local tests validate the request form. The corrected live server
+lookup and resulting calibration still require verification.
+
+Setup also discarded history after successful prefetch by retaining only the
+configuration. All setup/restore paths now import the returned history under
+the local MAC-based sensor identity. The captured notifications contain only
+one record each (237, then 238); they do not contain older history to recover.
+
+When no reliable session start exists, the three-minute packet cadence gives
+an estimate: packet 237 at 03:06:53 implies approximately 15:15:53 on September
+13. The fallback now uses that estimate and repairs a cached connection-time
+start when it contradicts the counter by more than two intervals. This is not
+a recovered exact activation timestamp.
+
+The battery byte is raw telemetry, not a percentage. The official service
+compares it with 28 and maintains separate `SystemInformation.Battery` display
+state (including persistent low-battery logic); it does not display the raw
+byte directly. Keep `0x32` intact in parser/cloud payloads, but expose unknown
+percentage until a validated conversion is implemented.
+
+An explicit vendor-bootstrap refresh with a valid sensitivity and no restored
+K now clears the previous locally solved K/B/processed-current state before
+the next sample. Otherwise fixing metadata would leave an old incorrectly
+scaled K in use. Ordinary reconnects do not clear calibration or history.

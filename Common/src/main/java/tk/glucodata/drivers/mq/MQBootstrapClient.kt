@@ -134,7 +134,7 @@ object MQBootstrapClient {
         var failure = MQBootstrapFailure.NONE
         var message: String? = null
 
-        bleId?.trim()?.takeIf { it.isNotEmpty() }?.let { id ->
+        MQVendorIdentity.bleId(bleId)?.let { id ->
             val result = bleLookup(id)
             merged = merged.merge(result.config)
             failure = mergeFailure(failure, result.failure)
@@ -261,7 +261,7 @@ object MQBootstrapClient {
                 requestedBleId, result.optStringOrNull("bleId"), startAtMs, System.currentTimeMillis(),
             )
         ) {
-            Log.w(TAG, "Ignoring MQ cloud session: transmitter mismatch or invalid/expired start time")
+            Log.w(TAG, "Ignoring MQ cloud session: requested=$requestedBleId actual=${result.optStringOrNull("bleId")} start=$startAtMs; transmitter mismatch or invalid/expired start time")
             return MQBootstrapFetchResult()
         }
 

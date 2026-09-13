@@ -190,12 +190,12 @@ fun MQSetupWizard(
                                     normalizedQr != null ||
                                         accountState.hasToken ||
                                         accountState.hasCredentials
-                                val bootstrapConfig = if (shouldAttemptVendorRestore) {
+                                val bootstrapResult = if (shouldAttemptVendorRestore) {
                                     withContext(Dispatchers.IO) {
                                         runCatching {
                                             val result = MQBootstrapClient.fetchBestEffort(
                                                 context = context,
-                                                bleId = addressCanonical,
+                                                bleId = tk.glucodata.drivers.mq.MQVendorIdentity.bleId(candidate.displayName),
                                                 qrCode = normalizedQr,
                                                 authToken = accountState.authToken,
                                                 credentials = accountState.credentials,
@@ -204,7 +204,7 @@ fun MQSetupWizard(
                                                 ),
                                             )
                                             result.refreshedToken?.let { MQRegistry.saveAuthToken(context, it) }
-                                            result.config
+                                            result
                                         }.onFailure {
                                             Log.w(tag, "MQ bootstrap prefetch failed: ${it.message}")
                                         }.getOrNull()
@@ -218,7 +218,7 @@ fun MQSetupWizard(
                                     address = addressCanonical,
                                     qrCodeContent = normalizedQr,
                                     connectNow = false,
-                                    bootstrapConfig = bootstrapConfig,
+                                    bootstrapConfig = bootstrapResult?.config,
                                 )
                                 if (sensorId == null) {
                                     Toast.makeText(
@@ -228,6 +228,9 @@ fun MQSetupWizard(
                                     ).show()
                                     currentStep = MQSetupStep.SCAN
                                     return@launch
+                                }
+                                withContext(Dispatchers.IO) {
+                                    tk.glucodata.drivers.mq.MQBootstrapHistory.import(sensorId, bootstrapResult?.history.orEmpty())
                                 }
                                 MQRegistry.connectSensor(context, sensorId)
                                 delay(2000)

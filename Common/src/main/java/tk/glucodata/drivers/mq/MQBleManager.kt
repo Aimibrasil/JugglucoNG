@@ -33,7 +33,6 @@ import tk.glucodata.Natives
 import tk.glucodata.NightscoutUploadWake
 import tk.glucodata.SuperGattCallback
 import tk.glucodata.UiRefreshBus
-import tk.glucodata.drivers.VirtualGlucoseSensorBridge
 
 @SuppressLint("MissingPermission")
 class MQBleManager(
@@ -78,7 +77,6 @@ class MQBleManager(
         private const val CLOUD_HISTORY_BACKFILL_LOOKBACK_MS = 20L * 24L * 60L * 60L * 1000L
         private const val CLOUD_HISTORY_BACKFILL_OVERLAP_MS = 15L * 60L * 1000L
         private const val CLOUD_HISTORY_BACKFILL_FUTURE_GRACE_MS = 5L * 60L * 1000L
-        private const val CLOUD_HISTORY_NEAR_DUPLICATE_MS = 90L * 1000L
     }
 
     enum class Phase { IDLE, CONNECTING, DISCOVERING, STREAMING }
@@ -136,7 +134,7 @@ class MQBleManager(
     @Volatile private var lastProtocolFrameAtMs: Long = 0L
     @Volatile private var lastRawCurrent: Double = 0.0
     @Volatile private var lastProcessed: Double = 0.0
-    @Volatile private var lastBatteryPercent: Int = -1
+    @Volatile private var lastBatteryRaw: Int = -1
     @Volatile private var lastGlucoseAtMs: Long = 0L
     @Volatile private var lastGlucoseMgdlTimes10: Int = 0
     @Volatile private var vendorModelNameInternal: String = MQConstants.DEFAULT_DISPLAY_NAME
@@ -587,7 +585,7 @@ class MQBleManager(
     override val batteryMillivolts: Int
         get() = 0
     override val batteryPercent: Int
-        get() = lastBatteryPercent
+        get() = -1 // The wire byte is not a measured percentage; no validated conversion is available.
 
     override fun getCurrentSnapshot(maxAgeMillis: Long): MQCurrentSnapshot? {
         if (lastGlucoseAtMs == 0L) return null
@@ -1185,22 +1183,12 @@ class MQBleManager(
         !hasUsableSlopeSeed() && !hasBootstrapSlopeSeed()
 
     private fun resolveBootstrapBleId(context: Context, sensorId: String): String? =
-        mActiveDeviceAddress?.takeIf { it.isNotBlank() }
-            ?: MQRegistry.findRecord(context, sensorId)?.address?.takeIf { it.isNotBlank() }
+        MQVendorIdentity.bleId(MQRegistry.findRecord(context, sensorId)?.displayName)
+            ?: MQVendorIdentity.bleId(mActiveBluetoothDevice?.name)
 
     private fun importBootstrapHistory(history: List<MQBootstrapHistoryPoint>, sensorId: String) {
         if (history.isEmpty()) return
-        val imported = VirtualGlucoseSensorBridge.importHistory(
-            sensorSerial = sensorId,
-            readings = history.map { point ->
-                VirtualGlucoseSensorBridge.Reading(
-                    timestampMs = point.timestampMs,
-                    glucoseMgdl = point.glucoseMgdl,
-                )
-            },
-            logLabel = "MQ snapshot",
-            nearDuplicateWindowMs = CLOUD_HISTORY_NEAR_DUPLICATE_MS,
-        )
+        val imported = MQBootstrapHistory.import(sensorId, history)
         if (imported > 0) {
             Log.i(TAG, "Imported $imported MQ snapshot history points into local history")
         }
@@ -1301,6 +1289,18 @@ class MQBleManager(
             } else result.config
             MQRegistry.applyBootstrapConfig(context, sensorId, config)
             restoreFromPersistence(context)
+            if (reason == "manual" && config.restoredKValue == null &&
+                config.sensitivity?.let { hasValidSlopeSeed(it.toDouble()) } == true
+            ) {
+                // Explicitly requesting vendor setup must replace an earlier locally solved slope.
+                // Otherwise a correct QR lookup leaves the old, wrongly scaled K in use indefinitely.
+                kValue = 0f
+                bValue = 0f
+                lastProcessed = 0.0
+                pendingReferenceBgTimes10Mmol = 0.0
+                persistAlgorithmState()
+                Log.i(TAG, "MQ explicit vendor bootstrap: next sample will initialize from refreshed sensitivity")
+            }
             importBootstrapHistory(result.history, sensorId)
             maybeFetchCloudHistoryBackfillAsync(context, "bootstrap-$reason", config.snapshotId)
             if (hasUsableSlopeSeed()) {
@@ -1345,8 +1345,8 @@ class MQBleManager(
         val accountState = MQRegistry.loadAccountState(context)
         val account = accountState.phone.trim().takeIf { it.isNotEmpty() } ?: return
         val bleId = resolveBootstrapBleId(context, sensorId)
-            ?.let { MQConstants.canonicalSensorId(it) }
-            ?.takeIf { it.isNotEmpty() }
+            ?: return
+        val mac = MQVendorIdentity.mac(MQRegistry.findRecord(context, sensorId)?.address ?: mActiveDeviceAddress)
             ?: return
         val snapshotId = MQRegistry.loadSnapshotId(context, sensorId)?.trim().orEmpty()
         if (snapshotId.isNotEmpty()) {
@@ -1388,7 +1388,7 @@ class MQBleManager(
                         context = context,
                         authToken = token,
                         bleId = bleId,
-                        mac = bleId,
+                        mac = mac,
                         account = account,
                         qrCode = qrCode,
                     )
@@ -1528,7 +1528,7 @@ class MQBleManager(
             append("40")
             append(leU16(rec.packetIndex))
             append(leU16(rec.sampleCurrent))
-            append(u8(rec.batteryPercent))
+            append(u8(rec.batteryRaw))
             append(leU16(result.reviseCurrent2.toInt()))
             append(leU16(result.glucoseTimes10Mmol))
             append('0')
@@ -1725,14 +1725,14 @@ class MQBleManager(
             marker = MQConstants.BG_RECORD_MARKER,
             packetIndex = packetIndex,
             sampleCurrent = sampleCurrent,
-            batteryPercent = lastBatteryPercent.coerceAtLeast(0),
+            batteryRaw = lastBatteryRaw.coerceAtLeast(0),
             recordBytes = byteArrayOf(
                 MQConstants.BG_RECORD_MARKER.toByte(),
                 (packetIndex and 0xFF).toByte(),
                 ((packetIndex shr 8) and 0xFF).toByte(),
                 (sampleCurrent and 0xFF).toByte(),
                 ((sampleCurrent shr 8) and 0xFF).toByte(),
-                lastBatteryPercent.coerceAtLeast(0).toByte(),
+                lastBatteryRaw.coerceAtLeast(0).toByte(),
             ),
         )
         val result = calculateVendorGlucose(rec, sampleMs) ?: return false
@@ -1761,13 +1761,18 @@ class MQBleManager(
             maybeRefreshBootstrapAsync(it, "bg-data")
         }
         val nowMs = System.currentTimeMillis()
-        if (sensorStartAtMs == 0L) {
-            sensorStartAtMs = nowMs
-            sensorstartmsec = nowMs
-            warmupStartedAtMs = nowMs
+        val newestPacket = records.filter { it.marker == MQConstants.BG_RECORD_MARKER }.maxOfOrNull { it.packetIndex }
+        val reconciledStart = newestPacket?.let {
+            MQSessionTiming.reconcileStartMs(sensorStartAtMs, nowMs, it, profile.readingIntervalMinutes)
+        } ?: sensorStartAtMs
+        if (reconciledStart != sensorStartAtMs) {
+            sensorStartAtMs = reconciledStart
+            sensorstartmsec = reconciledStart
+            warmupStartedAtMs = reconciledStart
+            Log.i(TAG, "MQ start estimated from running packet=$newestPacket: $reconciledStart (not connection time)")
             Applic.app?.let {
-                persistSensorStart(it, nowMs)
-                persistWarmupStart(it, nowMs)
+                persistSensorStart(it, sensorStartAtMs)
+                persistWarmupStart(it, warmupStartedAtMs)
             }
         }
         ensureNativeDataptr(SerialNumber)
@@ -1828,7 +1833,7 @@ class MQBleManager(
             packetCount++
             lastObservedPacketIndex = maxOf(lastObservedPacketIndex, rec.packetIndex)
             lastRawCurrent = rec.sampleCurrent.toDouble()
-            lastBatteryPercent = rec.batteryPercent
+            lastBatteryRaw = rec.batteryRaw
 
             val rb = rec.recordBytes
             val recHex = rb.joinToString(" ") { "%02X".format(it.toInt() and 0xFF) }
@@ -1837,11 +1842,11 @@ class MQBleManager(
             lastRecordReceivedAtMs = maxOf(lastRecordReceivedAtMs, sampleMs)
             Log.i(
                 TAG,
-                "BG record #${rec.indexInPacket}: [$recHex]  marker=0x%02X  packet=%d  current=%d  battery=%d%%".format(
+                "BG record #${rec.indexInPacket}: [$recHex]  marker=0x%02X  packet=%d  current=%d  batteryRaw=%d".format(
                     rec.marker,
                     rec.packetIndex,
                     rec.sampleCurrent,
-                    rec.batteryPercent,
+                    rec.batteryRaw,
                 )
             )
             if (rec.marker != MQConstants.BG_RECORD_MARKER) {

@@ -39,9 +39,12 @@ class MQBootstrapClientTests {
         },
     ) = MQBootstrapClient.fetchBestEffortOnce(
         endpoints = MQConstants.vendorEndpoints(null),
-        bleId = "CFD8EBDDF969", qrCode = "test-qr", authToken = "test-token", account = "test-account",
+        bleId = "W25101399", qrCode = "test-qr", authToken = "test-token", account = "test-account",
         allowContinueWearRestore = allowRestore,
-        bleLookup = { MQBootstrapFetchResult(MQBootstrapConfig(transmitter10 = transmitter10)) },
+        bleLookup = {
+            assertEquals("W25101399", it)
+            MQBootstrapFetchResult(MQBootstrapConfig(transmitter10 = transmitter10))
+        },
         qrLookup = { MQBootstrapFetchResult(MQBootstrapConfig(sensitivity = 2.93f)) },
         sessionLookup = session,
     )

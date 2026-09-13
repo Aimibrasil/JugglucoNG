@@ -7,8 +7,8 @@ internal object MQSessionRestorePolicy {
         startAtMs: Long?,
         nowMs: Long,
     ): Boolean {
-        val requested = requestedBleId?.let(MQConstants::canonicalSensorId).orEmpty()
-        val actual = snapshotBleId?.let(MQConstants::canonicalSensorId).orEmpty()
+        val requested = MQVendorIdentity.bleId(requestedBleId).orEmpty()
+        val actual = MQVendorIdentity.bleId(snapshotBleId).orEmpty()
         if (requested.isBlank() || requested != actual) return false
         val start = startAtMs ?: return false
         val lifetimeMs = MQConstants.DEFAULT_RATED_LIFETIME_DAYS * 24L * 60L * 60L * 1000L

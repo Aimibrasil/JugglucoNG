@@ -605,12 +605,7 @@ object MQCloudClient {
     ): MQCloudSessionResult {
         val root = postForm(
             url = endpoints.dataRecordStartUrl,
-            form = buildString {
-                append("bleId=").append(bleId.urlEncode())
-                append("&mac=").append(mac.urlEncode())
-                append("&account=").append(account.urlEncode())
-                append("&qrCode=").append(qrCode.urlEncode())
-            },
+            form = MQVendorIdentity.startForm(bleId, mac, account, qrCode),
             authToken = authToken,
         )
         val snapshotId = root.root?.optJSONObject("result")?.optStringOrNull("snapshotId")
