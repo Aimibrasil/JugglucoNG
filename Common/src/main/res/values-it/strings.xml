@@ -375,7 +375,7 @@
     <string name="graph_smoothing_7_minutes">7 minuti</string>
     <string name="data_smoothing_window_title">Finestra di smussamento</string>
     <string name="data_smoothing_graph_only_title">Smussa solo il grafico</string>
-    <string name="data_smoothing_graph_only_desc">Lascia senza smussamento glucosio attuale, widget, allerte e uscite di scambio</string>
+    <string name="data_smoothing_graph_only_desc">Lascia senza smussamento glucosio attuale, widget, allerte e uscite di scambio — a meno che «Compatta in intervalli» sia attivo: la compattazione richiede una lettura smussata, quindi riattiva lo smussamento per le uscite di scambio</string>
     <string name="data_smoothing_exchange_only_title">Smussa solo uscite di scambio</string>
     <string name="data_smoothing_exchange_only_desc">Applica smussamento e filtro a intervalli solo a broadcast e payload API in uscita; grafico, glucosio attuale, widget e allerte restano invariati</string>
     <string name="data_smoothing_collapse_title">Compatta in intervalli</string>
