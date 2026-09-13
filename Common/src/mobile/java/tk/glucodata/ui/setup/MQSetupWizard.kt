@@ -199,6 +199,9 @@ fun MQSetupWizard(
                                                 qrCode = normalizedQr,
                                                 authToken = accountState.authToken,
                                                 credentials = accountState.credentials,
+                                                allowContinueWearRestore = !MQRegistry.loadLocalResetPending(
+                                                    context, MQConstants.canonicalSensorId(addressCanonical),
+                                                ),
                                             )
                                             result.refreshedToken?.let { MQRegistry.saveAuthToken(context, it) }
                                             result.config

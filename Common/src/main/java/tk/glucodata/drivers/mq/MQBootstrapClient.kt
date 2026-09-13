@@ -144,7 +144,7 @@ object MQBootstrapClient {
         }
 
         if (allowContinueWearRestore && !authToken.isNullOrBlank() && !account.isNullOrBlank()) {
-            val result = fetchContinueWearConfig(endpoints, account, authToken)
+            val result = fetchContinueWearConfig(endpoints, account, authToken, bleId)
             merged = merged.merge(result.config)
             failure = mergeFailure(failure, result.failure)
             message = mergeMessage(message, result.failure, result.message)
@@ -231,6 +231,7 @@ object MQBootstrapClient {
         endpoints: MQVendorEndpoints,
         account: String,
         authToken: String,
+        requestedBleId: String?,
     ): MQBootstrapFetchResult {
         val root = MQCloudClient.postForm(
             url = endpoints.queryNewestUrl,
@@ -240,6 +241,15 @@ object MQBootstrapClient {
         val result = root.root?.optJSONObject("result")
         if (result == null) {
             return MQBootstrapFetchResult(failure = root.failure, message = root.message)
+        }
+
+        val startAtMs = parseServerTimeMs(result.opt("createTime"))
+        if (!MQSessionRestorePolicy.canRestore(
+                requestedBleId, result.optStringOrNull("bleId"), startAtMs, System.currentTimeMillis(),
+            )
+        ) {
+            Log.w(TAG, "Ignoring MQ cloud session: transmitter mismatch or invalid/expired start time")
+            return MQBootstrapFetchResult()
         }
 
         val transmitter10 = result.optStringOrNull("transmitter10")?.toIntOrNull()
@@ -259,7 +269,7 @@ object MQBootstrapClient {
             multiplier = result.optStringOrNull("multiplier")?.toFloatOrNull()
                 ?: MQConstants.ALGO_DEFAULT_MULTIPLIER.toFloat(),
             snapshotId = result.optStringOrNull("id"),
-            sensorStartAtMs = parseServerTimeMs(result.opt("createTime")),
+            sensorStartAtMs = startAtMs,
         )
 
         val historyResult = baseConfig.snapshotId?.let { snapshotId ->

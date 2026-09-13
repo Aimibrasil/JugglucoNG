@@ -93,6 +93,11 @@ class MQBleManager(
 
     private val handlerThread = HandlerThread("MQ-$serial").also { it.start() }
     private val handler = Handler(handlerThread.looper)
+    private val cloudWork = MQCloudWorkQueue(
+        name = "MQ-cloud-$serial",
+        dispatchResult = { result -> handler.post { result() } },
+        onError = { error -> Log.stack(TAG, "MQ cloud worker", error) },
+    )
 
     private var nusService: BluetoothGattService? = null
     private var charTxNotify: BluetoothGattCharacteristic? = null
@@ -168,7 +173,7 @@ class MQBleManager(
         charTxNotify = null
         charRxWrite = null
         nusService = null
-        runCatching { close() }
+        runCatching { closeGattTransport() }
             .onFailure { Log.stack(TAG, "serviceDiscoveryWatchdog(close)", it) }
         scheduleReconnect("MQ service discovery watchdog", 250L)
     }
@@ -297,14 +302,11 @@ class MQBleManager(
         lastProcessed = MQRegistry.loadLastProcessed(context, id).toDouble().coerceAtLeast(0.0)
         lastPacketIndex = MQRegistry.loadLastPacketIndex(context, id)
         lastCloudReportedPacketIndex = MQRegistry.loadLastCloudReportedPacketIndex(context, id)
-        lastObservedPacketIndex = lastPacketIndex
+        lastObservedPacketIndex = maxOf(lastObservedPacketIndex, lastPacketIndex)
         crcXorOut = if (protocolType == 2) 0x0100 else 0x0000
         ensureNativeDataptr(id)
         hydrateKnownDeviceAddress(context, id)
         if (hasUsableSlopeSeed()) {
-            if (localResetPending) {
-                clearLocalResetPending("restored-valid-k")
-            }
             lastBootstrapFailure = MQBootstrapFailure.NONE
             lastBootstrapMessage = ""
         }
@@ -559,27 +561,25 @@ class MQBleManager(
         if (normalizedQr == null && bleId == null) return false
         bootstrapFetchInFlight = true
         lastBootstrapAttemptAtMs = System.currentTimeMillis()
-        return try {
-            val result = MQBootstrapClient.fetchBestEffort(
-                context = context,
-                bleId = bleId,
-                qrCode = normalizedQr,
-                authToken = MQRegistry.loadAuthToken(context),
-                credentials = credentials,
-                allowContinueWearRestore = !localResetPending,
-            )
-            applyBootstrapFetchResult(
-                context = context,
-                sensorId = id,
-                result = result,
-                reason = "manual",
-            )
-        } catch (t: Throwable) {
-            Log.stack(TAG, "refreshVendorBootstrap(manual)", t)
-            false
-        } finally {
-            bootstrapFetchInFlight = false
+        val allowRestore = !localResetPending && lastObservedPacketIndex < 0
+        cloudWork.post { task ->
+            try {
+                val result = MQBootstrapClient.fetchBestEffort(
+                    context = context,
+                    bleId = bleId,
+                    qrCode = normalizedQr,
+                    authToken = MQRegistry.loadAuthToken(context),
+                    credentials = credentials,
+                    allowContinueWearRestore = allowRestore,
+                )
+                task.deliver { applyBootstrapFetchResult(context, id, result, "manual") }
+            } catch (t: Exception) {
+                Log.stack(TAG, "refreshVendorBootstrap(manual)", t)
+            } finally {
+                task.deliver { bootstrapFetchInFlight = false }
+            }
         }
+        return true
     }
 
     override val vendorFirmwareVersion: String get() = vendorFirmwareVersionInternal
@@ -618,7 +618,7 @@ class MQBleManager(
         flushPendingBgBurst("soft-disconnect")
         clearLinkWatchdogs()
         phase = Phase.IDLE
-        runCatching { close() }
+        runCatching { closeGattTransport() }
             .onFailure { Log.stack(TAG, "softDisconnect(close)", it) }
         mActiveBluetoothDevice = null
         UiRefreshBus.requestStatusRefresh()
@@ -633,7 +633,7 @@ class MQBleManager(
             runCatching { Natives.unfinishSensor(dataptr) }
                 .onFailure { Log.stack(TAG, "softReconnect(unfinishSensor)", it) }
         }
-        runCatching { close() }
+        runCatching { closeGattTransport() }
             .onFailure { Log.stack(TAG, "softReconnect(close)", it) }
         phase = Phase.IDLE
         handler.postDelayed({
@@ -672,6 +672,7 @@ class MQBleManager(
     }
 
     override fun resetSensor(): Boolean {
+        val resetGatt = mBluetoothGatt
         val frame = when {
             protocolType == 2 || crcXorOut == 0x0100 -> MagicAck.reset00.copyOf()
             else -> MQParser.buildConfirmReset(0)
@@ -683,7 +684,7 @@ class MQBleManager(
         Applic.app?.let { maybeEndCloudSessionAsync(it, "reset") }
         markLocalResetPending()
         handler.postDelayed({
-            if (!stop) {
+            if (!stop && mBluetoothGatt === resetGatt) {
                 runCatching { mBluetoothGatt?.disconnect() }
             }
         }, RESET_RECONNECT_DELAY_MS)
@@ -752,7 +753,7 @@ class MQBleManager(
             if (!gatt.discoverServices()) {
                 Log.e(TAG, "discoverServices() returned false ($reason)")
                 phase = Phase.IDLE
-                runCatching { close() }
+                runCatching { closeGattTransport() }
                     .onFailure { Log.stack(TAG, "discoverServices(close:$reason)", it) }
                 scheduleReconnect("discoverServices() returned false ($reason)", 250L)
                 false
@@ -762,7 +763,7 @@ class MQBleManager(
         } catch (t: Throwable) {
             Log.stack(TAG, "discoverServices($reason)", t)
             phase = Phase.IDLE
-            runCatching { close() }
+            runCatching { closeGattTransport() }
                 .onFailure { Log.stack(TAG, "discoverServices(close:$reason)", it) }
             scheduleReconnect("discoverServices() threw ($reason)", 250L)
             false
@@ -770,6 +771,7 @@ class MQBleManager(
     }
 
     override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+        if (gatt !== mBluetoothGatt) return
         noteFirstGattCallback("onConnectionStateChange", gatt)
         super.onConnectionStateChange(gatt, status, newState)
         if (stop) return
@@ -807,7 +809,8 @@ class MQBleManager(
                 serviceDiscoveryRetryCount = 0
                 try { gatt.close() } catch (_: Throwable) {}
                 mBluetoothGatt = null
-                handler.removeCallbacksAndMessages(null)
+                clearLinkWatchdogs()
+                cancelReconnect()
                 if (!stop) {
                     scheduleReconnect("GATT disconnected (status=$status)")
                 }
@@ -821,6 +824,7 @@ class MQBleManager(
     }
 
     override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+        if (stop || gatt !== mBluetoothGatt) return
         handler.removeCallbacks(serviceDiscoveryWatchdog)
         handler.removeCallbacks(serviceDiscoveryRetryRunnable)
         if (serviceDiscoveryHandled) {
@@ -861,7 +865,7 @@ class MQBleManager(
 
     @Deprecated("Deprecated in Java")
     override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
-        if (characteristic.uuid != MQConstants.NUS_TX_NOTIFY) return
+        if (stop || gatt !== mBluetoothGatt || characteristic.uuid != MQConstants.NUS_TX_NOTIFY) return
         val data = characteristic.value ?: return
         val frame = MQParser.parse(data)
         if (frame == null) {
@@ -998,6 +1002,10 @@ class MQBleManager(
     }
 
     private fun onBeginWork() {
+        if (lastPacketIndex >= 0 || Applic.app?.let { MQRegistry.loadSnapshotId(it, SerialNumber) } != null) {
+            Log.i(TAG, "MQ BEGIN_WORK supersedes restored session")
+            markLocalResetPending()
+        }
         val now = System.currentTimeMillis()
         if (sensorStartAtMs == 0L) {
             sensorStartAtMs = now
@@ -1081,15 +1089,17 @@ class MQBleManager(
         MQRegistry.saveLastPacketIndex(context, id, lastPacketIndex)
     }
 
-    private fun clearLocalResetPending(reason: String) {
-        if (!localResetPending) return
-        localResetPending = false
-        val context = Applic.app ?: return
-        MQRegistry.saveLocalResetPending(context, SerialNumber, false)
-        Log.i(TAG, "Cleared local MQ reset pending ($reason)")
-    }
-
     private fun markLocalResetPending() {
+        cloudWork.invalidate()
+        bootstrapFetchInFlight = false
+        cloudHistoryBackfillInFlight = false
+        cloudSessionSyncInFlight = false
+        lastBootstrapAttemptAtMs = 0L
+        cloudHistoryBackfillAttemptedAtMs = 0L
+        cloudSessionAttemptedAtMs = 0L
+        lastCloudHistoryBackfillTailMs = 0L
+        lastAnnouncedCloudSnapshotId = ""
+        lastCloudReportedPacketIndex = -1
         localResetPending = true
         val context = Applic.app
         val id = SerialNumber ?: return
@@ -1189,15 +1199,16 @@ class MQBleManager(
         }
         cloudHistoryBackfillInFlight = true
         cloudHistoryBackfillAttemptedAtMs = now
-        handler.post {
+        val previousBackfillTailMs = lastCloudHistoryBackfillTailMs
+        val startAtMs = sensorStartAtMs
+        cloudWork.post { task ->
             try {
                 val token = ensureCloudSyncToken(context, accountState) ?: return@post
-                val previousBackfillTailMs = lastCloudHistoryBackfillTailMs
                 val latestRoomMs = HistorySyncAccess.getLatestTimestampForSensor(sensorId)
                 val persistedStartMs = MQRegistry.loadSensorStartAt(context, sensorId)
                 val startMs = when {
                     previousBackfillTailMs > 0L -> (previousBackfillTailMs - CLOUD_HISTORY_BACKFILL_OVERLAP_MS).coerceAtLeast(1L)
-                    sensorStartAtMs > 0L -> sensorStartAtMs
+                    startAtMs > 0L -> startAtMs
                     persistedStartMs > 0L -> persistedStartMs
                     latestRoomMs > 0L -> (latestRoomMs - CLOUD_HISTORY_BACKFILL_OVERLAP_MS).coerceAtLeast(1L)
                     else -> (now - CLOUD_HISTORY_BACKFILL_LOOKBACK_MS).coerceAtLeast(1L)
@@ -1209,33 +1220,35 @@ class MQBleManager(
                     startTimeMs = startMs,
                     endTimeMs = now + CLOUD_HISTORY_BACKFILL_FUTURE_GRACE_MS,
                 )
-                when {
-                    result.failure == MQBootstrapFailure.AUTH_EXPIRED -> {
-                        MQRegistry.clearAuthToken(context)
-                        Log.w(TAG, "MQ cloud history auth expired ($reason)")
-                    }
-                    result.history.isNotEmpty() -> {
-                        importBootstrapHistory(result.history, sensorId)
-                        lastCloudHistoryBackfillTailMs = maxOf(
-                            lastCloudHistoryBackfillTailMs,
-                            result.history.maxOf { it.timestampMs },
-                        )
-                        Log.i(
-                            TAG,
-                            "MQ cloud history backfill synced ($reason): snapshot=$snapshotId points=${result.history.size}",
-                        )
-                    }
-                    result.failure != MQBootstrapFailure.NONE -> {
-                        Log.w(TAG, "MQ cloud history backfill failed ($reason): ${result.message}")
-                    }
-                    else -> {
-                        Log.i(TAG, "MQ cloud history backfill empty ($reason): snapshot=$snapshotId")
+                task.deliver {
+                    when {
+                        result.failure == MQBootstrapFailure.AUTH_EXPIRED -> {
+                            MQRegistry.clearAuthToken(context)
+                            Log.w(TAG, "MQ cloud history auth expired ($reason)")
+                        }
+                        result.history.isNotEmpty() -> {
+                            importBootstrapHistory(result.history, sensorId)
+                            lastCloudHistoryBackfillTailMs = maxOf(
+                                lastCloudHistoryBackfillTailMs,
+                                result.history.maxOf { it.timestampMs },
+                            )
+                            Log.i(
+                                TAG,
+                                "MQ cloud history backfill synced ($reason): snapshot=$snapshotId points=${result.history.size}",
+                            )
+                        }
+                        result.failure != MQBootstrapFailure.NONE -> {
+                            Log.w(TAG, "MQ cloud history backfill failed ($reason): ${result.message}")
+                        }
+                        else -> {
+                            Log.i(TAG, "MQ cloud history backfill empty ($reason): snapshot=$snapshotId")
+                        }
                     }
                 }
             } catch (t: Throwable) {
                 Log.stack(TAG, "maybeFetchCloudHistoryBackfillAsync($reason)", t)
             } finally {
-                cloudHistoryBackfillInFlight = false
+                task.deliver { cloudHistoryBackfillInFlight = false }
             }
         }
     }
@@ -1250,10 +1263,13 @@ class MQBleManager(
         lastBootstrapFailure = result.failure
         lastBootstrapMessage = result.message.orEmpty()
         if (result.config != null) {
-            MQRegistry.applyBootstrapConfig(context, sensorId, result.config)
+            val config = if (localResetPending || lastObservedPacketIndex >= 0) {
+                MQSessionRestorePolicy.withoutSession(result.config)
+            } else result.config
+            MQRegistry.applyBootstrapConfig(context, sensorId, config)
             restoreFromPersistence(context)
             importBootstrapHistory(result.history, sensorId)
-            maybeFetchCloudHistoryBackfillAsync(context, "bootstrap-$reason", result.config.snapshotId)
+            maybeFetchCloudHistoryBackfillAsync(context, "bootstrap-$reason", config.snapshotId)
             if (hasUsableSlopeSeed()) {
                 lastBootstrapFailure = MQBootstrapFailure.NONE
                 lastBootstrapMessage = ""
@@ -1308,7 +1324,7 @@ class MQBleManager(
         if (cloudSessionSyncInFlight || now - cloudSessionAttemptedAtMs < CLOUD_SESSION_RETRY_MS) return
         cloudSessionSyncInFlight = true
         cloudSessionAttemptedAtMs = now
-        handler.post {
+        cloudWork.post { task ->
             try {
                 val token = ensureCloudSyncToken(context, accountState) ?: return@post
                 if (snapshotId.isNotEmpty()) {
@@ -1319,17 +1335,19 @@ class MQBleManager(
                         bleId = bleId,
                         qrCode = qrCode,
                     )
-                    when {
-                        result.success -> {
-                            lastAnnouncedCloudSnapshotId = snapshotId
-                            Log.i(TAG, "MQ cloud continue-wear synced ($reason): snapshot=$snapshotId")
-                        }
-                        result.failure == MQBootstrapFailure.AUTH_EXPIRED -> {
-                            MQRegistry.clearAuthToken(context)
-                            Log.w(TAG, "MQ cloud session sync auth expired ($reason)")
-                        }
-                        else -> {
-                            Log.w(TAG, "MQ cloud session sync failed ($reason): ${result.message}")
+                    task.deliver {
+                        when {
+                            result.success -> {
+                                lastAnnouncedCloudSnapshotId = snapshotId
+                                Log.i(TAG, "MQ cloud continue-wear synced ($reason): snapshot=$snapshotId")
+                            }
+                            result.failure == MQBootstrapFailure.AUTH_EXPIRED -> {
+                                MQRegistry.clearAuthToken(context)
+                                Log.w(TAG, "MQ cloud session sync auth expired ($reason)")
+                            }
+                            else -> {
+                                Log.w(TAG, "MQ cloud session sync failed ($reason): ${result.message}")
+                            }
                         }
                     }
                 } else {
@@ -1341,28 +1359,30 @@ class MQBleManager(
                         account = account,
                         qrCode = qrCode,
                     )
-                    when {
-                        result.success && !result.snapshotId.isNullOrBlank() -> {
-                            MQRegistry.saveSnapshotId(context, sensorId, result.snapshotId)
-                            MQRegistry.saveLastCloudReportedPacketIndex(context, sensorId, -1)
-                            lastAnnouncedCloudSnapshotId = result.snapshotId
-                            lastCloudReportedPacketIndex = -1
-                            maybeFetchCloudHistoryBackfillAsync(context, "session-start-$reason", result.snapshotId)
-                            Log.i(TAG, "MQ cloud start-wear created snapshot=${result.snapshotId} ($reason)")
-                        }
-                        result.failure == MQBootstrapFailure.AUTH_EXPIRED -> {
-                            MQRegistry.clearAuthToken(context)
-                            Log.w(TAG, "MQ cloud session sync auth expired ($reason)")
-                        }
-                        else -> {
-                            Log.w(TAG, "MQ cloud session sync failed ($reason): ${result.message}")
+                    task.deliver {
+                        when {
+                            result.success && !result.snapshotId.isNullOrBlank() -> {
+                                MQRegistry.saveSnapshotId(context, sensorId, result.snapshotId)
+                                MQRegistry.saveLastCloudReportedPacketIndex(context, sensorId, -1)
+                                lastAnnouncedCloudSnapshotId = result.snapshotId
+                                lastCloudReportedPacketIndex = -1
+                                maybeFetchCloudHistoryBackfillAsync(context, "session-start-$reason", result.snapshotId)
+                                Log.i(TAG, "MQ cloud start-wear created snapshot=${result.snapshotId} ($reason)")
+                            }
+                            result.failure == MQBootstrapFailure.AUTH_EXPIRED -> {
+                                MQRegistry.clearAuthToken(context)
+                                Log.w(TAG, "MQ cloud session sync auth expired ($reason)")
+                            }
+                            else -> {
+                                Log.w(TAG, "MQ cloud session sync failed ($reason): ${result.message}")
+                            }
                         }
                     }
                 }
             } catch (t: Throwable) {
                 Log.stack(TAG, "maybeEnsureCloudSessionAsync($reason)", t)
             } finally {
-                cloudSessionSyncInFlight = false
+                task.deliver { cloudSessionSyncInFlight = false }
             }
         }
     }
@@ -1379,7 +1399,7 @@ class MQBleManager(
         val sensorId = SerialNumber ?: return
         val snapshotId = MQRegistry.loadSnapshotId(context, sensorId)?.trim().orEmpty().takeIf { it.isNotEmpty() } ?: return
         val accountState = MQRegistry.loadAccountState(context)
-        handler.post {
+        cloudWork.post { _ ->
             try {
                 val token = ensureCloudSyncToken(context, accountState) ?: return@post
                 val bgValueMmol = referenceBgTimes10Mmol / 10.0
@@ -1430,7 +1450,7 @@ class MQBleManager(
         if (rec.packetIndex <= lastCloudReportedPacketIndex) return
         val accountState = MQRegistry.loadAccountState(context)
         val calculateData = buildVendorCalculateData(rec, result)
-        handler.post {
+        cloudWork.post { task ->
             try {
                 if (rec.packetIndex <= lastCloudReportedPacketIndex) return@post
                 val token = ensureCloudSyncToken(context, accountState) ?: return@post
@@ -1440,15 +1460,17 @@ class MQBleManager(
                     snapshotId = snapshotId,
                     calculateDataHex = listOf(calculateData),
                 )
-                if (upload.success) {
-                    lastCloudReportedPacketIndex = rec.packetIndex
-                    MQRegistry.saveLastCloudReportedPacketIndex(context, sensorId, rec.packetIndex)
-                    Log.i(TAG, "MQ cloud report synced: snapshot=$snapshotId packet=${rec.packetIndex}")
-                } else if (upload.failure == MQBootstrapFailure.AUTH_EXPIRED) {
-                    MQRegistry.clearAuthToken(context)
-                    Log.w(TAG, "MQ cloud report auth expired")
-                } else {
-                    Log.w(TAG, "MQ cloud report failed: ${upload.message}")
+                task.deliver {
+                    if (upload.success) {
+                        lastCloudReportedPacketIndex = rec.packetIndex
+                        MQRegistry.saveLastCloudReportedPacketIndex(context, sensorId, rec.packetIndex)
+                        Log.i(TAG, "MQ cloud report synced: snapshot=$snapshotId packet=${rec.packetIndex}")
+                    } else if (upload.failure == MQBootstrapFailure.AUTH_EXPIRED) {
+                        MQRegistry.clearAuthToken(context)
+                        Log.w(TAG, "MQ cloud report auth expired")
+                    } else {
+                        Log.w(TAG, "MQ cloud report failed: ${upload.message}")
+                    }
                 }
             } catch (t: Throwable) {
                 Log.stack(TAG, "maybeUploadLiveReportAsync", t)
@@ -1485,18 +1507,15 @@ class MQBleManager(
         val sensorId = SerialNumber ?: return
         val snapshotId = MQRegistry.loadSnapshotId(context, sensorId)?.trim().orEmpty().takeIf { it.isNotEmpty() } ?: return
         val accountState = MQRegistry.loadAccountState(context)
-        handler.post {
+        cloudWork.postCleanup {
             try {
-                val token = ensureCloudSyncToken(context, accountState) ?: return@post
+                val token = ensureCloudSyncToken(context, accountState) ?: return@postCleanup
                 val result = MQCloudClient.endWearSession(
                     context = context,
                     authToken = token,
                     snapshotId = snapshotId,
                 )
                 if (result.success) {
-                    if (lastAnnouncedCloudSnapshotId == snapshotId) {
-                        lastAnnouncedCloudSnapshotId = ""
-                    }
                     Log.i(TAG, "MQ cloud end-wear synced ($reason): snapshot=$snapshotId")
                 } else if (result.failure == MQBootstrapFailure.AUTH_EXPIRED) {
                     MQRegistry.clearAuthToken(context)
@@ -1521,7 +1540,8 @@ class MQBleManager(
         if (qrCode == null && bleId == null) return
         bootstrapFetchInFlight = true
         lastBootstrapAttemptAtMs = now
-        handler.post {
+        val allowRestore = !localResetPending && lastObservedPacketIndex < 0
+        cloudWork.post { task ->
             try {
                 val result = MQBootstrapClient.fetchBestEffort(
                     context = context,
@@ -1529,13 +1549,13 @@ class MQBleManager(
                     qrCode = qrCode,
                     authToken = MQRegistry.loadAuthToken(context),
                     credentials = MQRegistry.loadAuthCredentials(context),
-                    allowContinueWearRestore = !localResetPending,
+                    allowContinueWearRestore = allowRestore,
                 )
-                applyBootstrapFetchResult(context, id, result, reason)
+                task.deliver { applyBootstrapFetchResult(context, id, result, reason) }
             } catch (t: Throwable) {
                 Log.stack(TAG, "maybeRefreshBootstrapAsync($reason)", t)
             } finally {
-                bootstrapFetchInFlight = false
+                task.deliver { bootstrapFetchInFlight = false }
             }
         }
     }
@@ -1643,9 +1663,6 @@ class MQBleManager(
                     solvedB = result.bValue,
                 )
             }
-        }
-        if (result.glucoseTimes10Mmol > 0 && hasValidSlopeSeed(result.kValue)) {
-            clearLocalResetPending("live-calculated-k")
         }
         Log.d(
             TAG,
@@ -1851,6 +1868,7 @@ class MQBleManager(
     }
 
     private fun writeFrameNow(bytes: ByteArray, tag: String): Boolean {
+        if (stop || phase != Phase.STREAMING) return false
         val gatt = mBluetoothGatt ?: return false
         val ch = charRxWrite ?: return false
         return try {
@@ -1904,7 +1922,9 @@ class MQBleManager(
                 )
                 if (attempt < 3) {
                     val delay = 150L * attempt
-                    handler.postDelayed({ attemptWrite(bytes, tag, attempt + 1) }, delay)
+                    handler.postDelayed({
+                        if (!stop && mBluetoothGatt === gatt) attemptWrite(bytes, tag, attempt + 1)
+                    }, delay)
                 }
             } else {
                 Log.d(TAG, "wrote $tag [$hex] (attempt=$attempt writeType=${ch.writeType})")
@@ -1918,6 +1938,7 @@ class MQBleManager(
         flushPendingBgBurst("close")
         phase = Phase.IDLE
         clearLinkWatchdogs()
+        cloudWork.close()
         try { handlerThread.quitSafely() } catch (_: Throwable) {}
         super.close()
     }
