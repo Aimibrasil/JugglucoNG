@@ -460,15 +460,14 @@ class MQBleManager(
         applyNativeSensorMetadata(nativeName)
     }
 
-    private fun mirrorReadingIntoNative(sampleMs: Long, glucoseMgdl: Int) {
-        if (sampleMs <= 0L || glucoseMgdl <= 0 || SerialNumber.isBlank()) {
+    private fun mirrorReadingIntoNative(sampleMs: Long, result: MQAlgorithm.Result) {
+        if (sampleMs <= 0L || result.mgdl <= 0 || SerialNumber.isBlank()) {
             return
         }
         val nativeName = nativeCreationSensorName(SerialNumber)
         runCatching {
             ensureNativeDataptr(SerialNumber)
-            // Native direct-stream storage multiplies the float by 10 internally.
-            val stored = Natives.addGlucoseStream(sampleMs / 1000L, glucoseMgdl / 10f, nativeName)
+            val stored = MQNativeGlucoseMirror.write(sampleMs, result, nativeName, Natives::addGlucoseStream)
             if (stored) {
                 NightscoutUploadWake.afterLiveNativeWrite("mq", sampleMs)
             }
@@ -820,7 +819,8 @@ class MQBleManager(
                 handler.postDelayed(serviceDiscoveryWatchdog, SERVICE_DISCOVERY_TIMEOUT_MS)
             }
             BluetoothProfile.STATE_DISCONNECTED -> {
-                Log.i(TAG, "Disconnected (status=$status)")
+                val now = System.currentTimeMillis()
+                Log.i(TAG, "Disconnected (status=$status phase=$phase connectedMs=${now - connectTime} lastFrameAgeMs=${lastProtocolFrameAtMs.takeIf { it > 0L }?.let { now - it }} lastPacket=$lastPacketIndex)")
                 flushPendingBgBurst("disconnect")
                 phase = Phase.IDLE
                 charTxNotify = null
@@ -1214,9 +1214,16 @@ class MQBleManager(
         val sensorId = SerialNumber ?: return
         val snapshotId = snapshotIdOverride?.trim().orEmpty()
             .ifEmpty { MQRegistry.loadSnapshotId(context, sensorId)?.trim().orEmpty() }
-            .takeIf { it.isNotEmpty() } ?: return
+            .takeIf { it.isNotEmpty() }
+        if (snapshotId == null) {
+            if (reason != "bg-data") Log.i(TAG, "MQ cloud history unavailable ($reason): no saved snapshot")
+            return
+        }
         val accountState = MQRegistry.loadAccountState(context)
-        if (accountState.authToken.isNullOrBlank() && accountState.credentials == null) return
+        if (accountState.authToken.isNullOrBlank() && accountState.credentials == null) {
+            if (reason != "bg-data") Log.i(TAG, "MQ cloud history unavailable ($reason): no saved authentication")
+            return
+        }
         val now = System.currentTimeMillis()
         if (cloudHistoryBackfillInFlight ||
             now - cloudHistoryBackfillAttemptedAtMs < CLOUD_HISTORY_BACKFILL_RETRY_MS
@@ -1303,7 +1310,7 @@ class MQBleManager(
             UiRefreshBus.requestStatusRefresh()
             Log.i(
                 TAG,
-                "Applied MQ bootstrap ($reason): sensitivity=$sensitivitySeed k=$kValue b=$bValue packet=$lastPacketIndex algo=$algorithmVersion packages=$packages multiplier=$multiplier",
+                "Applied MQ bootstrap ($reason): sensitivity=$sensitivitySeed transmitter10=$transmitter10 protocol=$protocolType k=$kValue b=$bValue packet=$lastPacketIndex algo=$algorithmVersion packages=$packages multiplier=$multiplier history=${result.history.size}",
             )
             return true
         }
@@ -1735,7 +1742,7 @@ class MQBleManager(
             lastGlucoseAtMs = sampleMs
             lastGlucoseMgdlTimes10 = result.mgdlTimes10
         }
-        mirrorReadingIntoNative(sampleMs, result.mgdlTimes10 / 10)
+        mirrorReadingIntoNative(sampleMs, result)
         emitGlucose(result, sampleMs)
         armNoDataWatchdog()
         Log.i(TAG, "Applied local MQ calibration immediately from packet=${rec.packetIndex}")
@@ -1808,6 +1815,10 @@ class MQBleManager(
         val intervalMs = profile.readingIntervalMinutes * 60L * 1000L
         val previousLastPacketIndex = lastPacketIndex
         var highestProcessedPacketIndex = lastPacketIndex
+        val firstNewPacket = records.firstOrNull { it.record.packetIndex > previousLastPacketIndex }?.record?.packetIndex
+        if (previousLastPacketIndex >= 0 && firstNewPacket != null && firstNewPacket > previousLastPacketIndex + 1) {
+            Log.w(TAG, "MQ replay gap: last=$previousLastPacketIndex firstReceived=$firstNewPacket; missing records were not in this burst")
+        }
         for (pending in records) {
             val rec = pending.record
             if (previousLastPacketIndex >= 0 && rec.packetIndex <= previousLastPacketIndex) {
@@ -1854,7 +1865,7 @@ class MQBleManager(
                 lastGlucoseMgdlTimes10 = result.mgdlTimes10
             }
             highestProcessedPacketIndex = maxOf(highestProcessedPacketIndex, rec.packetIndex)
-            mirrorReadingIntoNative(sampleMs, result.mgdlTimes10 / 10)
+            mirrorReadingIntoNative(sampleMs, result)
             emitGlucose(result, sampleMs)
             Applic.app?.let { maybeUploadLiveReportAsync(it, rec, result) }
         }

@@ -44,3 +44,29 @@ Previously persisted K/B values and historical readings have no reliable
 provenance identifying this startup bug. They are not rewritten by this fix.
 A fresh local MQ registration and fresh QR/bootstrap lookup exercise the
 corrected path; physical transmitter reset is not required for that test.
+
+## Follow-up, 2026-09-14
+
+The user reports the upper clamp (40 mmol/L) after QR bootstrap, followed by
+usable readings after manual calibration. The supplied attachment is still
+the earlier 1.7 mmol/L trace. Automatic calibration is therefore not considered
+device-validated. A new trace must establish raw QR sensitivity, BLE
+`transmitter10`, normalized sensitivity and the resulting K/B; the driver now
+logs these without account credentials. Do not infer a scale from the displayed
+glucose or overwrite the user's current calibration based on it.
+
+Two additional defects were confirmed in source:
+
+- `fetchBestEffortOnce` discarded `fetchContinueWearConfig`'s history by always
+  returning an empty list. Valid continued-wear history now reaches its caller;
+  reset suppression still prevents the session lookup.
+- Both native mirror callers divided `mgdlTimes10` by ten, then the mirror
+  divided by ten again. `g.cpp:storeGlucoseStreamSample` expects true mg/dL and
+  performs its own internal times-ten conversion. `MQNativeGlucoseMirror`
+  now passes `MQAlgorithm.Result.mgdl` directly and converts only milliseconds
+  to seconds. Previously stored rows are not guessed or rewritten.
+
+Short-gap BLE replay and cloud snapshot restore are separate mechanisms. No
+full-history BLE request command has been verified. Disconnect diagnostics now
+include phase, connection duration and protocol-frame age; the older trace's
+status 147 alone does not establish the cause of link loss.

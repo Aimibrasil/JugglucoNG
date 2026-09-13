@@ -116,41 +116,49 @@ object MQBootstrapClient {
         return retried.copy(refreshedToken = freshToken)
     }
 
-    private fun fetchBestEffortOnce(
+    internal fun fetchBestEffortOnce(
         endpoints: MQVendorEndpoints,
         bleId: String?,
         qrCode: String?,
         authToken: String? = null,
         account: String? = null,
         allowContinueWearRestore: Boolean = true,
+        bleLookup: (String) -> MQBootstrapFetchResult = { fetchBleConfig(endpoints, it, authToken) },
+        qrLookup: (String) -> MQBootstrapFetchResult = { fetchQrConfig(endpoints, it, authToken) },
+        sessionLookup: () -> MQBootstrapFetchResult = {
+            fetchContinueWearConfig(endpoints, requireNotNull(account), requireNotNull(authToken), bleId)
+        },
     ): MQBootstrapFetchResult {
         var merged: MQBootstrapConfig? = null
+        var history = emptyList<MQBootstrapHistoryPoint>()
         var failure = MQBootstrapFailure.NONE
         var message: String? = null
 
         bleId?.trim()?.takeIf { it.isNotEmpty() }?.let { id ->
-            val result = fetchBleConfig(endpoints, id, authToken)
+            val result = bleLookup(id)
             merged = merged.merge(result.config)
             failure = mergeFailure(failure, result.failure)
             message = mergeMessage(message, result.failure, result.message)
         }
 
         qrCode?.trim()?.takeIf { it.isNotEmpty() }?.let { code ->
-            val result = fetchQrConfig(endpoints, code, authToken)
+            val result = qrLookup(code)
             val qrConfig = result.config?.let {
                 it.copy(sensitivity = MQBootstrapSeed.normalizeSensitivity(it.sensitivity, merged?.transmitter10))
             }
             if (result.config?.sensitivity != null && qrConfig?.sensitivity == null) {
                 Log.w(TAG, "MQ QR sensitivity withheld: invalid sensitivity or unavailable transmitter scale")
             }
+            Log.i(TAG, "MQ QR seed: raw=${result.config?.sensitivity} transmitter10=${merged?.transmitter10} normalized=${qrConfig?.sensitivity}")
             merged = merged.merge(qrConfig)
             failure = mergeFailure(failure, result.failure)
             message = mergeMessage(message, result.failure, result.message)
         }
 
         if (allowContinueWearRestore && !authToken.isNullOrBlank() && !account.isNullOrBlank()) {
-            val result = fetchContinueWearConfig(endpoints, account, authToken, bleId)
+            val result = sessionLookup()
             merged = merged.merge(result.config)
+            history = result.history
             failure = mergeFailure(failure, result.failure)
             message = mergeMessage(message, result.failure, result.message)
         }
@@ -159,7 +167,7 @@ object MQBootstrapClient {
             config = merged,
             failure = failure,
             message = message,
-            history = emptyList(),
+            history = history,
         )
     }
 
