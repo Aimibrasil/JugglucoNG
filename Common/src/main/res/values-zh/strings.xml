@@ -352,7 +352,7 @@
     <string name="google_scan_desc">使用 Google Play 服务进行扫码</string>
     <string name="mirror_desc">通过互联网/家庭网络共享/接收数据</string>
     <string name="nightscout_desc">上传/跟随</string>
-    <string name="glucose_alerts_title">血糖警报</string>
+    <string name="glucose_alerts_title">警报与闹铃</string>
     <string name="glucose_range_title">血糖范围</string>
     <string name="target_short_title">目标</string>
     <string name="chart_short_title">图表</string>
@@ -625,7 +625,6 @@
     <string name="alert_active_from_to_next_day">警报在 %1$s 到 %2$s 之间启用（次日）</string>
     <string name="alert_after">在此之后警报</string>
     <string name="alert_name">警报名称</string>
-    <string name="alert_style">警报样式</string>
     <string name="app_default_sound">应用默认铃声</string>
     <string name="custom_high">自定义高值</string>
     <string name="custom_low">自定义低值</string>
@@ -644,20 +643,10 @@
     <string name="max_retries">最大重试次数</string>
     <string name="minutes_short_format">%1$d 分钟</string>
     <string name="only_alert_during_hours">仅在所选时段警报</string>
-    <string name="other_alerts">其他警报</string>
-    <string name="predictive_alerts">预测警报</string>
-    <string name="preemptive_snooze">预先稍后提醒</string>
-    <string name="preemptive_snooze_desc">在触发前先暂停警报</string>
-    <string name="notification_dismiss_action_title">通知关闭操作</string>
-    <string name="notification_dismiss_action_summary">滑动或关闭通知</string>
+    <string name="other_alerts">传感器与连接</string>
+    <string name="predictive_alerts">趋势与预测</string>
     <string name="notification_dismiss_action_dismiss">关闭</string>
     <string name="notification_dismiss_action_snooze">稍后提醒</string>
-    <string name="same_direction_suppression_title">同方向警报后的静默期</string>
-    <string name="same_direction_suppression_summary">关闭或稍后提醒一次下降或上升警报之后，同方向的其他警报在此期间保持静默。低、很低和很高始终会触发。</string>
-    <string name="acknowledged_high_coverage_title">已确认的上升警报可覆盖“高”</string>
-    <string name="acknowledged_high_coverage_summary">关闭或稍后提醒“快速上升”、“预测高”或“高”后，其余警报会在上述时段内保持静默。“很高”始终会发出警报。</string>
-    <string name="alarm_return_to_previous_app_title">警报后返回上一个应用</string>
-    <string name="alarm_return_to_previous_app_summary">全屏警报结束后返回您之前使用的应用，而不是打开 JugglucoNG</string>
     <string name="realert_if_not_dismissed">未关闭则再次提醒</string>
     <string name="retry_every">重试间隔</string>
     <string name="retry_if_no_reaction">无响应时重试</string>
@@ -667,13 +656,6 @@
     <string name="system_default_sound">系统默认铃声</string>
     <string name="tap_to_change">点按以更改</string>
     <string name="threshold_label">阈值</string>
-    <string name="rearm_margin_label">重新触发余量</string>
-    <string name="rearm_min_interval_label">警报最小间隔</string>
-    <string name="pre_high_iob_coverage_label">胰岛素覆盖</string>
-    <string name="alert_feature_off">关闭</string>
-    <string name="fall_rate_slanting_down">缓慢下降</string>
-    <string name="fall_rate_falling">正在下降</string>
-    <string name="fall_rate_falling_fast">快速下降</string>
     <string name="persistent_high_fall_suppress_label">下降时静音</string>
     <string name="time_range_summary">%1$s - %2$s</string>
     <string name="volume_vibration_profile">音量/振动配置</string>
@@ -1228,7 +1210,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="hours_remaining">剩余 %1$d 小时</string>
     <string name="import_profile_merge">导入配置文件（合并）</string>
     <string name="import_profile_replace">导入配置文件（替换）</string>
-    <string name="intensity">强度</string>
     <string name="intercept">拦截</string>
     <string name="introhelp">简介帮助</string>
     <string name="invalid_profile">个人资料无效</string>
@@ -1243,14 +1224,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="retry_summary_forever">每 %1$d 分钟 • 持续重复</string>
     <string name="locationpermission">位置许可</string>
     <string name="loghelp">记录帮助</string>
-    <string name="master_alert_control">主警报控制</string>
+    <string name="master_alert_control">所有警报</string>
     <string name="mealhelp">膳食帮助</string>
     <string name="metrics">指标</string>
     <string name="mirror_connection_settings_help_text">该镜像端点的连接设置。</string>
     <string name="mirror_settings_help_text">配置发送/接收和镜像服务器设置。</string>
     <string name="model">型号</string>
     <string name="anytime_sensor_telemetry">Iw / Ib / T</string>
-    <string name="modes">模式</string>
     <string name="nearbypermission">附近的许可</string>
     <string name="new_custom_alert">新的自定义警报</string>
     <string name="newamount">新量</string>
@@ -2139,13 +2119,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="broadcast_computed_trend_desc">使用应用趋势代替传感器趋势</string>
     <string name="dashboard_show_delta_desc">趋势箭头下方的 Delta 间隔内测得的变化</string>
     <string name="dashboard_show_delta_title">仪表板上的 Delta (Δ)</string>
-    <string name="delta_alarm_interval_follow">类似于 Δ 读数（当前为 %1$d 分钟）</string>
-    <string name="delta_alarm_interval_label">德尔塔窗</string>
+    <string name="delta_alarm_interval_follow">与 Δ 相同（%1$d 分钟）</string>
+    <string name="delta_alarm_interval_label">变化统计窗口</string>
     <string name="delta_border_above_label">仅在上方报警</string>
     <string name="delta_border_below_label">仅在下方报警</string>
     <string name="delta_change_label">每 %1$d 分钟变化</string>
     <string name="delta_count_label">连续读数</string>
-    <string name="delta_early_trigger_desc">一旦跑完总距离 (%1$s %2$s)，无论经过了多少个间隔，也会立即开火</string>
+    <string name="delta_early_trigger_desc">总变化一旦达到 %1$s %2$s 即触发，无论经过多少次读数</string>
     <string name="delta_early_trigger_label">早期触发</string>
     <string name="delta_interval_1min">1分钟</string>
     <string name="delta_interval_5min">5分钟</string>
@@ -2174,8 +2154,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="notification_show_delta_desc">箭头旁边测量的增量间隔变化</string>
     <string name="notification_show_delta_title">显示增量 (Δ)</string>
     <string name="rising_fast_explanation">当连续 %1$d 个 %2$d 分钟区间均上升至少 %3$s（约持续上升 %4$d 分钟），且数值等于或高于 %5$s 时发出警告。不做预测，只依据原始趋势。</string>
-    <string name="sensor_expiry_group_days">天数</string>
-    <string name="sensor_expiry_group_hours">时间</string>
     <string name="sensor_expiry_warnings_desc">每个选定的时间每个传感器都会发出一次警告</string>
     <string name="sensor_expiry_warnings_title">到期前警告</string>
     <string name="sound_delay_desc">先振动；仅在延迟后添加声音警报</string>
@@ -2669,8 +2647,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_body_weight_not_set">未设置。按体重索引的曲线将使用参考剂量。</string>
     <!-- Alarm quiet window -->
     <string name="quiet_window_title">静音时段</string>
-    <string name="quiet_window_desc">让警报安静一段时间；到时自动结束</string>
-    <string name="quiet_window_inactive">警报照常响铃</string>
     <string name="quiet_window_active_until">警报静音至 %1$s</string>
     <string name="quiet_window_chip">静音至 %1$s</string>
     <string name="quiet_window_mode_title">时段期间</string>
@@ -2680,9 +2656,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="quiet_window_mode_notification_only_desc">无声音也无振动——较不安全的选择</string>
     <string name="quiet_window_start_for">开始，持续</string>
     <string name="quiet_window_preset_until">直到…</string>
-    <string name="quiet_window_until_i_end">直到我结束</string>
-    <string name="quiet_window_until_i_end_desc">最迟 24 小时后自动结束</string>
-    <string name="quiet_window_very_low_note">静音的警报仍保留通知，在仅振动模式下仍会振动。若警报持续活动且未处理超过设定时间，仍会响起。低和极低警报在设定时间后始终会再次响起。</string>
     <string name="quiet_window_end_now">立即结束</string>
     <string name="quiet_window_ended_title">警报已恢复</string>
     <string name="quiet_window_ended_text">静音时段已结束。</string>
@@ -2735,4 +2708,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_pairing_key_delete">删除密钥</string>
     <string name="aidex_pairing_key_delete_confirm">删除此配对密钥？需要重新配对传感器才能获取新密钥。</string>
     <string name="aidex_pairing_key_deleted">配对密钥已删除</string>
+    <string name="rearm_margin_label">重新触发余量</string>
+    <string name="rearm_min_interval_label">警报最小间隔</string>
+    <string name="pre_high_iob_coverage_label">胰岛素覆盖</string>
+    <string name="alert_feature_off">关闭</string>
+    <string name="same_direction_suppression_title">趋势警报后的静默期</string>
+    <string name="same_direction_suppression_summary">距同方向的下一次警报</string>
+    <plurals name="duration_hours">
+        <item quantity="other">%1$d 小时</item>
+    </plurals>
 </resources>

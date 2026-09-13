@@ -345,7 +345,7 @@
     <string name="google_scan_desc">Använd Google Play Services för QR-skanning</string>
     <string name="mirror_desc">Dela/Ta emot data via Internet/Hemnätverk</string>
     <string name="nightscout_desc">Ladda upp/Följ</string>
-    <string name="glucose_alerts_title">Blodsockervarningar</string>
+    <string name="glucose_alerts_title">Varningar och larm</string>
     <string name="glucose_range_title">Glukosintervall</string>
     <string name="target_short_title">Mål</string>
     <string name="chart_short_title">Graf</string>
@@ -613,7 +613,6 @@
     <string name="alert_active_from_to_next_day">Varningar aktiva fran %1$s till %2$s (nasta dag)</string>
     <string name="alert_after">Varna efter</string>
     <string name="alert_name">Varningsnamn</string>
-    <string name="alert_style">Varningsstil</string>
     <string name="app_default_sound">Appens standardljud</string>
     <string name="custom_high">Anpassad hog</string>
     <string name="custom_low">Anpassad lag</string>
@@ -624,28 +623,18 @@
     <string name="end">Slut</string>
     <string name="high_alert">Hog varning</string>
     <string name="high_alerts">Hoga varningar</string>
-    <string name="high_alerts_title">Hoga varningar</string>
+    <string name="high_alerts_title">Höga larm</string>
     <string name="look_ahead">Framablick</string>
     <string name="low_alert">Lag varning</string>
     <string name="low_alerts">Laga varningar</string>
-    <string name="low_alerts_title">Laga varningar</string>
+    <string name="low_alerts_title">Låga larm</string>
     <string name="max_retries">Max antal forsok</string>
     <string name="minutes_short_format">%1$d min</string>
     <string name="only_alert_during_hours">Varna endast under valda timmar</string>
-    <string name="other_alerts">Andra varningar</string>
-    <string name="predictive_alerts">Prediktiva varningar</string>
-    <string name="preemptive_snooze">Forebyggande snooze</string>
-    <string name="preemptive_snooze_desc">Snooza varningar innan de utloses</string>
-    <string name="notification_dismiss_action_title">Åtgärd när avisering stängs</string>
-    <string name="notification_dismiss_action_summary">Svep bort eller stäng aviseringar</string>
+    <string name="other_alerts">Sensor och anslutning</string>
+    <string name="predictive_alerts">Trender och prognoser</string>
     <string name="notification_dismiss_action_dismiss">Avvisa</string>
     <string name="notification_dismiss_action_snooze">Snooza</string>
-    <string name="same_direction_suppression_title">Tyst period efter larm i samma riktning</string>
-    <string name="same_direction_suppression_summary">När du avfärdar eller skjuter upp ett fallande eller stigande larm är andra larm i samma riktning tysta så här länge. Lågt, mycket lågt och mycket högt larmar alltid.</string>
-    <string name="acknowledged_high_coverage_title">Bekräftade stigningslarm täcker ”Högt”</string>
-    <string name="acknowledged_high_coverage_summary">När du avfärdar eller skjuter upp ”Stiger snabbt”, ”Förutspått högt” eller ”Högt” är de andra larmen tysta under tiden ovan. ”Mycket högt” larmar alltid.</string>
-    <string name="alarm_return_to_previous_app_title">Återgå till föregående app efter larm</string>
-    <string name="alarm_return_to_previous_app_summary">Efter ett helskärmslarm, gå tillbaka till appen du använde i stället för att öppna JugglucoNG</string>
     <string name="realert_if_not_dismissed">Varna igen om inte avvisad</string>
     <string name="retry_every">Upprepa var</string>
     <string name="retry_if_no_reaction">Upprepa vid ingen reaktion</string>
@@ -655,13 +644,6 @@
     <string name="system_default_sound">Systemets standardljud</string>
     <string name="tap_to_change">Tryck for att andra</string>
     <string name="threshold_label">Tröskel</string>
-    <string name="rearm_margin_label">Återaktiveringsmarginal</string>
-    <string name="rearm_min_interval_label">Minsta tid mellan larm</string>
-    <string name="pre_high_iob_coverage_label">Insulintäckning</string>
-    <string name="alert_feature_off">Av</string>
-    <string name="fall_rate_slanting_down">svagt fallande</string>
-    <string name="fall_rate_falling">fallande</string>
-    <string name="fall_rate_falling_fast">snabbt fallande</string>
     <string name="persistent_high_fall_suppress_label">Tyst vid fall</string>
     <string name="time_range_summary">%1$s - %2$s</string>
     <string name="volume_vibration_profile">Volym-/vibrationsprofil</string>
@@ -1212,7 +1194,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="hours_remaining">%1$d timmar kvar</string>
     <string name="import_profile_merge">Importera profil (sammanfoga)</string>
     <string name="import_profile_replace">Importera profil (ersätt)</string>
-    <string name="intensity">Intensitet</string>
     <string name="intercept">Avlyssna</string>
     <string name="introhelp">Intro hjälp</string>
     <string name="invalid_profile">Ogiltig profil</string>
@@ -1222,14 +1203,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="libreview">LibreView</string>
     <string name="locationpermission">Platstillstånd</string>
     <string name="loghelp">Logghjälp</string>
-    <string name="master_alert_control">Master alert kontroll</string>
+    <string name="master_alert_control">Alla larm</string>
     <string name="mealhelp">Måltidshjälp</string>
     <string name="metrics">Mätvärden</string>
     <string name="mirror_connection_settings_help_text">Anslutningsinställningar för denna spegelslutpunkt.</string>
     <string name="mirror_settings_help_text">Konfigurera skicka/ta emot och spegla serverinställningar.</string>
     <string name="model">Modell</string>
     <string name="anytime_sensor_telemetry">Iw / Ib / T</string>
-    <string name="modes">Lägen</string>
     <string name="retry_constantly">Kontinuerligt</string>
     <string name="retry_forever">Upprepa för alltid</string>
     <string name="retry_summary_constant">Kontinuerligt • %1$d upprepningar</string>
@@ -2123,13 +2103,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="broadcast_computed_trend_desc">Använd appens trend i stället för sensorns</string>
     <string name="dashboard_show_delta_desc">Uppmätt förändring över deltaintervallet, under trendpilen</string>
     <string name="dashboard_show_delta_title">Delta (Δ) på instrumentbrädan</string>
-    <string name="delta_alarm_interval_follow">Som Δ-avläsning (för närvarande %1$d min)</string>
-    <string name="delta_alarm_interval_label">Delta fönster</string>
+    <string name="delta_alarm_interval_follow">Som Δ (%1$d min)</string>
+    <string name="delta_alarm_interval_label">Räkna förändringar över</string>
     <string name="delta_border_above_label">Larm endast ovan</string>
     <string name="delta_border_below_label">Larm endast nedan</string>
     <string name="delta_change_label">Ändring per %1$d min</string>
     <string name="delta_count_label">Avläsningar i rad</string>
-    <string name="delta_early_trigger_desc">Skjut också så snart den totala sträckan (%1$s %2$s) är tillryggalagd, oavsett hur många intervaller som har passerat</string>
+    <string name="delta_early_trigger_desc">Larmar så snart den totala förändringen når %1$s %2$s, oavsett hur få avläsningar det tog</string>
     <string name="delta_early_trigger_label">Tidig trigger</string>
     <string name="delta_interval_1min">1 min</string>
     <string name="delta_interval_5min">5 min</string>
@@ -2158,8 +2138,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="notification_show_delta_desc">Uppmätt förändring över deltaintervallet, bredvid pilen</string>
     <string name="notification_show_delta_title">Visa delta (Δ)</string>
     <string name="rising_fast_explanation">Varnar efter %1$d på varandra följande %2$d-minutersintervaller som vart och ett stiger med minst %3$s (≈ %4$d min ihållande ökning) medan värdet är på eller över %5$s. Ingen förutsägelse, bara den råa trenden.</string>
-    <string name="sensor_expiry_group_days">dagar</string>
-    <string name="sensor_expiry_group_hours">Timmar</string>
     <string name="sensor_expiry_warnings_desc">Varje vald tid varnar en gång per sensor</string>
     <string name="sensor_expiry_warnings_title">Varna innan utgången</string>
     <string name="sound_delay_desc">Vibrera först; lägg till det akustiska larmet först efter en fördröjning</string>
@@ -2653,8 +2631,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_body_weight_not_set">Inte angiven. Viktindexerade kurvor använder referensdosen.</string>
     <!-- Alarm quiet window -->
     <string name="quiet_window_title">Tyst fönster</string>
-    <string name="quiet_window_desc">Tysta larmen ett tag; avslutas av sig självt</string>
-    <string name="quiet_window_inactive">Larmen låter som vanligt</string>
     <string name="quiet_window_active_until">Larm tysta till %1$s</string>
     <string name="quiet_window_chip">Tyst till %1$s</string>
     <string name="quiet_window_mode_title">Under fönstret</string>
@@ -2664,9 +2640,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="quiet_window_mode_notification_only_desc">Varken ljud eller vibration – det mindre säkra valet</string>
     <string name="quiet_window_start_for">Starta i</string>
     <string name="quiet_window_preset_until">Till…</string>
-    <string name="quiet_window_until_i_end">Tills jag avslutar det</string>
-    <string name="quiet_window_until_i_end_desc">Avslutas av sig självt senast efter 24 timmar</string>
-    <string name="quiet_window_very_low_note">Tystade larm behåller sin avisering och, i läget endast vibration, sin vibration. Ett som är aktivt och obesvarat längre än den inställda tiden ljuder ändå. Lågt och mycket lågt ljuder alltid igen efter den inställda tiden.</string>
     <string name="quiet_window_end_now">Avsluta nu</string>
     <string name="quiet_window_ended_title">Larmen aktiva igen</string>
     <string name="quiet_window_ended_text">Det tysta fönstret är över.</string>
@@ -2719,4 +2692,14 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_pairing_key_delete">Ta bort nyckel</string>
     <string name="aidex_pairing_key_delete_confirm">Ta bort denna parkopplingsnyckel? Du måste parkoppla sensorn igen för att få en ny.</string>
     <string name="aidex_pairing_key_deleted">Parkopplingsnyckel borttagen</string>
+    <string name="rearm_margin_label">Återaktiveringsmarginal</string>
+    <string name="rearm_min_interval_label">Minsta tid mellan larm</string>
+    <string name="pre_high_iob_coverage_label">Insulintäckning</string>
+    <string name="alert_feature_off">Av</string>
+    <string name="same_direction_suppression_title">Tyst period efter ett trendlarm</string>
+    <string name="same_direction_suppression_summary">Före nästa i den riktningen</string>
+    <plurals name="duration_hours">
+        <item quantity="one">%1$d timme</item>
+        <item quantity="other">%1$d timmar</item>
+    </plurals>
 </resources>

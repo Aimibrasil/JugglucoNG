@@ -219,7 +219,7 @@
     <string name="google_scan_desc">Usa Google Play Services per la scansione QR</string>
     <string name="mirror_desc">Condividi/Ricevi dati via Internet/Rete domestica</string>
     <string name="nightscout_desc">Carica/Segui</string>
-    <string name="glucose_alerts_title">Avvisi glicemia</string>
+    <string name="glucose_alerts_title">Avvisi e allarmi</string>
     <string name="glucose_range_title">Intervallo glicemico</string>
     <string name="target_short_title">Target</string>
     <string name="chart_short_title">Grafico</string>
@@ -486,7 +486,6 @@
     <string name="alert_active_from_to_next_day">Allarmi attivi dalle %1$s alle %2$s (giorno successivo)</string>
     <string name="alert_after">Avvisa dopo</string>
     <string name="alert_name">Nome avviso</string>
-    <string name="alert_style">Stile avviso</string>
     <string name="app_default_sound">Suono predefinito app</string>
     <string name="custom_high">Personalizzato alto</string>
     <string name="custom_low">Personalizzato basso</string>
@@ -497,28 +496,18 @@
     <string name="end">Fine</string>
     <string name="high_alert">Allarme alto</string>
     <string name="high_alerts">Allarmi alti</string>
-    <string name="high_alerts_title">Allarmi alti</string>
+    <string name="high_alerts_title">Avvisi alti</string>
     <string name="look_ahead">Anteprima</string>
     <string name="low_alert">Allarme basso</string>
     <string name="low_alerts">Allarmi bassi</string>
-    <string name="low_alerts_title">Allarmi bassi</string>
+    <string name="low_alerts_title">Avvisi bassi</string>
     <string name="max_retries">Tentativi massimi</string>
     <string name="minutes_short_format">%1$d min</string>
     <string name="only_alert_during_hours">Avvisa solo nelle ore selezionate</string>
-    <string name="other_alerts">Altri avvisi</string>
-    <string name="predictive_alerts">Avvisi predittivi</string>
-    <string name="preemptive_snooze">Snooze preventivo</string>
-    <string name="preemptive_snooze_desc">Posticipa gli avvisi prima che si attivino</string>
-    <string name="notification_dismiss_action_title">Azione alla chiusura della notifica</string>
-    <string name="notification_dismiss_action_summary">Scorri o chiudi le notifiche</string>
+    <string name="other_alerts">Sensore e connessione</string>
+    <string name="predictive_alerts">Tendenze e previsioni</string>
     <string name="notification_dismiss_action_dismiss">Ignora</string>
     <string name="notification_dismiss_action_snooze">Posticipa</string>
-    <string name="same_direction_suppression_title">Periodo di silenzio dopo un avviso della stessa direzione</string>
-    <string name="same_direction_suppression_summary">Dopo aver ignorato o posticipato un avviso di discesa o di salita, gli altri avvisi della stessa direzione restano silenziosi per questo tempo. Basso, molto basso e molto alto scattano sempre.</string>
-    <string name="acknowledged_high_coverage_title">Gli avvisi di salita confermati coprono « Alto »</string>
-    <string name="acknowledged_high_coverage_summary">Dopo aver ignorato o posticipato « Salita rapida », « Alto previsto » o « Alto », gli altri avvisi restano silenziosi per il periodo indicato sopra. « Molto alto » suona sempre.</string>
-    <string name="alarm_return_to_previous_app_title">Torna all\'app precedente dopo l\'allarme</string>
-    <string name="alarm_return_to_previous_app_summary">Dopo un allarme a schermo intero, torna all\'app che stavi usando invece di aprire JugglucoNG</string>
     <string name="realert_if_not_dismissed">Ripeti se non ignorato</string>
     <string name="retry_every">Ripeti ogni</string>
     <string name="retry_if_no_reaction">Ripeti se nessuna reazione</string>
@@ -528,13 +517,6 @@
     <string name="system_default_sound">Suono di sistema predefinito</string>
     <string name="tap_to_change">Tocca per cambiare</string>
     <string name="threshold_label">Soglia</string>
-    <string name="rearm_margin_label">Margine di riarmo</string>
-    <string name="rearm_min_interval_label">Tempo minimo tra gli allarmi</string>
-    <string name="pre_high_iob_coverage_label">Copertura insulinica</string>
-    <string name="alert_feature_off">Disattivato</string>
-    <string name="fall_rate_slanting_down">in leggera discesa</string>
-    <string name="fall_rate_falling">in discesa</string>
-    <string name="fall_rate_falling_fast">in rapida discesa</string>
     <string name="persistent_high_fall_suppress_label">Silenzia in discesa</string>
     <string name="time_range_summary">%1$s - %2$s</string>
     <string name="volume_vibration_profile">Profilo volume/vibrazione</string>
@@ -1202,7 +1184,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="hours_remaining">%1$d ore rimanenti</string>
     <string name="import_profile_merge">Importa profilo (unisci)</string>
     <string name="import_profile_replace">Importa profilo (sostituisci)</string>
-    <string name="intensity">Intensità</string>
     <string name="intercept">Intercettare</string>
     <string name="introhelp">Aiuto introduttivo</string>
     <string name="invalid_profile">Profilo non valido</string>
@@ -1212,14 +1193,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="libreview">LibreView</string>
     <string name="locationpermission">Autorizzazione alla posizione</string>
     <string name="loghelp">Accedi alla Guida</string>
-    <string name="master_alert_control">Controllo principale degli avvisi</string>
+    <string name="master_alert_control">Tutti gli avvisi</string>
     <string name="mealhelp">Aiuto per i pasti</string>
     <string name="metrics">Metriche</string>
     <string name="mirror_connection_settings_help_text">Impostazioni di connessione per questo endpoint mirror.</string>
     <string name="mirror_settings_help_text">Configurare le impostazioni di invio/ricezione e del server mirror.</string>
     <string name="model">Modello</string>
     <string name="anytime_sensor_telemetry">Iw / Ib / T</string>
-    <string name="modes">Modalità</string>
     <string name="retry_constantly">Continuamente</string>
     <string name="retry_forever">Ripeti per sempre</string>
     <string name="retry_summary_constant">Continuamente • %1$d ripetizioni</string>
@@ -2114,13 +2094,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="broadcast_computed_trend_desc">Usa il trend dell\'app invece di quello del sensore</string>
     <string name="dashboard_show_delta_desc">Variazione misurata nell\'intervallo delta, sotto la freccia di tendenza</string>
     <string name="dashboard_show_delta_title">Delta (Δ) sul cruscotto</string>
-    <string name="delta_alarm_interval_follow">Come la lettura Δ (attualmente %1$d min)</string>
-    <string name="delta_alarm_interval_label">Finestra Delta</string>
+    <string name="delta_alarm_interval_follow">Come Δ (%1$d min)</string>
+    <string name="delta_alarm_interval_label">Conta le variazioni su</string>
     <string name="delta_border_above_label">Allarme solo sopra</string>
     <string name="delta_border_below_label">Allarme solo qui sotto</string>
     <string name="delta_change_label">Modifica ogni %1$d min</string>
     <string name="delta_count_label">Letture di fila</string>
-    <string name="delta_early_trigger_desc">Inoltre, spara non appena viene coperta la distanza totale (%1$s %2$s), indipendentemente da quanti intervalli sono trascorsi</string>
+    <string name="delta_early_trigger_desc">Scatta appena la variazione totale raggiunge %1$s %2$s, per poche letture che siano servite</string>
     <string name="delta_early_trigger_label">Innesco precoce</string>
     <string name="delta_interval_1min">1 minuto</string>
     <string name="delta_interval_5min">5 minuti</string>
@@ -2149,8 +2129,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="notification_show_delta_desc">Variazione misurata nell\'intervallo delta, accanto alla freccia</string>
     <string name="notification_show_delta_title">Mostra delta (Δ)</string>
     <string name="rising_fast_explanation">Avvisa dopo %1$d intervalli consecutivi di %2$d minuti, ciascuno in aumento di almeno %3$s (≈ %4$d min di aumento sostenuto) mentre il valore è pari o superiore a %5$s. Nessuna previsione, solo il trend grezzo.</string>
-    <string name="sensor_expiry_group_days">Giorni</string>
-    <string name="sensor_expiry_group_hours">Ore</string>
     <string name="sensor_expiry_warnings_desc">Ciascun orario selezionato avvisa una volta per sensore</string>
     <string name="sensor_expiry_warnings_title">Avvertire prima della scadenza</string>
     <string name="sound_delay_desc">Vibra prima; aggiungere l\'allarme acustico solo dopo un ritardo</string>
@@ -2643,8 +2621,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_body_weight_not_set">Non impostato. Le curve basate sul peso usano la dose di riferimento.</string>
     <!-- Alarm quiet window -->
     <string name="quiet_window_title">Finestra di silenzio</string>
-    <string name="quiet_window_desc">Silenzia gli allarmi per un po’; termina da sola</string>
-    <string name="quiet_window_inactive">Gli allarmi suonano come al solito</string>
     <string name="quiet_window_active_until">Allarmi silenziati fino alle %1$s</string>
     <string name="quiet_window_chip">Silenzio fino alle %1$s</string>
     <string name="quiet_window_mode_title">Durante la finestra</string>
@@ -2654,9 +2630,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="quiet_window_mode_notification_only_desc">Né suono né vibrazione – la scelta meno sicura</string>
     <string name="quiet_window_start_for">Avvia per</string>
     <string name="quiet_window_preset_until">Fino alle…</string>
-    <string name="quiet_window_until_i_end">Finché non la termino</string>
-    <string name="quiet_window_until_i_end_desc">Termina da sola al più tardi dopo 24 ore</string>
-    <string name="quiet_window_very_low_note">Gli allarmi silenziati mantengono la notifica e, in modalità solo vibrazione, la vibrazione. Uno che resta attivo e senza risposta più a lungo del tempo impostato suona comunque. Basso e molto basso suonano sempre di nuovo dopo il tempo impostato.</string>
     <string name="quiet_window_end_now">Termina ora</string>
     <string name="quiet_window_ended_title">Allarmi di nuovo attivi</string>
     <string name="quiet_window_ended_text">La finestra di silenzio è terminata.</string>
@@ -2709,4 +2682,14 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_pairing_key_delete">Elimina chiave</string>
     <string name="aidex_pairing_key_delete_confirm">Eliminare questa chiave di associazione? Dovrai associare di nuovo il sensore per ottenerne una nuova.</string>
     <string name="aidex_pairing_key_deleted">Chiave di associazione eliminata</string>
+    <string name="rearm_margin_label">Margine di riarmo</string>
+    <string name="rearm_min_interval_label">Tempo minimo tra gli allarmi</string>
+    <string name="pre_high_iob_coverage_label">Copertura insulinica</string>
+    <string name="alert_feature_off">Disattivato</string>
+    <string name="same_direction_suppression_title">Periodo di silenzio dopo un avviso di tendenza</string>
+    <string name="same_direction_suppression_summary">Prima del successivo nella stessa direzione</string>
+    <plurals name="duration_hours">
+        <item quantity="one">%1$d ora</item>
+        <item quantity="other">%1$d ore</item>
+    </plurals>
 </resources>

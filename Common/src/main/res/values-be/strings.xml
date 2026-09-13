@@ -502,7 +502,7 @@
     <string name="google_scan_desc">Выкарыстоўваць сэрвісы Google Play для сканавання QR</string>
     <string name="mirror_desc">Дзяліцца/атрымліваць дадзеныя праз Інтэрнэт/Хатнюю сетку</string>
     <string name="nightscout_desc">Загрузка/назіранне</string>
-    <string name="glucose_alerts_title">Апавяшчэнні пра глюкозу</string>
+    <string name="glucose_alerts_title">Апавяшчэнні і сігналы</string>
     <string name="glucose_range_title">Дыяпазон глюкозы</string>
     <string name="target_short_title">Мэта</string>
     <string name="chart_short_title">Графік</string>
@@ -603,7 +603,6 @@
     <string name="alert_active_from_to_next_day">Апавяшчэнні актыўныя з %1$s да %2$s (наступны дзень)</string>
     <string name="alert_after">Апавяшчаць праз</string>
     <string name="alert_name">Назва апавяшчэння</string>
-    <string name="alert_style">Стыль апавяшчэння</string>
     <string name="app_default_sound">Гук праграмы па змаўчанні</string>
     <string name="custom_high">Карыстальніцкі высокі</string>
     <string name="custom_low">Карыстальніцкі нізкі</string>
@@ -622,20 +621,10 @@
     <string name="max_retries">Макс. паўтораў</string>
     <string name="minutes_short_format">%1$d хв</string>
     <string name="only_alert_during_hours">Апавяшчаць толькі ў выбраныя гадзіны</string>
-    <string name="other_alerts">Іншыя апавяшчэнні</string>
-    <string name="predictive_alerts">Прагнозныя апавяшчэнні</string>
-    <string name="preemptive_snooze">Папераджальнае адкладанне</string>
-    <string name="preemptive_snooze_desc">Адкласці апавяшчэнні да іх спрацоўвання</string>
-    <string name="notification_dismiss_action_title">Дзеянне пры закрыцці апавяшчэння</string>
-    <string name="notification_dismiss_action_summary">Змахванне або закрыццё апавяшчэнняў</string>
+    <string name="other_alerts">Датчык і злучэнне</string>
+    <string name="predictive_alerts">Трэнды і прагнозы</string>
     <string name="notification_dismiss_action_dismiss">Закрыць</string>
     <string name="notification_dismiss_action_snooze">Адкласці</string>
-    <string name="same_direction_suppression_title">Ціхі перыяд пасля сігналу таго ж кірунку</string>
-    <string name="same_direction_suppression_summary">Пасля адхілення або адкладання сігналу пра падзенне або рост іншыя сігналы таго ж кірунку маўчаць на працягу гэтага часу. Нізкі, вельмі нізкі і вельмі высокі спрацоўваюць заўсёды.</string>
-    <string name="acknowledged_high_coverage_title">Пацверджаныя сігналы росту замяняюць «Высокі»</string>
-    <string name="acknowledged_high_coverage_summary">Пасля адхілення або адкладання сігналу «Хуткі рост», «Прагназаваны высокі» ці «Высокі» іншыя з іх маўчаць на працягу часу вышэй. «Вельмі высокі» спрацоўвае заўсёды.</string>
-    <string name="alarm_return_to_previous_app_title">Вяртацца да папярэдняй праграмы пасля сігналу</string>
-    <string name="alarm_return_to_previous_app_summary">Пасля поўнаэкраннага сігналу вяртацца да праграмы, якой вы карысталіся, замест адкрыцця JugglucoNG</string>
     <string name="realert_if_not_dismissed">Паўтараць, калі не адхілена</string>
     <string name="retry_every">Паўтараць кожныя</string>
     <string name="retry_if_no_reaction">Паўтараць пры адсутнасці рэакцыі</string>
@@ -645,13 +634,6 @@
     <string name="system_default_sound">Сістэмны гук па змаўчанні</string>
     <string name="tap_to_change">Націсніце, каб змяніць</string>
     <string name="threshold_label">Парог</string>
-    <string name="rearm_margin_label">Запас да паўторнага спрацоўвання</string>
-    <string name="rearm_min_interval_label">Мінімальны інтэрвал паміж трывогамі</string>
-    <string name="pre_high_iob_coverage_label">Пакрыццё інсулінам</string>
-    <string name="alert_feature_off">Выкл.</string>
-    <string name="fall_rate_slanting_down">нахілена ўніз</string>
-    <string name="fall_rate_falling">падае</string>
-    <string name="fall_rate_falling_fast">хутка падае</string>
     <string name="persistent_high_fall_suppress_label">Ціха пры падзенні</string>
     <string name="time_range_summary">%1$s - %2$s</string>
     <string name="volume_vibration_profile">Профіль гучнасці/вібрацыі</string>
@@ -1211,7 +1193,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="hours_remaining">Засталося %1$d гадзін</string>
     <string name="import_profile_merge">Імпартаваць профіль (аб\'яднаць)</string>
     <string name="import_profile_replace">Імпартаваць профіль (замяніць)</string>
-    <string name="intensity">Інтэнсіўнасць</string>
     <string name="intercept">Перахоп</string>
     <string name="introhelp">Уступная даведка</string>
     <string name="invalid_profile">Няправільны профіль</string>
@@ -1221,14 +1202,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="libreview">LibreView</string>
     <string name="locationpermission">Дазвол на месцазнаходжанне</string>
     <string name="loghelp">Даведка па часопісе</string>
-    <string name="master_alert_control">Галоўны кантроль абвесткі</string>
+    <string name="master_alert_control">Усе апавяшчэнні</string>
     <string name="mealhelp">Даведка аб ежы</string>
     <string name="metrics">Метрыка</string>
     <string name="mirror_connection_settings_help_text">Налады злучэння для гэтай люстраной канчатковай кропкі.</string>
     <string name="mirror_settings_help_text">Наладзьце параметры сервера адпраўкі/атрымання і люстэрка.</string>
     <string name="model">мадэль</string>
     <string name="anytime_sensor_telemetry">Iw / Ib / T</string>
-    <string name="modes">Рэжымы</string>
     <string name="retry_constantly">Пастаянна</string>
     <string name="retry_forever">Паўтараць бясконца</string>
     <string name="retry_summary_constant">Пастаянна • %1$d паўтораў</string>
@@ -2191,13 +2171,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="broadcast_computed_trend_desc">Выкарыстоўваць трэнд праграмы замест трэнду датчыка</string>
     <string name="dashboard_show_delta_desc">Вымеранае змяненне ў дэльта-інтэрвале пад стрэлкай трэнду</string>
     <string name="dashboard_show_delta_title">Дэльта (Δ) на прыборнай панэлі</string>
-    <string name="delta_alarm_interval_follow">Счытванне Like Δ (у цяперашні час мін. %1$d)</string>
-    <string name="delta_alarm_interval_label">Дэльтавае акно</string>
+    <string name="delta_alarm_interval_follow">Як Δ (%1$d хв)</string>
+    <string name="delta_alarm_interval_label">Лічыць змены за</string>
     <string name="delta_border_above_label">Трывога толькі вышэй</string>
     <string name="delta_border_below_label">Сігналізацыя толькі ўнізе</string>
     <string name="delta_change_label">Змена за %1$d мін</string>
     <string name="delta_count_label">Чытанні запар</string>
-    <string name="delta_early_trigger_desc">Таксама страляйце, як толькі пройдзеная агульная адлегласць (%1$s %2$s), незалежна ад таго, колькі інтэрвалаў прайшло</string>
+    <string name="delta_early_trigger_desc">Спрацоўвае, як толькі сумарная змена дасягне %1$s %2$s, колькі б паказанняў гэта ні заняло</string>
     <string name="delta_early_trigger_label">Ранні трыгер</string>
     <string name="delta_interval_1min">1 хв</string>
     <string name="delta_interval_5min">5 хвілін</string>
@@ -2226,8 +2206,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="notification_show_delta_desc">Вымеранае змяненне ў дэльта-інтэрвале побач са стрэлкай</string>
     <string name="notification_show_delta_title">Паказаць дэльта (Δ)</string>
     <string name="rising_fast_explanation">Папярэджвае пасля %1$d паслядоўных %2$d-хвілінных інтэрвалаў, кожны з якіх павялічваецца па меншай меры на %3$s (≈ %4$d мін. працяглага росту), калі значэнне роўна або вышэй за %5$s. Ніякіх прагнозаў, толькі сырая тэндэнцыя.</string>
-    <string name="sensor_expiry_group_days">дзён</string>
-    <string name="sensor_expiry_group_hours">Гадзіны</string>
     <string name="sensor_expiry_warnings_desc">Кожны выбраны час папярэджвае па адным датчыку</string>
     <string name="sensor_expiry_warnings_title">Папярэджваць перад заканчэннем тэрміну прыдатнасці</string>
     <string name="sound_delay_desc">Спачатку вібраваць; дадаць гукавы сігнал толькі пасля затрымкі</string>
@@ -2724,8 +2702,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_body_weight_not_set">Не зададзена. Крывыя, залежныя ад масы, выкарыстоўваюць эталонную дозу.</string>
     <!-- Alarm quiet window -->
     <string name="quiet_window_title">Ціхае акно</string>
-    <string name="quiet_window_desc">Прыглушыць сігналы на час; заканчваецца само</string>
-    <string name="quiet_window_inactive">Сігналы гучаць як звычайна</string>
     <string name="quiet_window_active_until">Сігналы без гуку да %1$s</string>
     <string name="quiet_window_chip">Без гуку да %1$s</string>
     <string name="quiet_window_mode_title">Падчас акна</string>
@@ -2735,9 +2711,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="quiet_window_mode_notification_only_desc">Без гуку і без вібрацыі – менш бяспечны выбар</string>
     <string name="quiet_window_start_for">Запусціць на</string>
     <string name="quiet_window_preset_until">Да…</string>
-    <string name="quiet_window_until_i_end">Пакуль я не скончу</string>
-    <string name="quiet_window_until_i_end_desc">Заканчваецца само не пазней чым праз 24 гадзіны</string>
-    <string name="quiet_window_very_low_note">Прыглушаныя сігналы захоўваюць апавяшчэнне і, у рэжыме толькі вібрацыі, вібрацыю. Той, што застаецца актыўным і без адказу даўжэй за зададзены час, усё роўна прагучыць. Нізкі і вельмі нізкі пасля зададзенага часу прагучаць зноў заўсёды.</string>
     <string name="quiet_window_end_now">Скончыць зараз</string>
     <string name="quiet_window_ended_title">Сігналы зноў актыўныя</string>
     <string name="quiet_window_ended_text">Ціхае акно скончылася.</string>
@@ -2790,4 +2763,16 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_pairing_key_delete">Выдаліць ключ</string>
     <string name="aidex_pairing_key_delete_confirm">Выдаліць гэты ключ спалучэння? Каб атрымаць новы, трэба зноў спалучыць датчык.</string>
     <string name="aidex_pairing_key_deleted">Ключ спалучэння выдалены</string>
+    <string name="rearm_margin_label">Запас да паўторнага спрацоўвання</string>
+    <string name="rearm_min_interval_label">Мінімальны інтэрвал паміж трывогамі</string>
+    <string name="pre_high_iob_coverage_label">Пакрыццё інсулінам</string>
+    <string name="alert_feature_off">Выкл.</string>
+    <string name="same_direction_suppression_title">Ціхі перыяд пасля сігналу пра трэнд</string>
+    <string name="same_direction_suppression_summary">Да наступнага ў тым жа кірунку</string>
+    <plurals name="duration_hours">
+        <item quantity="one">%1$d гадзіна</item>
+        <item quantity="few">%1$d гадзіны</item>
+        <item quantity="many">%1$d гадзін</item>
+        <item quantity="other">%1$d гадзіны</item>
+    </plurals>
 </resources>
