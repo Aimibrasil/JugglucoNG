@@ -21,7 +21,7 @@ import java.util.Locale
 object SettingsExporter {
     private const val TAG = "SettingsExporter"
     internal const val SCHEMA = "tk.glucodata.settings-export"
-    private const val SCHEMA_VERSION = 3
+    private const val SCHEMA_VERSION = 4
 
     private val nativeSettingsFiles = listOf(
         "settings.dat",
@@ -501,6 +501,12 @@ object SettingsExporter {
             .putNullable("sourceRecordId", sourceRecordId)
             .put("createdAt", createdAt)
             .put("updatedAt", updatedAt)
+            .putNullable("insulinCurveJsonSnapshot", insulinCurveJsonSnapshot)
+            .putNullable("insulinCurveProfileId", insulinCurveProfileId)
+            .putNullable("insulinCurveModelVersion", insulinCurveModelVersion)
+            .putNullable("insulinCurveEvidence", insulinCurveEvidence)
+            .putNullable("insulinBodyWeightKg", insulinBodyWeightKg)
+            .put("insulinCurveWasApproximated", insulinCurveWasApproximated)
     }
 
     private fun JournalInsulinPresetEntity.toJson(): JSONObject {
@@ -516,6 +522,9 @@ object SettingsExporter {
             .put("countsTowardIob", countsTowardIob)
             .put("useForCalculation", useForCalculation)
             .put("sortOrder", sortOrder)
+            .putNullable("curveProfileId", curveProfileId)
+            .put("curveModelVersion", curveModelVersion)
+            .put("curveEvidence", curveEvidence)
     }
 
     private fun JournalFoodEntity.toJson(): JSONObject {
@@ -558,7 +567,16 @@ object SettingsExporter {
                         source = item.optString("source", "import"),
                         sourceRecordId = item.optNullableString("sourceRecordId"),
                         createdAt = item.optLong("createdAt", item.getLong("timestamp")),
-                        updatedAt = item.optLong("updatedAt", item.getLong("timestamp"))
+                        updatedAt = item.optLong("updatedAt", item.getLong("timestamp")),
+                        insulinCurveJsonSnapshot = item.optNullableString("insulinCurveJsonSnapshot"),
+                        insulinCurveProfileId = item.optNullableString("insulinCurveProfileId"),
+                        insulinCurveModelVersion = item.optNullableInt("insulinCurveModelVersion"),
+                        insulinCurveEvidence = item.optNullableString("insulinCurveEvidence"),
+                        insulinBodyWeightKg = item.optNullableFloat("insulinBodyWeightKg"),
+                        insulinCurveWasApproximated = item.optBoolean(
+                            "insulinCurveWasApproximated",
+                            false
+                        )
                     )
                 )
             }
@@ -611,7 +629,10 @@ object SettingsExporter {
                             "useForCalculation",
                             !(item.optBoolean("isBuiltIn", false) &&
                                 item.optInt("sortOrder", index) in setOf(1, 10))
-                        )
+                        ),
+                        curveProfileId = item.optNullableString("curveProfileId"),
+                        curveModelVersion = item.optInt("curveModelVersion", 0),
+                        curveEvidence = item.optString("curveEvidence", "unverified")
                     )
                 )
             }
