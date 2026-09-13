@@ -1,5 +1,3 @@
-@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-
 package tk.glucodata.ui
 
 import android.content.Intent
@@ -8,10 +6,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -21,10 +19,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -356,49 +361,62 @@ internal fun SensorTraceLog(sensor: SensorInfo) {
                 softWrap = true,
             )
         }
-        // A text button carries its own 8dp of vertical padding inside a 40dp target, so any
-        // gap added here lands on top of that and the log ends up floating above its actions.
-        // Three labelled buttons do not fit a card on one line in every language -- Kopieren,
-        // Teilen, Speichern already overflow -- so they wrap rather than being clipped.
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
-        ) {
-            TextButton(onClick = { clipboard.setText(AnnotatedString(rendered)) }) {
-                Icon(Icons.Default.ContentCopy, contentDescription = null)
-                Spacer8()
-                Text(stringResource(R.string.copy))
-            }
-            TextButton(
-                onClick = {
-                    val share = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, rendered)
-                    }
-                    runCatching {
-                        context.startActivity(
-                            Intent.createChooser(share, context.getString(R.string.sensor_connection_log))
-                        )
-                    }
-                },
-            ) {
-                Icon(Icons.Default.Share, contentDescription = null)
-                Spacer8()
-                Text(stringResource(R.string.share))
-            }
-            TextButton(
-                onClick = { saveLauncher.launch(sensorTraceExportName(sensor.serial)) },
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null)
-                Spacer8()
-                Text(stringResource(R.string.save))
-            }
-        }
+        // The log's scrollbar and the header's chevron both end at the card padding. An icon
+        // button is a 40dp circle inside a 48dp target, so the row is nudged by that 4dp
+        // overhang and the last button's rim lands on the padding, not past it.
+        TraceLogActions(
+            onCopy = { clipboard.setText(AnnotatedString(rendered)) },
+            onShare = {
+                val share = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, rendered)
+                }
+                runCatching {
+                    context.startActivity(
+                        Intent.createChooser(share, context.getString(R.string.sensor_connection_log))
+                    )
+                }
+            },
+            onSave = { saveLauncher.launch(sensorTraceExportName(sensor.serial)) },
+        )
     }
 }
 
+/**
+ * Copy, share and save as icon buttons at the card's trailing edge, the way a card's supporting
+ * actions sit in Material 3. Labelled buttons could not survive translation: three of them with
+ * icons fit an English card and not a Russian or German one, and any fallback made the card
+ * look different from one language to the next. These three glyphs are the most literal ones
+ * there are, and a long press names each one.
+ */
 @Composable
-private fun Spacer8() {
-    androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
+private fun TraceLogActions(onCopy: () -> Unit, onShare: () -> Unit, onSave: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().offset(x = 4.dp),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        TraceLogAction(Icons.Default.ContentCopy, R.string.copy, onCopy)
+        TraceLogAction(Icons.Default.Share, R.string.share, onShare)
+        TraceLogAction(Icons.Default.Save, R.string.save, onSave)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TraceLogAction(icon: ImageVector, label: Int, onClick: () -> Unit) {
+    val text = stringResource(label)
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text(text) } },
+        state = rememberTooltipState(),
+    ) {
+        IconButton(
+            onClick = onClick,
+            colors = IconButtonDefaults.iconButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+        ) {
+            Icon(icon, contentDescription = text)
+        }
+    }
 }
