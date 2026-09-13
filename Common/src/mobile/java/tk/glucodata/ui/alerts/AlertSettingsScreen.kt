@@ -189,7 +189,10 @@ fun AlertSettingsScreen(
     // Collected outside the LazyColumn: the quiet-window card only exists while
     // something can be silenced, or while a window runs.
     val quietWindowStateNow by tk.glucodata.alerts.QuietWindow.state.collectAsState()
+    // One Advanced state for every card on this screen.
+    val advancedOpen = rememberSaveable { mutableStateOf(false) }
 
+    CompositionLocalProvider(LocalAlertsAdvancedOpen provides advancedOpen) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -574,6 +577,7 @@ fun AlertSettingsScreen(
                 onDismiss = { soundPickerRequest = null }
             )
         }
+    }
     }
 }
 
