@@ -842,7 +842,7 @@ fun ExpressiveSettingsScreen(
     )
     
     if (showExportDialog) {
-        val sheetState = rememberModalBottomSheetState()
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ExportDataSettingsSheet(
             onDismiss = { showExportDialog = false },
             sheetState = sheetState
