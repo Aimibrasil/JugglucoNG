@@ -102,12 +102,10 @@ fun ExpressiveSettingsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val mqAccountState = tk.glucodata.drivers.mq.MQRegistry.loadAccountState(context)
-    val showMqAccount =
-        tk.glucodata.drivers.mq.MQRegistry.persistedRecords(context).isNotEmpty() ||
-            mqAccountState.hasCredentials ||
-            mqAccountState.hasToken ||
-            tk.glucodata.drivers.mq.MQRegistry.isCloudSyncEnabled(context)
+    val sensorStatusRevision by tk.glucodata.UiRefreshBus.revision.collectAsState()
+    val showMqAccount = remember(context, sensorStatusRevision) {
+        tk.glucodata.drivers.mq.MQRegistry.persistedRecords(context).isNotEmpty()
+    }
     // LibreView is relevant whenever the account is already set up *or* a Libre-family
     // sensor is active — the account no longer has to be configured in the setup wizard first.
     val showLibreView = remember {

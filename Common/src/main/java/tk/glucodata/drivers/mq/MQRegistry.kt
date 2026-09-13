@@ -252,6 +252,7 @@ object MQRegistry {
             connectSensor(context, sensorId)
         }
         ManagedSensorUiSignals.markDeviceListDirty()
+        tk.glucodata.UiRefreshBus.requestStatusRefresh()
         return sensorId
     }
 
@@ -381,6 +382,7 @@ object MQRegistry {
             .remove("${MQConstants.PREF_QR_CONTENT_PREFIX}$canonical")
             .commit()
         ManagedSensorUiSignals.markDeviceListDirty()
+        tk.glucodata.UiRefreshBus.requestStatusRefresh()
     }
 
     // ---- Per-sensor config accessors (used by MQBleManager) ----

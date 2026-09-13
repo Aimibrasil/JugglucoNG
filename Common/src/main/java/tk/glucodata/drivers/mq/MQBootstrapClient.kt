@@ -5,7 +5,6 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
-import kotlin.math.roundToInt
 import org.json.JSONObject
 import tk.glucodata.Log
 
@@ -138,7 +137,13 @@ object MQBootstrapClient {
 
         qrCode?.trim()?.takeIf { it.isNotEmpty() }?.let { code ->
             val result = fetchQrConfig(endpoints, code, authToken)
-            merged = merged.merge(result.config)
+            val qrConfig = result.config?.let {
+                it.copy(sensitivity = MQBootstrapSeed.normalizeSensitivity(it.sensitivity, merged?.transmitter10))
+            }
+            if (result.config?.sensitivity != null && qrConfig?.sensitivity == null) {
+                Log.w(TAG, "MQ QR sensitivity withheld: invalid sensitivity or unavailable transmitter scale")
+            }
+            merged = merged.merge(qrConfig)
             failure = mergeFailure(failure, result.failure)
             message = mergeMessage(message, result.failure, result.message)
         }
@@ -253,10 +258,9 @@ object MQBootstrapClient {
         }
 
         val transmitter10 = result.optStringOrNull("transmitter10")?.toIntOrNull()
-        var sensitivity = result.optStringOrNull("sensitivity")?.toFloatOrNull()
-        if (transmitter10 == 1 && sensitivity != null && sensitivity > 0f) {
-            sensitivity = ((sensitivity * 10f) * 10f).roundToInt() / 10f
-        }
+        val sensitivity = MQBootstrapSeed.normalizeSensitivity(
+            result.optStringOrNull("sensitivity")?.toFloatOrNull(), transmitter10,
+        )
         val baseConfig = MQBootstrapConfig(
             protocolType = result.optStringOrNull("type")?.toIntOrNull(),
             deviation = result.optStringOrNull("deviation")?.toIntOrNull(),

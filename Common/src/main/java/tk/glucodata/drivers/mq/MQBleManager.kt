@@ -660,16 +660,14 @@ class MQBleManager(
         flushPendingBgBurst("terminate")
         clearLinkWatchdogs()
         phase = Phase.IDLE
-        val sensorPtr = resolveNativeSensorPtr(SerialNumber)
-        runCatching { mBluetoothGatt?.disconnect() }
-            .onFailure { Log.stack(TAG, "terminateManagedSensor(disconnect)", it) }
-        if (sensorPtr != 0L) {
-            runCatching { Natives.finishfromSensorptr(sensorPtr) }
-                .onFailure { Log.stack(TAG, "terminateManagedSensor(finishfromSensorptr)", it) }
+        close()
+        val nativeName = resolveExistingNativeSensorName(SerialNumber)
+        if (nativeName != null) {
+            check(MQNativeSensorRemoval.removeAndConfirm(
+                SerialNumber, nativeName, Natives::removeSensorById, Natives::activeSensors,
+            )) { "MQ native sensor removal was not confirmed for $SerialNumber" }
         }
-        dataptr = 0L
-        runCatching { close() }
-            .onFailure { Log.stack(TAG, "terminateManagedSensor(close)", it) }
+        // SensorBluetooth.free() releases dataptr after both native and managed records are removed.
     }
 
     override fun resetSensor(): Boolean {
@@ -1600,25 +1598,21 @@ class MQBleManager(
 
     private fun synthesizeReferenceFromSensitivity(
         rec: MQBgRecord,
-        initTimeMinutes: Double,
         previousProcessed: Double,
     ): Double? {
         val seed = sensitivitySeed.toDouble()
         if (!hasValidSlopeSeed(seed) || rec.packetIndex < MQConstants.ALGO_WARMUP_PACKET_THRESHOLD.toInt()) {
             return null
         }
-        val seeded = MQAlgorithm.calculateResult(
+        val seeded = MQBootstrapSeed.initialReference(
             algorithmVersion = algorithmVersion,
-            initTimeMinutes = initTimeMinutes,
-            packetIndex = rec.packetIndex.toDouble(),
-            sampleCurrent = rec.sampleCurrent.toDouble(),
-            previousReviseCurrent2 = previousProcessed,
-            kValue = seed,
-            referenceBgTimes10Mmol = 0.0,
-            bValue = 2.0,
-            packages = packages.toDouble(),
+            packetIndex = rec.packetIndex,
+            sampleCurrent = rec.sampleCurrent,
+            previousProcessed = previousProcessed,
+            sensitivity = seed,
+            packages = packages,
             multiplier = multiplier.toDouble(),
-        )
+        ) ?: return null
         val syntheticReference = seeded.glucoseTimes10Mmol.toDouble()
         if (syntheticReference <= 0.0) {
             return null
@@ -1649,7 +1643,6 @@ class MQBleManager(
         if (!hasValidSlopeSeed(seedK) && reference <= 0.0) {
             reference = synthesizeReferenceFromSensitivity(
                 rec = rec,
-                initTimeMinutes = initTimeMinutes,
                 previousProcessed = previousProcessed,
             ) ?: return null
             seedK = 0.0
