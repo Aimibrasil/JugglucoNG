@@ -228,3 +228,40 @@ valid timestamps untouched. Deferred data is tied to the snapshot ID and
 cleared on sensor reset. Advance the cursor only after an actual import,
 using the recovered timestamps. This still needs device validation; it does
 not repair or validate the earlier high glucose readings.
+
+## September 15 link timeouts and unrequested transmitter restart
+
+The 01:32 and 02:25 traces overlap; do not add their event counts together.
+`juggluco-trace-20260915-022515.log` captures Pixel 8 Pro / Android 17 SDK 37
+from 23:49 to 02:25. It contains 20 disconnects with status 147: 16 while
+streaming and four while connecting. Android defines 147 as
+`BluetoothGatt.GATT_CONNECTION_TIMEOUT`. Connection attempts in the latter
+group end after about 30 seconds. Some streaming failures follow a valid
+frame by only 6.5 or 9.5 seconds; the local no-data watchdog is not logged as
+initiating them. The app schedules recovery after the Android disconnect
+callback. The only explicit local close/removal at the start is at 23:49:42.
+
+At 01:52:48 another status-147 disconnect occurs after packet 90. The next
+connection receives command 0x06 BEGIN_WORK at 01:53:24, before the app sends
+the with-init acknowledgement. No outgoing reset command is logged before
+this. The user confirms they did not initiate the restart, including through
+the official app. A generic status-257 GATT failure follows at 01:53:46;
+after reconnect the transmitter supplies packets 1–3, then 4, with zero
+current. Packet 5 has current 121, and packet 10 has 510. This is evidence of
+a transmitter session restart, not merely a UI age/calibration reset. It
+does not establish whether power, firmware, or another link-level failure
+caused it. Raw battery remains 0x32, which is not a validated percentage or
+proof of a healthy battery. No RSSI or controller-level disconnect reason
+is available in these captures.
+
+Device backfill is now directly observed: one reconnect replays packets
+72–75; another replays 84–86. These must not be described as absent device
+history. Cloud recovery is separately blocked: the local snapshot ID is
+missing, and start repeatedly returns code 302 with the account already
+monitoring message and no snapshot ID. The future-timestamp repair cannot
+recover cloud data until the matching session is identified.
+
+The pre-restart glucose calculations use K 29.37, rather than the previous
+day's restored 140.84. Their high output therefore cannot by itself diagnose
+sensor/filament failure. Repeated radio timeouts plus the unrequested session
+restart establish instability; a specific hardware failure remains unproven.
