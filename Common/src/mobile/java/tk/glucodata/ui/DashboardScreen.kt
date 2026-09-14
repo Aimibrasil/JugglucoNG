@@ -154,10 +154,12 @@ import tk.glucodata.data.journal.JournalEntry
 import tk.glucodata.data.journal.JournalEntryType
 import tk.glucodata.data.journal.JournalFood
 import tk.glucodata.data.journal.JournalInsulinPreset
-import tk.glucodata.data.prediction.calculateForecastDoseRecommendation
-import tk.glucodata.data.prediction.ForecastDoseRecommendation
 import tk.glucodata.data.prediction.GlucosePredictionSeries
-import tk.glucodata.data.prediction.GlucosePredictionSeriesKind
+import tk.glucodata.data.prediction.StateDoseHint
+import tk.glucodata.data.prediction.StateDoseHintCalculator
+import tk.glucodata.data.prediction.StateDoseHintContinuity
+import tk.glucodata.data.prediction.StateDoseHintDisplaySnapshot
+import tk.glucodata.data.prediction.StateDoseHintEvaluation
 import tk.glucodata.data.prediction.PredictiveSimulationSettings
 import tk.glucodata.data.prediction.buildGlucosePrediction
 import tk.glucodata.ui.journal.JournalDoseProfile
@@ -283,6 +285,8 @@ fun DashboardScreen(
     onNavigateToMqAccount: () -> Unit = {},
     onNavigateToReadiness: () -> Unit = {},
     onNavigateToAppUpdates: () -> Unit = {},
+    onNavigateToQuietWindow: () -> Unit = {},
+    onNavigateToPredictionModelProfile: () -> Unit = {},
     onTriggerCalibration: (CalibrationSheetState) -> Unit = {}
 ) {
     // Read once here: the LazyColumns below use Arrangement.spacedBy, which reserves its gap
@@ -310,6 +314,7 @@ fun DashboardScreen(
     val daysRemaining by viewModel.daysRemaining.collectAsState()
     val glucoseHistory by viewModel.glucoseHistory.collectAsState()
     val multiSensorDisplay by viewModel.multiSensorDisplay.collectAsState()
+    val mainSensorOwnership by viewModel.mainSensorOwnership.collectAsState()
     val peerCurrentReadings by viewModel.peerCurrentReadings.collectAsState()
     val selectedSensorIds by viewModel.selectedSensorIds.collectAsState()
     val sensorViewModes by viewModel.sensorViewModes.collectAsState()
@@ -360,6 +365,11 @@ fun DashboardScreen(
     val dashboardRowsShowDelta by viewModel.dashboardRowsShowDelta.collectAsState()
     val deltaIntervalMinutes by viewModel.deltaIntervalMinutes.collectAsState()
     val journalDoseCalculatorEnabled by viewModel.journalDoseCalculatorEnabled.collectAsState()
+    val stateDoseHintEnabled by viewModel.stateDoseHintEnabled.collectAsState()
+    val stateDoseHintHorizonMinutes by viewModel.stateDoseHintHorizonMinutes.collectAsState()
+    val stateDoseHintCorrectInRange by viewModel.stateDoseHintCorrectInRange.collectAsState()
+    val stateDoseHintProfileNoticeAck by viewModel.stateDoseHintProfileNoticeAck.collectAsState()
+    val predictionModelProfileSaved by viewModel.predictionModelProfileSaved.collectAsState()
     val journalFoodMacrosEnabled by viewModel.journalFoodMacrosEnabled.collectAsState()
     val journalFoodLibraryEnabled by viewModel.journalFoodLibraryEnabled.collectAsState()
     val predictiveSimulationEnabled by viewModel.predictiveSimulationEnabled.collectAsState()
@@ -387,15 +397,13 @@ fun DashboardScreen(
     LaunchedEffect(Unit) {
         tk.glucodata.data.calibration.CalibrationManager.init(context)
         tk.glucodata.data.calibration.CalibrationManager.loadCalibrations()
-        // Retires the old "overwrite sensor values" switch and, for stores that
-        // ran with it on, records what was already displayed before anything
-        // else can move it — see HistoryRepository.
-        tk.glucodata.data.HistoryRepository(context).seedDisplayRecordsFromOverwrittenHistory()
         // Journal BG entries can arrive while the app is not running — a meter
         // handing over its stored readings, a Nightscout pull — so the derived
         // calibrations are re-paired once here rather than only on a live edit.
         tk.glucodata.data.calibration.JournalCalibrationSync.onAppStart()
     }
+    // The alarm quiet window: a header chip while one runs, nothing otherwise.
+    val quietWindowUntilMs by viewModel.quietWindowUntilMs.collectAsState()
     // State for wizards (matching SensorScreen pattern)
     var showSibionicsWizard by remember { mutableStateOf(false) }
     var showLibreWizard by remember { mutableStateOf(false) }
@@ -496,6 +504,77 @@ fun DashboardScreen(
             collapseChunks = dataSmoothingCollapseChunks
         )
     }
+    // Read off the current state, not off the far end of the forecast: the hint answers
+    // "what does the value need right now", which is a question the last point of a curve
+    // several hours out cannot answer.
+    val stateDoseHintEvaluation = remember(
+        stateDoseHintEnabled,
+        stateDoseHintHorizonMinutes,
+        stateDoseHintCorrectInRange,
+        journalEnabled,
+        consumerHistory,
+        activeInsulinSummary,
+        unit,
+        targetHigh,
+        predictionDoseTargetMgDl,
+        predictionSettings,
+        journalNow
+    ) {
+        val summary = activeInsulinSummary
+        if (!stateDoseHintEnabled || !journalEnabled) {
+            StateDoseHintEvaluation.Complete(null, 0L, null)
+        } else {
+            StateDoseHintCalculator.evaluate(
+                history = consumerHistory,
+                unit = unit,
+                targetHighDisplay = targetHigh,
+                doseTargetMgDl = predictionDoseTargetMgDl,
+                iobUnits = summary?.iobUnits,
+                parameters = predictionSettings.modelParametersAt(journalNow),
+                horizonMinutes = stateDoseHintHorizonMinutes,
+                correctInRange = stateDoseHintCorrectInRange,
+                nowMillis = journalNow,
+                maxReadingAgeMillis = Notify.glucosetimeout
+            )
+        }
+    }
+    var retainedDoseHint by remember { mutableStateOf<StateDoseHintDisplaySnapshot?>(null) }
+    val canRetainDoseHint = stateDoseHintEvaluation is StateDoseHintEvaluation.Incomplete &&
+        StateDoseHintContinuity.canRetain(
+            previous = retainedDoseHint,
+            incomplete = stateDoseHintEvaluation,
+            nowMillis = journalNow,
+            maxReadingAgeMillis = Notify.glucosetimeout
+        )
+    val stateDoseHint: StateDoseHint? = when (val evaluation = stateDoseHintEvaluation) {
+        is StateDoseHintEvaluation.Complete -> evaluation.hint
+        is StateDoseHintEvaluation.Incomplete -> retainedDoseHint?.hint.takeIf { canRetainDoseHint }
+    }
+    LaunchedEffect(stateDoseHintEvaluation, canRetainDoseHint) {
+        when (val evaluation = stateDoseHintEvaluation) {
+            is StateDoseHintEvaluation.Complete -> {
+                retainedDoseHint = evaluation.hint?.let { hint ->
+                    StateDoseHintDisplaySnapshot(
+                        hint = hint,
+                        latestTimestamp = evaluation.latestTimestamp,
+                        sensorSerial = evaluation.sensorSerial
+                    )
+                }
+            }
+            is StateDoseHintEvaluation.Incomplete -> {
+                if (!canRetainDoseHint) {
+                    retainedDoseHint = null
+                } else {
+                    android.util.Log.d(
+                        "StateDoseHint",
+                        "Holding previous hint during incomplete history snapshot"
+                    )
+                    delay(StateDoseHintContinuity.INCOMPLETE_HOLD_MILLIS)
+                    retainedDoseHint = null
+                }
+            }
+        }
+    }
     val predictionSeries = remember(
         journalEnabled,
         predictionSettings,
@@ -519,41 +598,11 @@ fun DashboardScreen(
             settings = predictionSettings
         )
     }
-    val forecastDoseRecommendation: ForecastDoseRecommendation? = remember(
-        journalDoseCalculatorEnabled,
-        predictionSeries,
-        viewMode,
-        unit,
-        targetLow,
-        predictionDoseTargetMgDl,
-        predictionSettings,
-        journalNow
-    ) {
-        if (!journalDoseCalculatorEnabled) {
-            null
-        } else {
-            val primarySeries = predictionSeries.lastOrNull {
-                it.kind == GlucosePredictionSeriesKind.CALIBRATED
-            } ?: predictionSeries.firstOrNull {
-                it.kind == if (viewMode == 1 || viewMode == 3) {
-                    GlucosePredictionSeriesKind.RAW
-                } else {
-                    GlucosePredictionSeriesKind.AUTO
-                }
-            } ?: predictionSeries.firstOrNull()
-            primarySeries?.let {
-                calculateForecastDoseRecommendation(
-                    predictionPoints = it.points,
-                    unit = unit,
-                    targetLow = targetLow,
-                    doseTargetMgDl = predictionDoseTargetMgDl,
-                    settings = predictionSettings,
-                    nowMillis = journalNow,
-                    maxBaselineAgeMillis = Notify.glucosetimeout
-                )
-            }
-        }
-    }
+    val stateDoseHintProfileNoticeDue = StateDoseHintCalculator.profileNoticeDue(
+        hintPresent = stateDoseHint != null,
+        modelProfileSaved = predictionModelProfileSaved,
+        noticeAcknowledged = stateDoseHintProfileNoticeAck
+    )
     // Per-peer prediction series so the simulation extends every drawn line,
     // not just the primary. Same journal/settings (same person), each peer's
     // own points + view mode.
@@ -571,7 +620,24 @@ fun DashboardScreen(
         if (multiSensorDisplay.isEmpty || !predictionSettings.enabled) {
             emptyMap()
         } else {
-            multiSensorDisplay.series.associate { peer ->
+            // Only series that are still running get a prediction.
+            //
+            // A prediction extends a line forward from its last point, so a
+            // series that stopped in the past projects a curve out of the middle
+            // of the chart — a simulation of a future that has already happened.
+            // Any retired sensor could do this; what made it routine is the
+            // historical fragment drawn for a swapped-in main sensor, which by
+            // construction ends at the grace-window boundary, so the leftover
+            // curves appeared exactly an hour back every time.
+            //
+            // The chart's own gap rule is the freshness test: a series whose
+            // last point is further behind than the chart would bridge is not
+            // producing readings, and nothing should be extrapolated from it.
+            val predictionFreshnessCutoff =
+                System.currentTimeMillis() - tk.glucodata.GlucoseChartGap.THRESHOLD_MS
+            multiSensorDisplay.series.filter { peer ->
+                (peer.points.lastOrNull()?.timestamp ?: 0L) >= predictionFreshnessCutoff
+            }.associate { peer ->
                 peer.sensorId to buildPredictionSeriesForChart(
                     points = peer.points,
                     journalEntries = if (journalEnabled) scopedJournalEntries else emptyList(),
@@ -643,8 +709,8 @@ fun DashboardScreen(
     ) { uri ->
         if (uri != null) {
             coroutineScope.launch {
-                when {
-                    tk.glucodata.data.ExportPackageExporter.isExportPackage(context, uri) -> {
+                when (tk.glucodata.data.ExportPackageExporter.detectImportFileType(context, uri)) {
+                    tk.glucodata.data.ExportPackageExporter.ImportFileType.EXPORT_PACKAGE -> {
                         tk.glucodata.data.ExportPackageExporter.importHistoryFromPackage(context, uri)
                             .onSuccess { outcome ->
                                 if (outcome == null || outcome.readings == 0) {
@@ -659,11 +725,11 @@ fun DashboardScreen(
                                 toast(context.getString(R.string.import_failed_with_error, throwable.localizedMessage ?: ""))
                             }
                     }
-                    tk.glucodata.data.SettingsExporter.isSettingsExport(context, uri) -> {
+                    tk.glucodata.data.ExportPackageExporter.ImportFileType.SETTINGS -> {
                         // A valid JugglucoNG settings export contains no glucose data
                         toast(context.getString(R.string.import_no_glucose))
                     }
-                    else -> {
+                    tk.glucodata.data.ExportPackageExporter.ImportFileType.OTHER -> {
                         val result = tk.glucodata.data.HistoryExporter.importFromCsv(context, uri)
                         when {
                             result.success && result.successCount > 0 -> {
@@ -1323,6 +1389,8 @@ fun DashboardScreen(
                     importLauncher.launch(
                         arrayOf(
                             "application/json",
+                            "application/gzip",
+                            "application/zstd",
                             "text/csv",
                             "text/comma-separated-values",
                             "text/tab-separated-values",
@@ -1338,6 +1406,13 @@ fun DashboardScreen(
                         DashboardAppUpdateBanner(
                             modifier = Modifier.padding(top = 12.dp),
                             onOpenAppUpdates = onNavigateToAppUpdates
+                        )
+                    }
+                    if (stateDoseHintProfileNoticeDue) {
+                        StateDoseHintProfileBanner(
+                            modifier = Modifier.padding(top = 12.dp),
+                            onAcknowledge = { viewModel.acknowledgeStateDoseHintProfileNotice() },
+                            onOpenModelProfile = onNavigateToPredictionModelProfile
                         )
                     }
                 }
@@ -1387,6 +1462,8 @@ fun DashboardScreen(
                             showDelta = dashboardShowDelta,
                             deltaIntervalMinutes = deltaIntervalMinutes,
                             arrowForecastColorsEnabled = glucoseArrowForecastEnabled,
+                            quietWindowUntilMs = quietWindowUntilMs,
+                            onQuietWindowClick = onNavigateToQuietWindow,
                             onHeroClick = {
                                 val autoVal = latestPoint?.value ?: tk.glucodata.GlucoseValueParser.parseFirstOrZero(currentGlucose)
                                 val rawVal = latestPoint?.rawValue ?: autoVal
@@ -1421,6 +1498,15 @@ fun DashboardScreen(
                     if (appUpdateBannerVisible) {
                         item {
                             DashboardAppUpdateBanner(onOpenAppUpdates = onNavigateToAppUpdates)
+                        }
+                    }
+
+                    if (stateDoseHintProfileNoticeDue) {
+                        item {
+                            StateDoseHintProfileBanner(
+                                onAcknowledge = { viewModel.acknowledgeStateDoseHintProfileNotice() },
+                                onOpenModelProfile = onNavigateToPredictionModelProfile
+                            )
                         }
                     }
 
@@ -1529,12 +1615,13 @@ fun DashboardScreen(
                                     modifier = Modifier.fillMaxSize(),
                                     glucoseHistory = glucoseHistory,
                                     multiSensorDisplay = multiSensorDisplay,
+                                    mainSensorOwnership = mainSensorOwnership,
                                     peerPredictionSeries = peerPredictionSeries,
                                     journalMarkers = journalChartMarkers,
                                     activeInsulinSummary = activeInsulinSummary,
+                                    stateDoseHint = stateDoseHint,
                                     activeInsulinFromRemote = activeInsulinFromRemote,
                                     showEiob = journalEiobDisplayEnabled,
-                                    forecastDoseRecommendation = forecastDoseRecommendation,
                                     appChartRangeColors = appChartRangeColorsEnabled,
                                     predictionSeries = predictionSeries,
                                     graphSmoothingMinutes = visualSmoothingMinutes,
@@ -1678,6 +1765,8 @@ fun DashboardScreen(
                             showDelta = dashboardShowDelta,
                             deltaIntervalMinutes = deltaIntervalMinutes,
                             arrowForecastColorsEnabled = glucoseArrowForecastEnabled,
+                            quietWindowUntilMs = quietWindowUntilMs,
+                            onQuietWindowClick = onNavigateToQuietWindow,
                             onHeroClick = {
                                 val autoVal = latestPoint?.value ?: tk.glucodata.GlucoseValueParser.parseFirstOrZero(currentGlucose)
                                 val rawVal = latestPoint?.rawValue ?: autoVal
@@ -1762,12 +1851,13 @@ fun DashboardScreen(
                                         .padding(bottom = 0.dp),
                                     glucoseHistory = glucoseHistory,
                                     multiSensorDisplay = multiSensorDisplay,
+                                    mainSensorOwnership = mainSensorOwnership,
                                     peerPredictionSeries = peerPredictionSeries,
                                     journalMarkers = journalChartMarkers,
                                     activeInsulinSummary = activeInsulinSummary,
+                                    stateDoseHint = stateDoseHint,
                                     activeInsulinFromRemote = activeInsulinFromRemote,
                                     showEiob = journalEiobDisplayEnabled,
-                                    forecastDoseRecommendation = forecastDoseRecommendation,
                                     appChartRangeColors = appChartRangeColorsEnabled,
                                     predictionSeries = predictionSeries,
                                     graphSmoothingMinutes = visualSmoothingMinutes,

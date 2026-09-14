@@ -74,6 +74,62 @@ internal fun liveIdLooksRolledBack(
             previousMaxId >= 0 &&
             liveId + rollbackThreshold.coerceAtLeast(0) < previousMaxId
 
+/**
+ * Whether a live id should move the timeline anchor.
+ *
+ * The anchor is ours alone -- the transmitter sends an id, never a time -- and we turn one
+ * into the other with `start = arrival - id * interval`. While ids advance each cadence the
+ * two move together and the start holds still. Once a sensor stops advancing, as a CT5 does
+ * after INFO_COMPLETE_END, `arrival` keeps moving while `id` does not, so re-anchoring on
+ * every repeat walks the stored start forward for as long as the sensor keeps transmitting.
+ * That is what dated a block of pulled history to the wrong evening.
+ *
+ * Keyed on the previous highest id, which a genuine restart resets to -1, so a re-activation
+ * anchors from its own first id exactly as before.
+ */
+internal fun shouldReanchorTimeline(
+    liveId: Int,
+    previousMaxId: Int,
+    haveTimelineStart: Boolean,
+): Boolean = liveId >= 0 && (!haveTimelineStart || liveId > previousMaxId)
+
+/**
+ * The timeline anchor to start a process with.
+ *
+ * [shouldReanchorTimeline] treats a missing anchor as "bootstrap, take whatever the
+ * first live id says". That is right for a new sensor and wrong after a restart: the
+ * anchor used to live only in memory, so every process start re-anchored on the first
+ * push, and a transmitter repeating an id it had already sent walked the stored sensor
+ * start forward by however long the app had been down.
+ *
+ * The sensor start is the fallback for installs that predate the persisted anchor, and
+ * only when an id has been seen before — without one there is nothing the anchor could
+ * have been derived from.
+ */
+internal fun restoredTimelineStartMs(
+    persistedTimelineStartMs: Long,
+    persistedSensorStartMs: Long,
+    persistedLastGlucoseId: Int,
+): Long = when {
+    persistedTimelineStartMs > 0L -> persistedTimelineStartMs
+    persistedSensorStartMs > 0L && persistedLastGlucoseId >= 0 -> persistedSensorStartMs
+    else -> 0L
+}
+
+/**
+ * Legacy families use the profile record count as a hard history boundary.
+ * CT5 does not: live ids can continue beyond the vendor's nominal 7695-record
+ * horizon, and a finite CT5 repair is already bounded by its live id.
+ */
+internal fun shouldStopAtProfileHistoryEnd(
+    family: AnytimeConstants.Family,
+    nextId: Int,
+    profileEndNumber: Int,
+): Boolean =
+    family != AnytimeConstants.Family.CT5 &&
+        profileEndNumber > 0 &&
+        nextId >= profileEndNumber
+
 internal data class AnytimePendingHistoryRoomImport(
     val glucoseId: Int,
     val source: AnytimeAlgorithm.Source,
@@ -317,6 +373,50 @@ internal fun ct5MergeGap(
     return AnytimeIdRange(capped, stopBefore)
 }
 
+/** Smallest envelope that still contains every actually missing id. */
+internal fun ct5MissingEnvelope(
+    pendingFromId: Int,
+    pendingStopBeforeId: Int,
+    cachedIds: Set<Int>,
+): AnytimeIdRange? {
+    if (pendingFromId < 0 || pendingStopBeforeId <= pendingFromId) return null
+    var firstMissing = -1
+    var lastMissing = -1
+    for (id in pendingFromId until pendingStopBeforeId) {
+        if (id !in cachedIds) {
+            if (firstMissing < 0) firstMissing = id
+            lastMissing = id
+        }
+    }
+    if (firstMissing < 0) return null
+    return AnytimeIdRange(firstMissing, lastMissing + 1)
+}
+
+/**
+ * Newest contiguous missing run inside a persisted gap envelope.
+ *
+ * A flaky CT5 can miss one reading every few pushes. Treating those sparse holes
+ * as one continuous range made an old timeout block every fresh repair. Work
+ * backwards so the live edge is repaired first, while the envelope still keeps
+ * the older holes durable for later passes.
+ */
+internal fun ct5NewestMissingRange(
+    pendingFromId: Int,
+    pendingStopBeforeId: Int,
+    cachedIds: Set<Int>,
+    maxRecords: Int,
+): AnytimeIdRange? {
+    if (pendingFromId < 0 || pendingStopBeforeId <= pendingFromId) return null
+    var endInclusive = pendingStopBeforeId - 1
+    while (endInclusive >= pendingFromId && endInclusive in cachedIds) endInclusive--
+    if (endInclusive < pendingFromId) return null
+
+    val oldestAllowed = maxOf(pendingFromId, endInclusive - maxRecords.coerceAtLeast(1) + 1)
+    var start = endInclusive
+    while (start > oldestAllowed && start - 1 !in cachedIds) start--
+    return AnytimeIdRange(start, endInclusive + 1)
+}
+
 /**
  * True when a shared loss-of-signal alarm should be ignored because the current
  * streaming session is too young to have received its next scheduled push.
@@ -329,10 +429,25 @@ internal fun shouldDeferLossOfSignalReconnect(
     streamingSinceMs: Long,
     nowMs: Long,
     graceMs: Long,
-): Boolean {
-    if (streamingSinceMs <= 0L) return false
-    val age = nowMs - streamingSinceMs
-    return age in 0 until graceMs
+): Boolean = isWithinWindow(streamingSinceMs, nowMs, graceMs)
+
+/**
+ * True when the sensor has been heard from inside [withinMs].
+ *
+ * The shared alarm is armed from the last *reading*, so a sensor pushing on cadence
+ * without producing glucose — a terminated CT5 does this for days — reads to it as
+ * silence, and it tears down a working link. A decoded push is proof the link works
+ * whether or not it carried a reading.
+ */
+internal fun hasRecentSensorData(
+    lastSensorDataAtMs: Long,
+    nowMs: Long,
+    withinMs: Long,
+): Boolean = isWithinWindow(lastSensorDataAtMs, nowMs, withinMs)
+
+private fun isWithinWindow(sinceMs: Long, nowMs: Long, windowMs: Long): Boolean {
+    if (sinceMs <= 0L) return false
+    return (nowMs - sinceMs) in 0 until windowMs
 }
 
 /**
@@ -366,6 +481,11 @@ internal class AnytimeCt5HistoryHealth(
 
     @Synchronized
     fun isPausedForThisConnection(): Boolean = pausedThisConnection
+
+    @Synchronized
+    fun pauseForThisConnection() {
+        pausedThisConnection = true
+    }
 
     @Synchronized
     fun timeoutCount(): Int = timeoutsThisConnection
@@ -414,4 +534,71 @@ internal class AnytimeCt5HistoryBatchTally {
         append(warmup).append(" warm-up/no-glucose")
         if (liveRace > 0) append(", ").append(liveRace).append(" superseded by live")
     }
+}
+
+internal data class AnytimeCt5GapFailureSnapshot(
+    val fromId: Int,
+    val stopBeforeId: Int,
+    val failures: Int,
+)
+
+/**
+ * Bounds automatic repair of a range the transmitter repeatedly cannot serve.
+ * One failure is recorded only after a GATT session exhausts its own retries.
+ */
+internal class AnytimeCt5GapFailureTracker(
+    private val maxFailedSessions: Int,
+    restored: AnytimeCt5GapFailureSnapshot? = null,
+) {
+    private var snapshot: AnytimeCt5GapFailureSnapshot? = restored
+
+    @Synchronized
+    fun onFailedSession(range: AnytimeIdRange): AnytimeIdRange? {
+        val previous = snapshot
+        val failures = if (previous?.fromId == range.fromId && previous.stopBeforeId == range.stopBeforeId) {
+            previous.failures + 1
+        } else {
+            1
+        }
+        snapshot = AnytimeCt5GapFailureSnapshot(range.fromId, range.stopBeforeId, failures)
+        if (failures < maxFailedSessions.coerceAtLeast(1)) return null
+        snapshot = null
+        return range
+    }
+
+    @Synchronized
+    fun onProgress(receivedIds: Collection<Int>) {
+        val current = snapshot ?: return
+        if (receivedIds.any { it in current.fromId until current.stopBeforeId }) snapshot = null
+    }
+
+    @Synchronized fun clear() {
+        snapshot = null
+    }
+
+    @Synchronized fun snapshot(): AnytimeCt5GapFailureSnapshot? = snapshot
+}
+
+/** A response releases only the request it actually answers; live pushes are unsolicited. */
+internal fun anytimeResponseMatchesRequest(requestOpcode: Byte, responseOpcode: Byte): Boolean =
+    when (requestOpcode) {
+        AnytimeConstants.TX_SET_DATE, 0x04.toByte() ->
+            responseOpcode == AnytimeConstants.RX_SET_DATE_ACK_A ||
+                    responseOpcode == AnytimeConstants.RX_SET_DATE_ACK_B
+        else -> requestOpcode == responseOpcode
+    }
+
+internal enum class AnytimeGattWritePriority {
+    LIVE_ACK,
+    CONTROL,
+    GAP_HISTORY,
+    BULK_HISTORY,
+}
+
+internal fun anytimeGattWritePriority(tag: String, historyReason: String): AnytimeGattWritePriority = when {
+    tag == "ct5-pushAck" -> AnytimeGattWritePriority.LIVE_ACK
+    !isAnytimeBackfillWriteTag(tag) -> AnytimeGattWritePriority.CONTROL
+    historyReason.startsWith("ct5-gap") || historyReason.startsWith("ct5-reconnect-catchup") ->
+        AnytimeGattWritePriority.GAP_HISTORY
+    else -> AnytimeGattWritePriority.BULK_HISTORY
 }

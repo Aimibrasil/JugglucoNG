@@ -132,7 +132,7 @@ class NightscoutFollowerManager(
             serial = SerialNumber,
             displayName = localizedString(R.string.nightscout_follow_title, "Nightscout follower"),
             deviceAddress = url,
-            uiFamily = ManagedSensorUiFamily.GENERIC,
+            uiFamily = ManagedSensorUiFamily.NIGHTSCOUT,
             connectionStatus = when (phase) {
                 Phase.FOLLOWING -> localizedString(R.string.nightscout_follow_status_following, "Following Nightscout")
                 Phase.SYNCING -> localizedString(R.string.nightscout_follow_status_syncing, "Refreshing Nightscout")
@@ -426,6 +426,7 @@ class NightscoutFollowerManager(
             sensorSerial = SerialNumber,
             readings = readings,
             logLabel = "Nightscout follower",
+            mirrorToNative = true,
         )
         if (tailMs > 0L) {
             lastImportedHistoryTailMs = tailMs
@@ -449,6 +450,7 @@ class NightscoutFollowerManager(
             reading = latest.copy(rate = rate),
             sensorGen = SENSOR_GEN,
             logLabel = "Nightscout follower",
+            mirrorToNative = true,
         )
     }
 
