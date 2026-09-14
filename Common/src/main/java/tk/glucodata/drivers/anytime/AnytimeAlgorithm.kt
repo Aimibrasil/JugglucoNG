@@ -175,7 +175,7 @@ object AnytimeAlgorithm {
         // Apex/Blueberry model instead of the CT3 linear default. A real vendor .so plus a
         // factory calibration still wins if both ever appear.
         if (family.family == AnytimeConstants.Family.CT2 && !(isNativeAvailable && calibration != null)) {
-            return computeCt2(record, sampleTimeMs, sensorStartTimeMs)
+            return computeCt14(record, sampleTimeMs, sensorStartTimeMs)
         }
         if (isNativeAvailable && calibration != null) {
             var nativeFailure: Result? = null
@@ -496,17 +496,17 @@ object AnytimeAlgorithm {
 
     /** CT2 aging-compensated raw current, nA. Split out so the term is unit-testable. */
     @JvmStatic
-    fun ct2RawNa(iwNa: Float, sampleTimeMs: Long, sensorStartTimeMs: Long): Float {
+    fun ct14RawNa(iwNa: Float, sampleTimeMs: Long, sensorStartTimeMs: Long): Float {
         val elapsedDays = if (sensorStartTimeMs > 0L && sampleTimeMs > sensorStartTimeMs) {
             (sampleTimeMs - sensorStartTimeMs).toFloat() / 86_400_000f
         } else {
             0f
         }
-        return iwNa + AnytimeConstants.CT2_AGING_NA_PER_DAY * elapsedDays
+        return iwNa + AnytimeConstants.CT14_AGING_NA_PER_DAY * elapsedDays
     }
 
     /**
-     * CT2/CT-14 empirical model (see [AnytimeConstants.CT2_AGING_NA_PER_DAY]):
+     * CT2/CT-14 empirical model (see [AnytimeConstants.CT14_AGING_NA_PER_DAY]):
      *
      *   raw        = Iw + 0.4 · elapsedDays      (aging drift of the sensor)
      *   stock_mmol = (raw − intercept) / slope   (default CT2 calibration)
@@ -515,13 +515,13 @@ object AnytimeAlgorithm {
      * (`AnytimeBleManager.applyUserCalibration`), on top of this stock value.
      */
     @JvmStatic
-    fun computeCt2(
+    fun computeCt14(
         record: AnytimeRawRecord,
         sampleTimeMs: Long,
         sensorStartTimeMs: Long,
     ): Result {
-        val rawNa = ct2RawNa(record.iwNa, sampleTimeMs, sensorStartTimeMs)
-        val stockMmol = (rawNa - AnytimeConstants.CT2_DEFAULT_INTERCEPT) / AnytimeConstants.CT2_DEFAULT_SLOPE
+        val rawNa = ct14RawNa(record.iwNa, sampleTimeMs, sensorStartTimeMs)
+        val stockMmol = (rawNa - AnytimeConstants.CT14_DEFAULT_INTERCEPT) / AnytimeConstants.CT14_DEFAULT_SLOPE
         val mmol = stockMmol.coerceAtLeast(AnytimeConstants.ALGO_MMOL_FLOOR.toFloat())
         val mgdlTimes10 = (mmol * 18.0f * 10f + 0.5f).toInt()
             .coerceIn(AnytimeConstants.ALGO_MGDL_MIN_TIMES10, AnytimeConstants.ALGO_MGDL_MAX_TIMES10)

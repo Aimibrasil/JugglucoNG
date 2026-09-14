@@ -345,20 +345,41 @@ object AnytimeConstants {
     /** Linear fallback Auto floor only; Raw remains unclamped and native values bypass this. */
     const val ALGO_MMOL_FLOOR = 2.2
 
-    // ---- CT2 / CT-14 empirical model (Apex/Blueberry reference, 2026-09-14) ----
+    // ---- CT-14 empirical model (Apex/Blueberry reference, 2026-09-14) ----
     //
-    // Derived from the Blueberry app's own CT-14 series: 3085 records with iw/ib/t
-    // and the model's rawGlucose/glucose. `rawGlucose` fits `Iw + CT2_AGING_NA_PER_DAY
-    // * elapsedDays` with a 0.0002 residual, and `glucose = (raw - intercept) / slope`.
-    // With no user calibration the app used slope/intercept below; `Ib` does not
-    // participate at all (rows differing only in Ib gave identical rawGlucose).
+    // "CT-14" is the product (transmitter names SN04/SN08/SN20/SN48/SN50/SN52 in
+    // the CT2 protocol family — see FAMILY_TABLE). Derived from the Blueberry app's
+    // own CT-14 series: 3085 records with iw/ib/t and the model's rawGlucose/glucose.
+    // `rawGlucose` fits `Iw + CT14_AGING_NA_PER_DAY * elapsedDays` with a 0.0002
+    // residual, and `glucose = (raw - intercept) / slope`. With no user calibration
+    // the app used slope/intercept below; `Ib` does not participate at all (rows
+    // differing only in Ib gave identical rawGlucose).
 
     /** Sensor-aging drift of the raw current, nA per day since the session start. */
-    const val CT2_AGING_NA_PER_DAY = 0.4f
+    const val CT14_AGING_NA_PER_DAY = 0.4f
 
-    /** Default CT2 calibration line, used until the user enters a fingerstick. */
-    const val CT2_DEFAULT_SLOPE = 1.667f
-    const val CT2_DEFAULT_INTERCEPT = 3.33f
+    /** Default CT-14 calibration line, used until the user enters a fingerstick. */
+    const val CT14_DEFAULT_SLOPE = 1.667f
+    const val CT14_DEFAULT_INTERCEPT = 3.33f
+
+    /**
+     * Response opcodes the CT-14 (CT2 protocol family) owns, including its unbind
+     * ack. Kept as an explicit set so this family is dispatched on its own and can
+     * never fall through to the generic CT3/CT2.5 handlers: 0x08 and 0x09 mean
+     * different things in the two namespaces, and 0x58 is CT2 unbind vs CT5 generic
+     * unbind.
+     */
+    @JvmStatic
+    fun isCt14Opcode(opcode: Byte): Boolean = when (opcode) {
+        RX_CT2_HANDSHAKE_ACK,
+        RX_CT2_SET_DATE_ACK,
+        RX_CT2_INIT_ACK,
+        RX_CT2_CHECK,
+        RX_CT2_PUSH_GLUCOSE,
+        RX_CT2_PULL_RESPONSE,
+        RX_UNBIND_ACK_GENERIC -> true
+        else -> false
+    }
 
     // ---- Device family enum (`EDevice` equivalent) ----
 

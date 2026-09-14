@@ -2826,14 +2826,17 @@ class AnytimeBleManager(
 
     private fun dispatch(opcode: Byte, data: ByteArray) {
         if (isCt5() && dispatchCt5(opcode, data)) return
+        // The CT-14 (CT2 family) has its own opcode namespace. Route it separately so its
+        // frames can never fall through to the generic CT3/CT2.5 handlers: 0x08 and 0x09
+        // mean different things in the two namespaces, and 0x58 is CT2 unbind vs CT5 generic.
+        if (isCt2()) {
+            if (!dispatchCt14(opcode, data)) {
+                Log.d(TAG, "Unhandled CT-14 opcode 0x%02X len=%d".format(opcode.toInt() and 0xFF, data.size))
+            }
+            return
+        }
         when (opcode) {
             AnytimeConstants.RX_VERSION -> Log.d(TAG, "RX 0x01 version: ${data.joinToHex()}")
-            AnytimeConstants.RX_CT2_HANDSHAKE_ACK -> handleHandshakeAck(data)
-            AnytimeConstants.RX_CT2_SET_DATE_ACK -> handleCt2SetDateAck(data)
-            AnytimeConstants.RX_CT2_INIT_ACK -> handleCt2InitAck(data)
-            AnytimeConstants.RX_CT2_PUSH_GLUCOSE -> handleCt2GlucoseFrame(data, historical = false)
-            AnytimeConstants.RX_CT2_PULL_RESPONSE -> handleCt2GlucoseFrame(data, historical = true)
-            AnytimeConstants.RX_CT2_CHECK -> handleSelfTestResult(data)
             AnytimeConstants.RX_SET_DATE_ACK_A,
             AnytimeConstants.RX_SET_DATE_ACK_B -> {
                 Log.d(TAG, "RX setDate ack")
@@ -2857,9 +2860,6 @@ class AnytimeBleManager(
             }
             AnytimeConstants.RX_INPUT_BG_ACK -> handleInputBgAck(data)
             AnytimeConstants.RX_UNBIND_ACK -> handleUnbindAck(data)
-            // CT2 answers unbind with 0x58. CT5's use of the same opcode is intercepted
-            // by dispatchCt5 before this runs, so only the CT2 path reaches it here.
-            AnytimeConstants.RX_UNBIND_ACK_GENERIC -> handleUnbindAck(data)
             AnytimeConstants.RX_INPUT_KR_ACK -> handleInputKrAck()
             AnytimeConstants.RX_COMPUTED_GLUCOSE -> handleComputedGlucose(data)
             AnytimeConstants.RX_LOW_POWER_ACK -> Log.d(TAG, "low-power ack")
@@ -2868,6 +2868,22 @@ class AnytimeBleManager(
             AnytimeConstants.RX_TRANSMITTER_FORMAL -> handleFormalVersion(data)
             else -> Log.d(TAG, "Unhandled opcode 0x%02X len=%d".format(opcode.toInt() and 0xFF, data.size))
         }
+    }
+
+    /** CT-14 (CT2 family) response dispatch; false when the opcode is not ours. */
+    private fun dispatchCt14(opcode: Byte, data: ByteArray): Boolean {
+        if (!AnytimeConstants.isCt14Opcode(opcode)) return false
+        when (opcode) {
+            AnytimeConstants.RX_CT2_HANDSHAKE_ACK -> handleHandshakeAck(data)
+            AnytimeConstants.RX_CT2_SET_DATE_ACK -> handleCt2SetDateAck(data)
+            AnytimeConstants.RX_CT2_INIT_ACK -> handleCt2InitAck(data)
+            AnytimeConstants.RX_CT2_PUSH_GLUCOSE -> handleCt2GlucoseFrame(data, historical = false)
+            AnytimeConstants.RX_CT2_PULL_RESPONSE -> handleCt2GlucoseFrame(data, historical = true)
+            AnytimeConstants.RX_CT2_CHECK -> handleSelfTestResult(data)
+            AnytimeConstants.RX_UNBIND_ACK_GENERIC -> handleUnbindAck(data)
+            else -> Unit
+        }
+        return true
     }
 
     private fun dispatchCt5(opcode: Byte, data: ByteArray): Boolean {
