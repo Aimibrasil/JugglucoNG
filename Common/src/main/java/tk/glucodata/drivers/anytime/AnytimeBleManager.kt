@@ -99,9 +99,10 @@ class AnytimeBleManager(
         /**
          * Only a fallback. Service discovery is normally started from onMtuChanged;
          * this is how long to wait for it before discovering anyway, for stacks that
-         * never deliver the callback.
+         * never deliver the callback. Kept above the slowest MTU exchange seen on the
+         * CT-14 reference sensor (~2.4s): discovering earlier re-races the exchange.
          */
-        private const val MTU_CALLBACK_FALLBACK_MS = 2_000L
+        private const val MTU_CALLBACK_FALLBACK_MS = 4_000L
         private const val SERVICE_DISCOVERY_HARD_RECOVERY_DELAY_MS = 5_000L
         private const val SERVICE_DISCOVERY_RETRY_DELAY_MS = 1_500L
         private const val MAX_SERVICE_DISCOVERY_RETRIES = 2
