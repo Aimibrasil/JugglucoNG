@@ -143,3 +143,56 @@ persisted Float is widened to Double before the vendor's decimal truncation.
 Recover Float parameters via their decimal string, matching the vendor's
 stored decimal representation. A repeated-packet test verifies K remains
 29.41 across 100 save/restore/calculate cycles without a new reference.
+
+## September 14 daytime signal excursion: unresolved accuracy failure
+
+`juggluco-trace-20260914-124115.log` extends the earlier capture. The user
+reports two other CGMs remained below 6 mmol/L. This is not an official-app
+comparison using the MQ transmitter. `Screenshot_20260914-131938.png` shows
+the 32.5 mmol/L peak and a later sharp drop which the user identifies as a
+manual calibration, not spontaneous recovery.
+
+Times below are Asia/Yekaterinburg (UTC+05:00). Values are the app's calculated
+output, **not validated glucose measurements**.
+
+| Time | Packet | Raw current | Processed current | K | Output mmol/L |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 08:27:27 | 344 | 109 | 104 | 20.12 | 5.1 |
+| 08:30:27 | 345 | 449 | 110 | 20.12 | 5.5 |
+| 09:24:28 | 363 | 257 | 255 | 20.12 | 12.7 |
+| 11:57:30 | 414 | 655 | 653 | 20.12 | 32.5 |
+| 12:39:31 | 428 | 605 | 530 | 20.12 | 26.3 |
+
+Packet 345's record is `40 59 01 C1 01 32`; its unsigned little-endian current
+is 449. Packet 344 is `40 58 01 6D 00 32`, current 109. Thus the abrupt change
+is already present in received current bytes. There is no coincident K change
+or unit switch at this boundary. Earlier manual calibration at 04:38:03
+changes K from 29.18 to 20.13, then the old Float truncation path reduces it
+to 20.12. That coefficient stays unchanged during the excursion. The decimal
+fix does not explain or repair the several-fold rise in raw current.
+
+Arithmetic replay of all 85 logged calculations for packets 344–428 matches
+the recorded processed current and mmol output exactly: bound current around
+`previousProcessed + B` by 5% plus 0.5, subtract B, divide by K, apply vendor
+rounding. At packet 345 the bounded current after subtracting B is 109.8;
+at packet 414 it is 653. The smoothing delays the raw rise; it does not
+reject a sustained anomalous signal. This replay is a characterization of the
+failure, not evidence that these glucose values are correct.
+
+The official APK's `RuGlutec_BloodGlucoseData_Service.onCharacteristicChanged`
+decodes the same two current bytes as unsigned little-endian, without a
+high-byte flag mask. Its call to `RuGlutec_GlucoseCalculationArrayNew` uses
+that current, and the calculator contains the same smoothing/division path.
+The surrounding service also contains history-dependent K/B adjustments
+using daily time windows and calibration events, plus a packet-260 reference
+insertion conditional on event count. These are not all implemented by the
+standalone calculator port. Their presence is **not proof** that one would
+correct this particular excursion; packet 260 also precedes the user's later
+packet-267 manual calibration.
+
+The earlier scaling fix established metadata normalization only. Full vendor
+automatic-calibration parity and sensor accuracy remain unverified. A run of
+this same transmitter in the official app, with its output and calibration
+state, is needed to distinguish missing vendor compensation from anomalous
+sensor output. Do not introduce a guessed current mask, glucose cap, or
+automatic calibration against the other CGMs to conceal this discrepancy.
