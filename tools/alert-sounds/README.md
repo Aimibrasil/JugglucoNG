@@ -62,7 +62,12 @@ retarget a saved selection through a reassigned numeric resource ID. `alert_soun
 preserves those dynamically resolved resources during release shrinking. JVM tests cover
 cue assignment, global family application, external-URI preservation, locale-independent
 resource names, and the presence of all referenced WAV files. Inspect the release APK as well:
-all 27 `res/raw/alert_*.wav` entries must survive shrinking.
+all 27 named raw resources and their original PCM bytes must survive shrinking. Release
+optimization can shorten the physical ZIP paths; verify through the resource table:
+
+```sh
+python3 tools/alert-sounds/verify_apk.py --aapt2 "$ANDROID_HOME/build-tools/37.0.0/aapt2" path/to/app.apk
+```
 
 ## Listening acceptance
 
