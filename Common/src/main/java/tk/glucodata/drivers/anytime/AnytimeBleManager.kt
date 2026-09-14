@@ -945,12 +945,12 @@ class AnytimeBleManager(
             }
             return@Runnable
         }
-        if (tag.startsWith("setDate")) {
+        if (tag.startsWith("setDate") || tag.startsWith("ct2-setDate")) {
             Log.w(TAG, "setDate ACK timeout; keeping GATT alive")
             clearProtocolFrameTimeout()
             return@Runnable
         }
-        if (tag.startsWith("init(after-setDate")) {
+        if (tag.startsWith("init(after-setDate") || tag.startsWith("ct2-init")) {
             Log.w(TAG, "init ACK timeout after best-effort setDate; keeping GATT alive and waiting for raw push")
             clearProtocolFrameTimeout()
             return@Runnable
@@ -1797,7 +1797,24 @@ class AnytimeBleManager(
     }
 
     private val forceScanReconnectRetryRunnable: Runnable = Runnable {
-        if (stop || !shouldForceScanReconnect(System.currentTimeMillis())) return@Runnable
+        if (stop) return@Runnable
+        if (!shouldForceScanReconnect(System.currentTimeMillis())) {
+            // The force-scan window expired without the scanner ever re-seeing the
+            // sensor. Force-scan was armed because direct connects kept failing, not
+            // because the sensor is gone. Leaving it here stranded the phase at
+            // CONNECTING with no attempt ever scheduled (seen 2026-09-14 while the
+            // Blueberry app held the CT-14). Clear it and hand the reconnect back to
+            // the normal loop.
+            forceScanReconnectUntilMs = 0L
+            forceScanResultAddress = ""
+            forceScanResultAtMs = 0L
+            if (phase == Phase.CONNECTING && mBluetoothGatt == null) {
+                phase = Phase.IDLE
+                Log.i(TAG, "Force-scan window expired; resuming the normal reconnect")
+                connectDevice(0)
+            }
+            return@Runnable
+        }
         if (mBluetoothGatt != null || phase == Phase.DISCOVERING || phase == Phase.HANDSHAKING || phase == Phase.STREAMING) {
             return@Runnable
         }
@@ -2699,6 +2716,20 @@ class AnytimeBleManager(
         writeFrame(initFrame(), "ct2-init")
     }
 
+    /**
+     * CT2 answers the init command with `{0x53, 0x55, 0xAA, sum}`. Without handling it
+     * the `ct2-init` protocol timeout fired 8s later and tore the link down, so the
+     * driver cycled connect → discovery → handshake → disconnect every few seconds.
+     */
+    private fun handleCt2InitAck(data: ByteArray) {
+        Log.d(TAG, "RX CT2 init ack")
+        if (phase != Phase.HANDSHAKING) {
+            Log.d(TAG, "Ignoring CT2 init ack while phase=$phase")
+            return
+        }
+        enterStreaming("CT2 init ack")
+    }
+
     /** Manual CT2 self-test. Not part of the automatic connect sequence. */
     override fun requestSelfTest(): Boolean {
         if (!isCt2()) return false
@@ -2799,6 +2830,7 @@ class AnytimeBleManager(
             AnytimeConstants.RX_VERSION -> Log.d(TAG, "RX 0x01 version: ${data.joinToHex()}")
             AnytimeConstants.RX_CT2_HANDSHAKE_ACK -> handleHandshakeAck(data)
             AnytimeConstants.RX_CT2_SET_DATE_ACK -> handleCt2SetDateAck(data)
+            AnytimeConstants.RX_CT2_INIT_ACK -> handleCt2InitAck(data)
             AnytimeConstants.RX_CT2_PUSH_GLUCOSE -> handleCt2GlucoseFrame(data, historical = false)
             AnytimeConstants.RX_CT2_PULL_RESPONSE -> handleCt2GlucoseFrame(data, historical = true)
             AnytimeConstants.RX_CT2_CHECK -> handleSelfTestResult(data)
@@ -2825,6 +2857,9 @@ class AnytimeBleManager(
             }
             AnytimeConstants.RX_INPUT_BG_ACK -> handleInputBgAck(data)
             AnytimeConstants.RX_UNBIND_ACK -> handleUnbindAck(data)
+            // CT2 answers unbind with 0x58. CT5's use of the same opcode is intercepted
+            // by dispatchCt5 before this runs, so only the CT2 path reaches it here.
+            AnytimeConstants.RX_UNBIND_ACK_GENERIC -> handleUnbindAck(data)
             AnytimeConstants.RX_INPUT_KR_ACK -> handleInputKrAck()
             AnytimeConstants.RX_COMPUTED_GLUCOSE -> handleComputedGlucose(data)
             AnytimeConstants.RX_LOW_POWER_ACK -> Log.d(TAG, "low-power ack")
