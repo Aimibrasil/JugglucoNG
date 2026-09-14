@@ -111,3 +111,35 @@ An explicit vendor-bootstrap refresh with a valid sensitivity and no restored
 K now clears the previous locally solved K/B/processed-current state before
 the next sample. Otherwise fixing metadata would leave an old incorrectly
 scaled K in use. Ordinary reconnects do not clear calibration or history.
+
+## 03:51 trace verification and cloud recovery
+
+`juggluco-trace-20260914-035139.log` confirms the corrected authenticated
+lookup returns `transmitter10=1` and normalizes 2.93 to 29.3. Packets 247–252
+produce 3.4–4.2 mmol/L, and reports for 249, 251 and 252 are acknowledged by
+the server. This verifies the scaling and upload paths, not accuracy against
+a paired glucose reference. The separate authorized metadata probe lacked a
+token and returned an authentication error; no credentials were obtained from
+the device for that probe.
+
+The captured teardown is an explicit removal (`setPause`, native removal,
+`free`) followed by re-add, not an unexplained radio disconnect. BLE packets
+continue at approximately three-minute intervals.
+
+The backend returns `code=302, success=true, message=手机号在监测周期中` to
+`goOn` while accepting glucose uploads. Treat this endpoint-specific response
+as a reason to stop redundant continue attempts; do not classify all 302 or
+`success=true` responses as successful actions.
+
+Time-range history returns no usable data in the trace. The request matches
+the official app's millisecond start/end parameters. Add the existing snapshot
+detail endpoint as a fallback rather than changing units or inventing dates.
+Log received/parsed/rejected counts and returned timestamp bounds; malformed
+responses must not masquerade as empty history. No claim of recovered cloud
+history is supported until the next device trace shows imported records.
+
+Packet 248 also exposes decimal-parameter drift: K 29.41 becomes 29.40 when a
+persisted Float is widened to Double before the vendor's decimal truncation.
+Recover Float parameters via their decimal string, matching the vendor's
+stored decimal representation. A repeated-packet test verifies K remains
+29.41 across 100 save/restore/calculate cycles without a new reference.

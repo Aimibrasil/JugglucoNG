@@ -289,7 +289,7 @@ class MQBleManager(
         kValue = MQRegistry.loadKValue(context, id)
         bValue = MQRegistry.loadBValue(context, id)
         localResetPending = MQRegistry.loadLocalResetPending(context, id)
-        if (!hasValidSlopeSeed(kValue.toDouble()) && kValue != 0f) {
+        if (!hasValidSlopeSeed(MQAlgorithm.decimalParameter(kValue)) && kValue != 0f) {
             Log.w(TAG, "Discarding invalid persisted MQ K seed=$kValue for $id")
             kValue = 0f
             bValue = 0f
@@ -1174,10 +1174,10 @@ class MQBleManager(
         value > MQConstants.ALGO_MIN_VALID_K
 
     private fun hasBootstrapSlopeSeed(): Boolean =
-        hasValidSlopeSeed(sensitivitySeed.toDouble())
+        hasValidSlopeSeed(MQAlgorithm.decimalParameter(sensitivitySeed))
 
     private fun hasUsableSlopeSeed(): Boolean =
-        hasValidSlopeSeed(kValue.toDouble())
+        hasValidSlopeSeed(MQAlgorithm.decimalParameter(kValue))
 
     private fun needsVendorBootstrap(): Boolean =
         !hasUsableSlopeSeed() && !hasBootstrapSlopeSeed()
@@ -1234,13 +1234,16 @@ class MQBleManager(
                     latestRoomMs > 0L -> (latestRoomMs - CLOUD_HISTORY_BACKFILL_OVERLAP_MS).coerceAtLeast(1L)
                     else -> (now - CLOUD_HISTORY_BACKFILL_LOOKBACK_MS).coerceAtLeast(1L)
                 }
-                val result = MQCloudClient.fetchSnapshotTimeBucketHistory(
+                val result = MQCloudRecovery.history(rangeLookup = { MQCloudClient.fetchSnapshotTimeBucketHistory(
                     context = context,
                     authToken = token,
                     snapshotId = snapshotId,
                     startTimeMs = startMs,
                     endTimeMs = now + CLOUD_HISTORY_BACKFILL_FUTURE_GRACE_MS,
-                )
+                ) }, snapshotLookup = {
+                    Log.i(TAG, "MQ range history unavailable; trying snapshot detail ($reason): snapshot=$snapshotId range=$startMs..$now")
+                    MQCloudClient.fetchSnapshotDetailHistory(context, token, snapshotId)
+                })
                 task.deliver {
                     when {
                         result.failure == MQBootstrapFailure.AUTH_EXPIRED -> {
@@ -1370,6 +1373,10 @@ class MQBleManager(
                     )
                     task.deliver {
                         when {
+                            result.alreadyMonitoring -> {
+                                lastAnnouncedCloudSnapshotId = snapshotId
+                                Log.i(TAG, "MQ cloud account already monitoring; stopping redundant continue-wear retries ($reason)")
+                            }
                             result.success -> {
                                 lastAnnouncedCloudSnapshotId = snapshotId
                                 Log.i(TAG, "MQ cloud continue-wear synced ($reason): snapshot=$snapshotId")
@@ -1607,7 +1614,7 @@ class MQBleManager(
         rec: MQBgRecord,
         previousProcessed: Double,
     ): Double? {
-        val seed = sensitivitySeed.toDouble()
+        val seed = MQAlgorithm.decimalParameter(sensitivitySeed)
         if (!hasValidSlopeSeed(seed) || rec.packetIndex < MQConstants.ALGO_WARMUP_PACKET_THRESHOLD.toInt()) {
             return null
         }
@@ -1618,7 +1625,7 @@ class MQBleManager(
             previousProcessed = previousProcessed,
             sensitivity = seed,
             packages = packages,
-            multiplier = multiplier.toDouble(),
+            multiplier = MQAlgorithm.decimalParameter(multiplier),
         ) ?: return null
         val syntheticReference = seeded.glucoseTimes10Mmol.toDouble()
         if (syntheticReference <= 0.0) {
@@ -1644,8 +1651,8 @@ class MQBleManager(
         val previousProcessed = lastProcessed
         val manualReference = pendingReferenceBgTimes10Mmol.takeIf { it > 0.0 && rec.packetIndex > 8 } ?: 0.0
         var reference = manualReference
-        var seedK = kValue.toDouble()
-        var seedB = bValue.toDouble()
+        var seedK = MQAlgorithm.decimalParameter(kValue)
+        var seedB = MQAlgorithm.decimalParameter(bValue)
 
         if (!hasValidSlopeSeed(seedK) && reference <= 0.0) {
             reference = synthesizeReferenceFromSensitivity(
@@ -1669,7 +1676,7 @@ class MQBleManager(
             referenceBgTimes10Mmol = reference,
             bValue = seedB,
             packages = packages.toDouble(),
-            multiplier = multiplier.toDouble(),
+            multiplier = MQAlgorithm.decimalParameter(multiplier),
         )
         lastProcessed = result.reviseCurrent2
         if (hasValidSlopeSeed(result.kValue)) {
