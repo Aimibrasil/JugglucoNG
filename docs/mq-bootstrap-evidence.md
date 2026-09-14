@@ -196,3 +196,35 @@ this same transmitter in the official app, with its output and calibration
 state, is needed to distinguish missing vendor compensation from anomalous
 sensor output. Do not introduce a guessed current mask, glucose cap, or
 automatic calibration against the other CGMs to conceal this discrepancy.
+
+## 13:27 fresh-launch trace: restored coefficient and future-dated history
+
+`juggluco-connection-CFD8EBDDF969-20260914-132741.txt` shows snapshot packet
+438 restoring processed current 500, K 140.84508 and B 0. Packet 443 then
+arrives as `40 BB 01 20 02 32` (raw 544) and produces 3.9 mmol/L with K
+140.84; packet 444, raw 494, produces 3.5. The near-reference output therefore
+uses a much larger restored slope than the earlier 20.12. The restore code
+reconstructs K from a rounded cloud reading (`500 / (3.6 - 0.05)`), rather
+than receiving an independently authoritative K parameter from the vendor.
+This is not evidence that QR-default auto-calibration fixed the excursion.
+
+The detail fallback returns 189 parsed records, but the local bridge rejects
+all 189 as invalid. Their timestamp endpoints are 1789383631000 and
+1789417651000, later than the phone's 1789374276041 fetch time. In combination
+with packet endpoints 249 and 438 from the preceding trace, both imply the
+same cloud origin, 1789338811000 (`rd - packet * 180000`), about 12 hours
+18 minutes later than the transmitter's live-counter origin. This supports a
+new cloud session counting forward from an already-running packet number;
+it is not a seconds/milliseconds or glucose-unit error. The earlier backfill
+log misleadingly called this synced and advanced its cursor into the future.
+
+The manager now defers future history until directly received BLE data can
+anchor it. Timestamp recovery requires at least two distinct packet numbers,
+none ahead of the live counter, a common cloud origin within one minute,
+and a positive origin shift exceeding two sample intervals. Recover using
+the same packet/cadence anchor as BLE history and explicitly log timestamps
+as estimated. Preserve glucose values and missing packet gaps; leave already
+valid timestamps untouched. Deferred data is tied to the snapshot ID and
+cleared on sensor reset. Advance the cursor only after an actual import,
+using the recovered timestamps. This still needs device validation; it does
+not repair or validate the earlier high glucose readings.

@@ -152,6 +152,8 @@ class MQBleManager(
     @Volatile private var cloudHistoryBackfillInFlight: Boolean = false
     @Volatile private var cloudHistoryBackfillAttemptedAtMs: Long = 0L
     @Volatile private var lastCloudHistoryBackfillTailMs: Long = 0L
+    private var cloudHistoryAnchor: MQCloudHistoryTiming.Anchor? = null
+    private var deferredCloudHistory: Pair<String, List<MQBootstrapHistoryPoint>>? = null
     @Volatile private var lastAnnouncedCloudSnapshotId: String = ""
     @Volatile private var lastCloudReportedPacketIndex: Int = -1
     private val pendingBgBurstRecords = LinkedHashMap<Int, PendingBgRecord>()
@@ -1142,6 +1144,8 @@ class MQBleManager(
 
     private fun clearVolatileSessionState() {
         clearPendingBgBurst()
+        cloudHistoryAnchor = null
+        deferredCloudHistory = null
         sensorStartAtMs = 0L
         sensorstartmsec = 0L
         warmupStartedAtMs = 0L
@@ -1186,12 +1190,28 @@ class MQBleManager(
         MQVendorIdentity.bleId(MQRegistry.findRecord(context, sensorId)?.displayName)
             ?: MQVendorIdentity.bleId(mActiveBluetoothDevice?.name)
 
-    private fun importBootstrapHistory(history: List<MQBootstrapHistoryPoint>, sensorId: String) {
-        if (history.isEmpty()) return
-        val imported = MQBootstrapHistory.import(sensorId, history)
-        if (imported > 0) {
-            Log.i(TAG, "Imported $imported MQ snapshot history points into local history")
+    private fun importBootstrapHistory(history: List<MQBootstrapHistoryPoint>, sensorId: String): Int {
+        if (history.isEmpty() || localResetPending) return 0
+        val prepared = MQCloudHistoryTiming.prepare(
+            history, cloudHistoryAnchor, System.currentTimeMillis(), profile.readingIntervalMinutes,
+        )
+        if (prepared.deferred) {
+            Applic.app?.let { MQRegistry.loadSnapshotId(it, sensorId) }?.let {
+                deferredCloudHistory = it to history
+            }
+            Log.i(TAG, "MQ history deferred until a live packet can verify its timeline: points=${history.size}")
+            return 0
         }
+        if (prepared.estimated) {
+            Log.w(TAG, "MQ history timestamps estimated from live packet=${cloudHistoryAnchor?.packetIndex}: points=${prepared.history.size}")
+        }
+        val imported = MQBootstrapHistory.import(sensorId, prepared.history)
+        if (imported > 0) {
+            lastCloudHistoryBackfillTailMs = maxOf(lastCloudHistoryBackfillTailMs,
+                prepared.history.maxOf { it.timestampMs })
+        }
+        Log.i(TAG, "MQ history import: received=${history.size} eligible=${prepared.history.size} imported=$imported")
+        return imported
     }
 
     private fun maybeFetchCloudHistoryBackfillAsync(
@@ -1251,14 +1271,10 @@ class MQBleManager(
                             Log.w(TAG, "MQ cloud history auth expired ($reason)")
                         }
                         result.history.isNotEmpty() -> {
-                            importBootstrapHistory(result.history, sensorId)
-                            lastCloudHistoryBackfillTailMs = maxOf(
-                                lastCloudHistoryBackfillTailMs,
-                                result.history.maxOf { it.timestampMs },
-                            )
+                            val imported = importBootstrapHistory(result.history, sensorId)
                             Log.i(
                                 TAG,
-                                "MQ cloud history backfill synced ($reason): snapshot=$snapshotId points=${result.history.size}",
+                                "MQ cloud history backfill ($reason): snapshot=$snapshotId received=${result.history.size} imported=$imported",
                             )
                         }
                         result.failure != MQBootstrapFailure.NONE -> {
@@ -1807,6 +1823,19 @@ class MQBleManager(
             .sortedBy { it.record.packetIndex }
         clearPendingBgBurst()
         val newest = burst.maxByOrNull { it.record.packetIndex } ?: return
+        if (newest.record.marker == MQConstants.BG_RECORD_MARKER &&
+            newest.record.packetIndex in 1 until 15000 &&
+            newest.record.packetIndex >= lastPacketIndex
+        ) {
+            cloudHistoryAnchor = MQCloudHistoryTiming.Anchor(newest.record.packetIndex, newest.receivedAtMs)
+            val deferred = deferredCloudHistory
+            deferredCloudHistory = null
+            val context = Applic.app
+            val sensorId = SerialNumber
+            if (deferred != null && context != null && sensorId != null &&
+                MQRegistry.loadSnapshotId(context, sensorId) == deferred.first
+            ) importBootstrapHistory(deferred.second, sensorId)
+        }
         Log.i(
             TAG,
             "Flushing MQ BG burst ($reason): records=${burst.size} packet=${burst.first().record.packetIndex}..${newest.record.packetIndex}"
