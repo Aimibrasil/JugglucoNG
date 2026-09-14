@@ -1,6 +1,8 @@
 package tk.glucodata.drivers.anytime
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -48,5 +50,20 @@ class AnytimeCt2ProfileTests {
         for (prefix in ct2Prefixes) {
             assertEquals(3, AnytimeProfileResolver.resolve("$prefix-x").readingIntervalMinutes)
         }
+    }
+
+    @Test
+    fun onlyTheCt2GenerationAdvertisesTheCurrentSelfTest() {
+        assertTrue(AnytimeConstants.supportsSelfTest(AnytimeConstants.Family.CT2))
+        for (family in AnytimeConstants.Family.entries.filter { it != AnytimeConstants.Family.CT2 }) {
+            assertFalse("$family must not advertise a self-test", AnytimeConstants.supportsSelfTest(family))
+        }
+    }
+
+    @Test
+    fun theReferenceSensorIsTheSelfTestFamily() {
+        val entry = AnytimeConstants.resolveFamily("SN08402458")
+        assertEquals(AnytimeConstants.Family.CT2, entry.family)
+        assertTrue(AnytimeConstants.supportsSelfTest(entry.family))
     }
 }

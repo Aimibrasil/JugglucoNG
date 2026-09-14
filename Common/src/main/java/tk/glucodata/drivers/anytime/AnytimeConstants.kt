@@ -467,6 +467,13 @@ object AnytimeConstants {
             isLikelyPersistedSensorName(trimmed)
     }
 
+    /**
+     * On-demand electrode-current self-test (`{0x43, 0x55, 0xAA, sum}`). Only the
+     * CT2/CT-14 generation answers it; CT2.5 and later have no such request.
+     */
+    @JvmStatic
+    fun supportsSelfTest(family: Family): Boolean = family == Family.CT2
+
     @JvmStatic
     fun isLikelyPersistedSensorName(name: String?): Boolean {
         val trimmed = name?.trim().orEmpty()

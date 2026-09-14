@@ -2706,6 +2706,8 @@ class AnytimeBleManager(
         return writeFrame(AnytimeFrames.Builders.ct2Check(), "ct2-check")
     }
 
+    override fun supportsSelfTest(): Boolean = AnytimeConstants.supportsSelfTest(familyEntry.family)
+
     private fun handleSelfTestResult(data: ByteArray) {
         val result = AnytimeFrames.parseCt2CheckResponse(data)
         if (result == null) {
