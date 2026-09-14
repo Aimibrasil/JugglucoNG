@@ -2035,7 +2035,8 @@ internal fun SoundSelector(
                         text = when {
                             currentUri.isNullOrEmpty() -> stringResource(R.string.app_default_sound)
                             currentUri == SYSTEM_DEFAULT_SOUND -> stringResource(R.string.system_default_sound)
-                            else -> stringResource(R.string.custom_sound_selected)
+                            else -> BundledAlertSounds.styleFor(currentUri, LocalContext.current.packageName)
+                                ?: stringResource(R.string.custom_sound_selected)
                         },
                         style = MaterialTheme.typography.bodyLarge
                    )
