@@ -171,6 +171,12 @@ object AnytimeAlgorithm {
         val voltageFlag = qr?.voltageFlag ?: 0
         val linear = computeLinear(record, k, r, family, voltageFlag)
         val calibration = qr?.takeIf { it.isFactoryCalibration }
+        // CT2/CT-14 has no factory QR and no portable vendor path, so run the empirical
+        // Apex/Blueberry model instead of the CT3 linear default. A real vendor .so plus a
+        // factory calibration still wins if both ever appear.
+        if (family.family == AnytimeConstants.Family.CT2 && !(isNativeAvailable && calibration != null)) {
+            return computeCt2(record, sampleTimeMs, sensorStartTimeMs)
+        }
         if (isNativeAvailable && calibration != null) {
             var nativeFailure: Result? = null
             val window by lazy(LazyThreadSafetyMode.NONE) {
@@ -485,6 +491,52 @@ object AnytimeAlgorithm {
             warnCode = 0,
             source = Source.LINEAR,
             rawMgdl = rawMmol * 18.0f,
+        )
+    }
+
+    /** CT2 aging-compensated raw current, nA. Split out so the term is unit-testable. */
+    @JvmStatic
+    fun ct2RawNa(iwNa: Float, sampleTimeMs: Long, sensorStartTimeMs: Long): Float {
+        val elapsedDays = if (sensorStartTimeMs > 0L && sampleTimeMs > sensorStartTimeMs) {
+            (sampleTimeMs - sensorStartTimeMs).toFloat() / 86_400_000f
+        } else {
+            0f
+        }
+        return iwNa + AnytimeConstants.CT2_AGING_NA_PER_DAY * elapsedDays
+    }
+
+    /**
+     * CT2/CT-14 empirical model (see [AnytimeConstants.CT2_AGING_NA_PER_DAY]):
+     *
+     *   raw        = Iw + 0.4 · elapsedDays      (aging drift of the sensor)
+     *   stock_mmol = (raw − intercept) / slope   (default CT2 calibration)
+     *
+     * The user's fingerstick calibration is applied later by the caller
+     * (`AnytimeBleManager.applyUserCalibration`), on top of this stock value.
+     */
+    @JvmStatic
+    fun computeCt2(
+        record: AnytimeRawRecord,
+        sampleTimeMs: Long,
+        sensorStartTimeMs: Long,
+    ): Result {
+        val rawNa = ct2RawNa(record.iwNa, sampleTimeMs, sensorStartTimeMs)
+        val stockMmol = (rawNa - AnytimeConstants.CT2_DEFAULT_INTERCEPT) / AnytimeConstants.CT2_DEFAULT_SLOPE
+        val mmol = stockMmol.coerceAtLeast(AnytimeConstants.ALGO_MMOL_FLOOR.toFloat())
+        val mgdlTimes10 = (mmol * 18.0f * 10f + 0.5f).toInt()
+            .coerceIn(AnytimeConstants.ALGO_MGDL_MIN_TIMES10, AnytimeConstants.ALGO_MGDL_MAX_TIMES10)
+        return Result(
+            glucoseId = record.glucoseId,
+            mmol = mmol,
+            mgdlTimes10 = mgdlTimes10,
+            ibNa = record.ibNa,
+            iwNa = record.iwNa,
+            temperatureC = record.temperatureC,
+            trend = 6, // TREND_NONE — this path does not compute a trend
+            errorCode = 0,
+            warnCode = 0,
+            source = Source.LINEAR,
+            rawMgdl = stockMmol * 18.0f,
         )
     }
 

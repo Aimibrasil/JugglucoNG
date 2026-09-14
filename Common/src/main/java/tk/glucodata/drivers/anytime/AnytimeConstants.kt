@@ -345,6 +345,21 @@ object AnytimeConstants {
     /** Linear fallback Auto floor only; Raw remains unclamped and native values bypass this. */
     const val ALGO_MMOL_FLOOR = 2.2
 
+    // ---- CT2 / CT-14 empirical model (Apex/Blueberry reference, 2026-09-14) ----
+    //
+    // Derived from the Blueberry app's own CT-14 series: 3085 records with iw/ib/t
+    // and the model's rawGlucose/glucose. `rawGlucose` fits `Iw + CT2_AGING_NA_PER_DAY
+    // * elapsedDays` with a 0.0002 residual, and `glucose = (raw - intercept) / slope`.
+    // With no user calibration the app used slope/intercept below; `Ib` does not
+    // participate at all (rows differing only in Ib gave identical rawGlucose).
+
+    /** Sensor-aging drift of the raw current, nA per day since the session start. */
+    const val CT2_AGING_NA_PER_DAY = 0.4f
+
+    /** Default CT2 calibration line, used until the user enters a fingerstick. */
+    const val CT2_DEFAULT_SLOPE = 1.667f
+    const val CT2_DEFAULT_INTERCEPT = 3.33f
+
     // ---- Device family enum (`EDevice` equivalent) ----
 
     /**
