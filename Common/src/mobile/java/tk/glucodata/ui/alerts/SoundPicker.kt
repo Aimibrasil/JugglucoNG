@@ -67,7 +67,8 @@ fun getSoundDisplayText(uri: String?, alertTypeId: Int = 0): String {
     return when {
         uri.isNullOrEmpty() -> Applic.app.getString(R.string.app_default_sound)
         uri == SYSTEM_DEFAULT_SOUND -> Applic.app.getString(R.string.system_default_sound)
-        else -> Applic.app.getString(R.string.custom_sound_selected)
+        else -> BundledAlertSounds.styleFor(uri, Applic.app.packageName)
+            ?: Applic.app.getString(R.string.custom_sound_selected)
     }
 }
 
@@ -135,7 +136,7 @@ fun SoundPicker(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(alertTypeId) {
         // Load custom sounds
         customSounds = CustomSoundRepository.getCustomSounds()
         
@@ -143,6 +144,9 @@ fun SoundPicker(
         val soundList = mutableListOf<SoundItem>()
         soundList.add(SoundItem(null, context.getString(R.string.app_default_sound)))
         soundList.add(SoundItem(SYSTEM_DEFAULT_SOUND, context.getString(R.string.system_default_sound)))
+        BundledAlertSounds.styles.forEach { style ->
+            soundList.add(SoundItem(BundledAlertSounds.uri(context.packageName, style, alertTypeId), style))
+        }
 
         val ringtoneManager = RingtoneManager(context)
         ringtoneManager.setType(RingtoneManager.TYPE_NOTIFICATION)
