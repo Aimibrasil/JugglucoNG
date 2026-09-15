@@ -7,7 +7,7 @@ class-level test presence, not line coverage.
 - Source types: 1451
 - Referenced by tests: 554
 - Not referenced: 897
-- Test files: 231
+- Test files: 234
 
 ## Coverage by area (top package)
 
