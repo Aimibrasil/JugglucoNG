@@ -1,20 +1,17 @@
 package tk.glucodata
 
+import tk.glucodata.drivers.aidex.AiDexTemperatureStore
 import tk.glucodata.drivers.anytime.AnytimeRegistry
 import tk.glucodata.drivers.ottai.OttaiRegistry
 
 /**
  * Latest known skin temperature for a sensor, from the same sources the
- * Statistics temperature card reads: the Anytime/Ottai temperature sidecars
- * first (timestamped samples), then the native `temppolls` channel
+ * Statistics temperature card reads: the Anytime/Ottai/AiDex temperature
+ * sidecars first (timestamped samples), then the native `temppolls` channel
  * (Sibionics, iCan and the native mirrors).
  *
  * Display/telemetry use only — never feeds glucose computation. Returns null
  * when no temperature is known; callers render that as empty, never invented.
- *
- * NOTE: the AiDex sidecar (`AiDexTemperatureStore`, PR #313) plugs in here
- * once that PR lands — add its lookup between the Ottai sidecar and the
- * native fallback below.
  */
 object SensorTemperature {
 
@@ -28,6 +25,9 @@ object SensorTemperature {
                     .lastOrNull { isPlausible(it.temperatureC) }?.temperatureC
             } ?: candidates.firstNotNullOfOrNull { candidate ->
                 OttaiRegistry.loadTemperatureHistory(context, candidate)
+                    .lastOrNull { isPlausible(it.temperatureC) }?.temperatureC
+            } ?: candidates.firstNotNullOfOrNull { candidate ->
+                AiDexTemperatureStore.loadTemperatureHistory(context, candidate)
                     .lastOrNull { isPlausible(it.temperatureC) }?.temperatureC
             } ?: candidates.firstNotNullOfOrNull { candidate ->
                 runCatching { Natives.getTemperatureDataByName(candidate) }.getOrNull()
@@ -49,6 +49,7 @@ object SensorTemperature {
         candidates.toList().forEach { candidate ->
             add(runCatching { AnytimeRegistry.resolveCanonicalSensorId(context, candidate) }.getOrNull())
             add(runCatching { OttaiRegistry.resolveCanonicalSensorId(context, candidate) }.getOrNull())
+            add(runCatching { AiDexTemperatureStore.canonicalId(candidate) }.getOrNull())
         }
         return candidates.toList()
     }
