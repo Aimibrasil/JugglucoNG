@@ -171,11 +171,15 @@ object AnytimeAlgorithm {
         val voltageFlag = qr?.voltageFlag ?: 0
         val linear = computeLinear(record, k, r, family, voltageFlag)
         val calibration = qr?.takeIf { it.isFactoryCalibration }
-        // CT2/CT-14 has no factory QR and no portable vendor path, so run the empirical
-        // Apex/Blueberry model instead of the CT3 linear default. A real vendor .so plus a
-        // factory calibration still wins if both ever appear.
-        if (family.family == AnytimeConstants.Family.CT2 && !(isNativeAvailable && calibration != null)) {
+        // CT2/CT-14 and CT4 use their validated reference models, never the vendor
+        // .so. The vendor path is reserved for the families it is still the only
+        // known source for (CT3/CT5). See docs/MK4_FINAL_SUMMARY.md and
+        // AnytimeConstants.CT14_* for the two reference chains.
+        if (family.family == AnytimeConstants.Family.CT2) {
             return computeCt14(record, sampleTimeMs, sensorStartTimeMs)
+        }
+        if (family.family == AnytimeConstants.Family.CT4) {
+            return computeModel(record, k, persistentSensorId, linear.rawMgdl)
         }
         if (isNativeAvailable && calibration != null) {
             var nativeFailure: Result? = null
@@ -281,7 +285,10 @@ object AnytimeAlgorithm {
         persistentSensorId: String,
         rawMgdl: Float,
     ): Result {
-        val calibrator = calibratorFor(persistentSensorId, k0)
+        // CT4 has no factory QR, so k0 is usually 0. Fall back to the MK4
+        // reference K0 (1.13); 0 would divide by zero in AnytimeCalibrator.
+        val effectiveK0 = if (k0 > 0f) k0 else AnytimeConstants.CT4_DEFAULT_K0
+        val calibrator = calibratorFor(persistentSensorId, effectiveK0)
         val filteredMmol = calibrator.computeNext(record)
         val mmol = filteredMmol.coerceAtLeast(AnytimeConstants.ALGO_MMOL_FLOOR.toFloat())
         val mgdlTimes10 = (mmol * 18.0f * 10f + 0.5f).toInt()

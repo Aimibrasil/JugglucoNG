@@ -362,6 +362,13 @@ object AnytimeConstants {
     const val CT14_DEFAULT_SLOPE = 1.667f
     const val CT14_DEFAULT_INTERCEPT = 3.33f
 
+    // ---- CT4 MK4 reference K0 (docs/MK4_FINAL_SUMMARY.md §2, §8) ----
+    //
+    // CT4 has no factory QR (like CT2), so `qr.k` is usually 0. The reference
+    // chain needs a real K0; the MK4 logs pin it at 1.13 (K_BASE = 1.2 * 1.13 =
+    // 1.356). Used only when no user/factory K is available.
+    const val CT4_DEFAULT_K0 = 1.13f
+
     /**
      * Response opcodes the CT-14 (CT2 protocol family) owns, including its unbind
      * ack. Kept as an explicit set so this family is dispatched on its own and can
