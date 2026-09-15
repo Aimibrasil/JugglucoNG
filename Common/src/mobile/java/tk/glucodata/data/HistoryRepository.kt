@@ -559,11 +559,14 @@ class HistoryRepository(context: Context = Applic.app) {
                             )
                         )
                     }
-                    HistoryRepository().storeReadingsReplacingSensorBuckets(
+                    val repository = HistoryRepository()
+                    val stored = repository.storeReadingsReplacingSensorBuckets(
                         sensorSerial = roomSerial,
                         readings = readings,
                         bucketDurationMs = SENSOR_MINUTE_BUCKET_MS,
                     )
+                    if (stored) repository.voidRecordsRewrittenByDriver(sensorSerial, roomSerial, readings)
+                    stored
                 }.also { stored ->
                     if (stored) {
                         UiRefreshBus.requestDataRefresh()
@@ -718,6 +721,57 @@ class HistoryRepository(context: Context = Applic.app) {
             } catch (e: Exception) {
                 Log.e(TAG, "Error replacing bucket history batch for $sensorSerial", e)
                 false
+            }
+        }
+    }
+
+    /**
+     * Drops recorded main values that a driver's rewrite of its own history has
+     * made void — see [RecordedDisplayVoiding] for what that means and why it is
+     * a deletion. Only a lane whose calibration the driver integrates qualifies;
+     * on every other sensor the rewrite is a re-sync of the same numbers and the
+     * record stands.
+     */
+    suspend fun voidRecordsRewrittenByDriver(
+        driverSerial: String,
+        roomSerial: String,
+        rewritten: List<HistoryReading>,
+    ): Int {
+        if (rewritten.isEmpty()) return 0
+        val autoIntegrated = runCatching {
+            tk.glucodata.drivers.ManagedSensorRuntime.integratesUserCalibration(driverSerial, false)
+        }.getOrDefault(false)
+        val rawIntegrated = runCatching {
+            tk.glucodata.drivers.ManagedSensorRuntime.integratesUserCalibration(driverSerial, true)
+        }.getOrDefault(false)
+        if (!autoIntegrated && !rawIntegrated) return 0
+        return withContext(Dispatchers.IO) {
+            try {
+                val start = ReadingDisplay.minuteOf(rewritten.minOf { it.timestamp })
+                val end = ReadingDisplay.minuteOf(rewritten.maxOf { it.timestamp })
+                val records = displayDao.getBetween(start, end)
+                val minutes = RecordedDisplayVoiding.minutesToVoid(
+                    records, roomSerial, rewritten, autoIntegrated, rawIntegrated,
+                )
+                if (minutes.isEmpty()) return@withContext 0
+                var deleted = 0
+                database.withTransaction {
+                    // Under SQLite's older 999-variable ceiling, which some devices still have.
+                    minutes.chunked(500).forEach { chunk ->
+                        deleted += displayDao.deleteAtMinutes(chunk)
+                    }
+                }
+                tk.glucodata.Log.i(
+                    TAG,
+                    "voided $deleted recorded minutes for $roomSerial: the driver rewrote " +
+                        "${rewritten.size} readings between $start and $end"
+                )
+                deleted
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed voiding recorded minutes for $roomSerial", e)
+                0
             }
         }
     }
