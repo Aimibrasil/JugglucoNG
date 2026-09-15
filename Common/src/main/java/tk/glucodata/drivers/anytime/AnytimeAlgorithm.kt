@@ -1,6 +1,6 @@
-// AnytimeAlgorithm.kt — Glucose computation: vendor JNI + linear fallback.
+// AnytimeAlgorithm.kt — Glucose computation: vendor JNI + Reference App model + linear fallback.
 //
-// Two paths:
+// Three paths:
 //
 //  1. NATIVE: Loads `libalgorithm-jni.so` if it has been dropped into
 //     src/main/jniLibs/{abi}. Current official CT4/Yuwell builds export
@@ -8,7 +8,17 @@
 //     Older packaged builds export `algorithm(DataInput)`, so compute() tries
 //     the official path first and falls back when that symbol is unavailable.
 //
-//  2. LINEAR: Pure-Kotlin raw display lane. It is not a replacement for the
+//  2. MODEL: `AnytimeCalibrator`, the pure-Kotlin port of Reference App's MK4 chain
+//     (see docs/MK4_FINAL_SUMMARY.md). Used for the live/current reading when
+//     native is unavailable — which is the normal case, since
+//     `libalgorithm-jni.so` is deliberately not packaged. Stateful and
+//     per-sensor: see `calibratorFor`/`restoreCalibratorState`. Only advanced
+//     from the live path (`advanceModelFallback = true`); history/backfill
+//     records are not guaranteed ascending (recent-tail-first backfill can
+//     revisit older ids after newer ones), which would corrupt the model's
+//     continuity, so backfill still uses LINEAR.
+//
+//  3. LINEAR: Pure-Kotlin raw display lane. It is not a replacement for the
 //     vendor algorithm and stays separate from native output; Auto+Raw modes
 //     must never copy the auto value into the raw lane.
 //
@@ -49,7 +59,38 @@ object AnytimeAlgorithm {
         }
     }
 
-    enum class Source { NATIVE, LINEAR }
+    enum class Source { NATIVE, MODEL, LINEAR }
+
+    /** One [AnytimeCalibrator] per sensor session, keyed by the persistent sensor id (SerialNumber). */
+    private val calibrators = java.util.concurrent.ConcurrentHashMap<String, AnytimeCalibrator>()
+
+    private fun calibratorFor(persistentSensorId: String, k0: Float): AnytimeCalibrator {
+        val existing = calibrators[persistentSensorId]
+        if (existing != null && existing.k0 == k0) return existing
+        val created = AnytimeCalibrator(k0)
+        calibrators[persistentSensorId] = created
+        return created
+    }
+
+    /** Seed the pool from persisted state, e.g. in `restoreFromPersistence`, before any live call. */
+    @JvmStatic
+    fun restoreCalibratorState(persistentSensorId: String, k0: Float, state: AnytimeCalibrator.State) {
+        if (persistentSensorId.isBlank() || k0 <= 0f) return
+        val calibrator = AnytimeCalibrator(k0)
+        calibrator.restoreState(state)
+        calibrators[persistentSensorId] = calibrator
+    }
+
+    /** Read current continuity state for persistence, e.g. in `persistAlgorithmState`. */
+    @JvmStatic
+    fun snapshotCalibratorState(persistentSensorId: String): AnytimeCalibrator.State? =
+        calibrators[persistentSensorId]?.snapshot()
+
+    /** Drop pooled state for a sensor being removed/replaced. */
+    @JvmStatic
+    fun clearCalibratorState(persistentSensorId: String) {
+        calibrators.remove(persistentSensorId)
+    }
 
     /** Algorithm output. Mirrors the native `DataOutput` where the bundled JNI provides it. */
     data class Result(
@@ -116,12 +157,30 @@ object AnytimeAlgorithm {
         recentRecordsProvider: (() -> List<AnytimeRawRecord>)? = null,
         sensorStartTimeMs: Long = 0L,
         logNativeFallbackWarnings: Boolean = true,
+        /** Stable per-sensor key for the MODEL calibrator pool; see `calibratorFor`. */
+        persistentSensorId: String = sensorIdName,
+        /**
+         * Advance the stateful MODEL fallback for this call. Only the live push
+         * path may set this true — backfill ids are not guaranteed ascending
+         * (recent-tail-first), which would corrupt the calibrator's continuity.
+         */
+        advanceModelFallback: Boolean = false,
     ): Result {
         val k = qr?.k ?: 0f
         val r = qr?.r ?: 0f
         val voltageFlag = qr?.voltageFlag ?: 0
         val linear = computeLinear(record, k, r, family, voltageFlag)
         val calibration = qr?.takeIf { it.isFactoryCalibration }
+        // CT2/CT-14 and CT4 use their validated reference models, never the vendor
+        // .so. The vendor path is reserved for the families it is still the only
+        // known source for (CT3/CT5). See docs/MK4_FINAL_SUMMARY.md and
+        // AnytimeConstants.CT14_* for the two reference chains.
+        if (family.family == AnytimeConstants.Family.CT2) {
+            return computeCt14(record, sampleTimeMs, sensorStartTimeMs)
+        }
+        if (family.family == AnytimeConstants.Family.CT4) {
+            return computeModel(record, k, persistentSensorId, linear.rawMgdl)
+        }
         if (isNativeAvailable && calibration != null) {
             var nativeFailure: Result? = null
             val window by lazy(LazyThreadSafetyMode.NONE) {
@@ -209,7 +268,44 @@ object AnytimeAlgorithm {
                         "(format=${qr.format} K=$k R=$r); using linear fallback"
             )
         }
+        if (advanceModelFallback && k > 0f) {
+            return computeModel(record, k, persistentSensorId, linear.rawMgdl)
+        }
         return linear
+    }
+
+    /**
+     * Reference App MK4 chain (see docs/MK4_FINAL_SUMMARY.md), stateful per
+     * [persistentSensorId]. Only call with ascending [AnytimeRawRecord.glucoseId]
+     * per sensor — see `advanceModelFallback` on [compute].
+     */
+    private fun computeModel(
+        record: AnytimeRawRecord,
+        k0: Float,
+        persistentSensorId: String,
+        rawMgdl: Float,
+    ): Result {
+        // CT4 has no factory QR, so k0 is usually 0. Fall back to the MK4
+        // reference K0 (1.13); 0 would divide by zero in AnytimeCalibrator.
+        val effectiveK0 = if (k0 > 0f) k0 else AnytimeConstants.CT4_DEFAULT_K0
+        val calibrator = calibratorFor(persistentSensorId, effectiveK0)
+        val filteredMmol = calibrator.computeNext(record)
+        val mmol = filteredMmol.coerceAtLeast(AnytimeConstants.ALGO_MMOL_FLOOR.toFloat())
+        val mgdlTimes10 = (mmol * 18.0f * 10f + 0.5f).toInt()
+            .coerceIn(AnytimeConstants.ALGO_MGDL_MIN_TIMES10, AnytimeConstants.ALGO_MGDL_MAX_TIMES10)
+        return Result(
+            glucoseId = record.glucoseId,
+            mmol = mmol,
+            mgdlTimes10 = mgdlTimes10,
+            ibNa = record.ibNa,
+            iwNa = record.iwNa,
+            temperatureC = record.temperatureC,
+            trend = 6, // TREND_NONE — model path doesn't compute trend, same as linear
+            errorCode = 0,
+            warnCode = 0,
+            source = Source.MODEL,
+            rawMgdl = rawMgdl,
+        )
     }
 
     private fun tryOfficialLatest(
@@ -402,6 +498,52 @@ object AnytimeAlgorithm {
             warnCode = 0,
             source = Source.LINEAR,
             rawMgdl = rawMmol * 18.0f,
+        )
+    }
+
+    /** CT2 aging-compensated raw current, nA. Split out so the term is unit-testable. */
+    @JvmStatic
+    fun ct14RawNa(iwNa: Float, sampleTimeMs: Long, sensorStartTimeMs: Long): Float {
+        val elapsedDays = if (sensorStartTimeMs > 0L && sampleTimeMs > sensorStartTimeMs) {
+            (sampleTimeMs - sensorStartTimeMs).toFloat() / 86_400_000f
+        } else {
+            0f
+        }
+        return iwNa + AnytimeConstants.CT14_AGING_NA_PER_DAY * elapsedDays
+    }
+
+    /**
+     * CT2/CT-14 empirical model (see [AnytimeConstants.CT14_AGING_NA_PER_DAY]):
+     *
+     *   raw        = Iw + 0.4 · elapsedDays      (aging drift of the sensor)
+     *   stock_mmol = (raw − intercept) / slope   (default CT2 calibration)
+     *
+     * The user's fingerstick calibration is applied later by the caller
+     * (`AnytimeBleManager.applyUserCalibration`), on top of this stock value.
+     */
+    @JvmStatic
+    fun computeCt14(
+        record: AnytimeRawRecord,
+        sampleTimeMs: Long,
+        sensorStartTimeMs: Long,
+    ): Result {
+        val rawNa = ct14RawNa(record.iwNa, sampleTimeMs, sensorStartTimeMs)
+        val stockMmol = (rawNa - AnytimeConstants.CT14_DEFAULT_INTERCEPT) / AnytimeConstants.CT14_DEFAULT_SLOPE
+        val mmol = stockMmol.coerceAtLeast(AnytimeConstants.ALGO_MMOL_FLOOR.toFloat())
+        val mgdlTimes10 = (mmol * 18.0f * 10f + 0.5f).toInt()
+            .coerceIn(AnytimeConstants.ALGO_MGDL_MIN_TIMES10, AnytimeConstants.ALGO_MGDL_MAX_TIMES10)
+        return Result(
+            glucoseId = record.glucoseId,
+            mmol = mmol,
+            mgdlTimes10 = mgdlTimes10,
+            ibNa = record.ibNa,
+            iwNa = record.iwNa,
+            temperatureC = record.temperatureC,
+            trend = 6, // TREND_NONE — this path does not compute a trend
+            errorCode = 0,
+            warnCode = 0,
+            source = Source.LINEAR,
+            rawMgdl = stockMmol * 18.0f,
         )
     }
 

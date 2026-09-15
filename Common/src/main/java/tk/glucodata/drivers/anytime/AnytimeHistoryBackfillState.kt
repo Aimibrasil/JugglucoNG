@@ -227,7 +227,8 @@ internal class AnytimeHistoryRoomImportBuffer {
     }
 
     private fun sourcePriority(source: AnytimeAlgorithm.Source): Int = when (source) {
-        AnytimeAlgorithm.Source.NATIVE -> 2
+        AnytimeAlgorithm.Source.NATIVE -> 3
+        AnytimeAlgorithm.Source.MODEL -> 2
         AnytimeAlgorithm.Source.LINEAR -> 1
     }
 
@@ -584,6 +585,11 @@ internal fun anytimeResponseMatchesRequest(requestOpcode: Byte, responseOpcode: 
         AnytimeConstants.TX_SET_DATE, 0x04.toByte() ->
             responseOpcode == AnytimeConstants.RX_SET_DATE_ACK_A ||
                     responseOpcode == AnytimeConstants.RX_SET_DATE_ACK_B
+        // CT2 pull answers 0x55 with a different opcode (0x47). Without this the
+        // protocol response slot never cleared on a pull response, so the write
+        // queue stalled until the 8s history-pull timeout cleared it on every record.
+        AnytimeConstants.TX_CT2_PULL_GLUCOSE ->
+            responseOpcode == AnytimeConstants.RX_CT2_PULL_RESPONSE
         else -> requestOpcode == responseOpcode
     }
 

@@ -46,6 +46,7 @@ import android.os.HandlerThread
 import java.security.SecureRandom
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.roundToInt
 import tk.glucodata.Applic
 import tk.glucodata.CurrentDisplaySource
 import tk.glucodata.Log
@@ -94,6 +95,14 @@ class AnytimeBleManager(
          */
         private const val SOFT_RECONNECT_SETTLE_MS = 750L
         private const val SERVICE_DISCOVERY_TIMEOUT_MS = 15_000L
+
+        /**
+         * Only a fallback. Service discovery is normally started from onMtuChanged;
+         * this is how long to wait for it before discovering anyway, for stacks that
+         * never deliver the callback. Kept above the slowest MTU exchange seen on the
+         * CT-14 reference sensor (~2.4s): discovering earlier re-races the exchange.
+         */
+        private const val MTU_CALLBACK_FALLBACK_MS = 4_000L
         private const val SERVICE_DISCOVERY_HARD_RECOVERY_DELAY_MS = 5_000L
         private const val SERVICE_DISCOVERY_RETRY_DELAY_MS = 1_500L
         private const val MAX_SERVICE_DISCOVERY_RETRIES = 2
@@ -185,6 +194,13 @@ class AnytimeBleManager(
         private const val MAX_REFERENCE_CALIBRATION_RECORDS = 12
 
         /**
+         * Trend/noise gate window for manual calibration (AnytimeCalibrationPolicy).
+         * Not RE'd from Reference App — only the acceptance thresholds are; see
+         * AnytimeTrendEstimator.
+         */
+        private const val CALIBRATION_TREND_WINDOW_MS = 20L * 60L * 1000L
+
+        /**
          * Fresh installs should become useful quickly, then continue filling older
          * history in the background. Full-prefix backfill can still be several
          * hundred records, so recent tail stays first even with batched pulls.
@@ -215,6 +231,9 @@ class AnytimeBleManager(
 
         /** Values exposed through AnytimeCurrentSnapshot are mmol/L, while native history uses mg/dL. */
         private const val MGDL_TO_MMOLL = 1f / 18f
+
+        /** Precise mg/dL-per-mmol/L factor used for what the user sees and calibrates against. */
+        private const val MGDL_PER_MMOLL_DISPLAY = 18.0182f
 
         private const val CT5_END_CYCLE_DISCONNECT_DELAY_MS = 750L
         private const val CT5_END_CYCLE_RESTART_DELAY_MS = 15_000L
@@ -248,6 +267,7 @@ class AnytimeBleManager(
     @Volatile private var glucoseTimelineStartAtMs: Long = 0L
     @Volatile private var warmupStartedAtMs: Long = 0L
     @Volatile private var lastBatteryVolts: Float = 0f
+    @Volatile private var lastCt2BatteryPercent: Int = -1
     @Volatile private var lastIwNa: Float = 0f
     @Volatile private var lastIbNa: Float = 0f
     @Volatile private var lastTemperatureC: Float = 0f
@@ -262,6 +282,9 @@ class AnytimeBleManager(
     @Volatile private var lastAlgorithmResult: AnytimeAlgorithm.Result? = null
     @Volatile private var lastReferenceBgMgdlTimes10: Int = 0
     @Volatile private var lastReferenceBgGlucoseId: Int = 0
+
+    /** Last CalibrationAccess.getRevision() seen; mirrors SibionicsBleManager's field of the same name. */
+    @Volatile private var calibrationRevision: Long = 0L
     @Volatile private var lastReferenceAppliedGlucoseId: Int = 0
     @Volatile private var referenceCalibrationRecords: List<AnytimeReferenceCalibrationRecord> = emptyList()
     @Volatile private var calibrationStatusText: String = ""
@@ -428,6 +451,11 @@ class AnytimeBleManager(
         } else if (k > 0f || r > 0f) {
             qr = synthesiseQr("", k, r)
         }
+        qr?.k?.takeIf { it > 0f }?.let { k0 ->
+            AnytimeRegistry.loadCalibratorState(context, id)?.let { state ->
+                AnytimeAlgorithm.restoreCalibratorState(id, k0, state)
+            }
+        }
         voltageFlag = AnytimeRegistry.loadVoltageFlag(context, id)
         transmitterVersion = AnytimeRegistry.loadTransmitterVersion(context, id)
         val persistedLastGlucoseId = AnytimeRegistry.loadLastGlucoseId(context, id)
@@ -443,6 +471,7 @@ class AnytimeBleManager(
         lastReferenceBgGlucoseId = AnytimeRegistry.loadReferenceBgGlucoseId(context, id)
         lastReferenceAppliedGlucoseId = AnytimeRegistry.loadReferenceBgAppliedGlucoseId(context, id)
         referenceCalibrationRecords = restoreReferenceCalibrationRecords(context, id)
+        calibrationRevision = tk.glucodata.CalibrationAccess.getRevision()
         ct5CipherKey = AnytimeRegistry.loadCt5CipherKey(context, id)
         ct5RandomB = AnytimeRegistry.loadCt5RandomB(context, id)
         ct5TempId = AnytimeRegistry.loadCt5TempId(context, id)
@@ -649,6 +678,7 @@ class AnytimeBleManager(
         AnytimeRegistry.saveReferenceBgGlucoseId(ctx, id, lastReferenceBgGlucoseId)
         AnytimeRegistry.saveReferenceBgAppliedGlucoseId(ctx, id, lastReferenceAppliedGlucoseId)
         AnytimeRegistry.saveReferenceBgHistory(ctx, id, referenceCalibrationRecords)
+        AnytimeRegistry.saveCalibratorState(ctx, id, AnytimeAlgorithm.snapshotCalibratorState(id))
         saveCachedBatteryVolts(ctx, id, lastBatteryVolts)
         AnytimeRegistry.saveRawHistory(ctx, id, synchronized(rawAlgorithmWindow) { rawAlgorithmWindow.values.toList() })
         AnytimeRegistry.saveCt5CipherKey(ctx, id, ct5CipherKey)
@@ -915,12 +945,12 @@ class AnytimeBleManager(
             }
             return@Runnable
         }
-        if (tag.startsWith("setDate")) {
+        if (tag.startsWith("setDate") || tag.startsWith("ct2-setDate")) {
             Log.w(TAG, "setDate ACK timeout; keeping GATT alive")
             clearProtocolFrameTimeout()
             return@Runnable
         }
-        if (tag.startsWith("init(after-setDate")) {
+        if (tag.startsWith("init(after-setDate") || tag.startsWith("ct2-init")) {
             Log.w(TAG, "init ACK timeout after best-effort setDate; keeping GATT alive and waiting for raw push")
             clearProtocolFrameTimeout()
             return@Runnable
@@ -1759,6 +1789,36 @@ class AnytimeBleManager(
         )
     }
 
+    /**
+     * A connect attempt can hand back a GATT that never delivers another callback.
+     *
+     * Other managed drivers bound this with a fixed connect-callback timer (Sibionics:
+     * 20 s). Anytime cannot reuse that number: its retry policy only learns that a
+     * direct connect cannot reach a low-power transmitter from Android's ~30-second
+     * timeout (status 133/147), and tearing the attempt down first would mean the mode
+     * never flips to the background (autoConnect) fallback. So the bound here is one
+     * reading interval instead — the same ceiling [connectMode.retryDelayMs] uses, and
+     * the period in which the transmitter is guaranteed connectable. A healthy direct
+     * attempt gets its OS callback long before this fires; only a dead background
+     * attempt, which Android does not bound at all, reaches it.
+     *
+     * Without it, nothing re-drove the manager while the phase sat at CONNECTING:
+     * [reconnect] only calls `disconnect()` and waits for exactly the callback that
+     * never comes, so it looped on the 330-second loss-of-signal alarm forever
+     * (2026-09-15, after the 01:53 restart, "Loss of signal" every 350 s in
+     * ble_error_history, no data written since 01:23).
+     */
+    private val connectWatchdog = Runnable {
+        if (stop || phase != Phase.CONNECTING) return@Runnable
+        Log.w(TAG, "No GATT callback for ${connectWatchdogMs() / 1000}s — resetting connection")
+        recoverGattAndReconnect("connect watchdog", ACTIVE_SESSION_RECONNECT_DELAY_MS)
+    }
+
+    private fun armConnectWatchdog() {
+        handler.removeCallbacks(connectWatchdog)
+        if (!stop) handler.postDelayed(connectWatchdog, connectWatchdogMs())
+    }
+
     private val serviceDiscoveryRetryRunnable: Runnable = Runnable {
         if (stop || serviceDiscoveryHandled) return@Runnable
         if (serviceDiscoveryRetryCount >= MAX_SERVICE_DISCOVERY_RETRIES) return@Runnable
@@ -1767,7 +1827,24 @@ class AnytimeBleManager(
     }
 
     private val forceScanReconnectRetryRunnable: Runnable = Runnable {
-        if (stop || !shouldForceScanReconnect(System.currentTimeMillis())) return@Runnable
+        if (stop) return@Runnable
+        if (!shouldForceScanReconnect(System.currentTimeMillis())) {
+            // The force-scan window expired without the scanner ever re-seeing the
+            // sensor. Force-scan was armed because direct connects kept failing, not
+            // because the sensor is gone. Leaving it here stranded the phase at
+            // CONNECTING with no attempt ever scheduled (seen 2026-09-14 while the
+            // Blueberry app held the CT-14). Clear it and hand the reconnect back to
+            // the normal loop.
+            forceScanReconnectUntilMs = 0L
+            forceScanResultAddress = ""
+            forceScanResultAtMs = 0L
+            if (phase == Phase.CONNECTING && mBluetoothGatt == null) {
+                phase = Phase.IDLE
+                Log.i(TAG, "Force-scan window expired; resuming the normal reconnect")
+                connectDevice(0)
+            }
+            return@Runnable
+        }
         if (mBluetoothGatt != null || phase == Phase.DISCOVERING || phase == Phase.HANDSHAKING || phase == Phase.STREAMING) {
             return@Runnable
         }
@@ -1817,6 +1894,7 @@ class AnytimeBleManager(
 
     private fun clearGattCallbacks() {
         handler.removeCallbacks(serviceDiscoveryWatchdog)
+        handler.removeCallbacks(connectWatchdog)
         handler.removeCallbacks(serviceDiscoveryRetryRunnable)
         handler.removeCallbacks(cccdWriteTimeoutRunnable)
         handler.removeCallbacks(forceScanReconnectRetryRunnable)
@@ -2059,6 +2137,9 @@ class AnytimeBleManager(
     private fun noDataWatchdogMs(): Long =
         NO_DATA_WATCHDOG_MULTIPLIER * profile.readingIntervalMinutes * 60L * 1000L
 
+    private fun connectWatchdogMs(): Long =
+        maxOf(STALE_GATT_RECOVERY_MS, profile.readingIntervalMinutes * 60L * 1000L)
+
     private fun armNoDataWatchdog() {
         handler.removeCallbacks(noDataWatchdog)
         if (lastSensorDataAtMs() > 0L) {
@@ -2084,10 +2165,12 @@ class AnytimeBleManager(
 
     private fun isCt5(): Boolean = familyEntry.family == AnytimeConstants.Family.CT5
 
+    private fun isCt2(): Boolean = familyEntry.family == AnytimeConstants.Family.CT2
+
     private fun usesWideRawRecords(): Boolean = usesSummedFrames() && !isCt5()
 
     private fun supportsLegacySeriesHistory(): Boolean =
-        legacySeriesHistorySupported && usesWideRawRecords()
+        legacySeriesHistorySupported && usesWideRawRecords() && !isCt2()
 
     private fun historyPullCount(nextId: Int): Int {
         // 0x37 carries an explicit count, so a two-record gap asks for two records
@@ -2099,15 +2182,18 @@ class AnytimeBleManager(
     }
 
     private fun checkFrame(): ByteArray =
-        if (usesSummedFrames()) AnytimeFrames.Builders.checkSummed() else AnytimeFrames.Builders.check()
+        if (isCt2()) AnytimeFrames.Builders.ct2Check()
+        else if (usesSummedFrames()) AnytimeFrames.Builders.checkSummed() else AnytimeFrames.Builders.check()
 
     private fun initFrame(): ByteArray =
-        if (usesPlainControlFrames()) AnytimeFrames.Builders.init()
+        if (isCt2()) AnytimeFrames.Builders.ct2Init()
+        else if (usesPlainControlFrames()) AnytimeFrames.Builders.init()
         else if (usesSummedFrames()) AnytimeFrames.Builders.initSummed()
         else AnytimeFrames.Builders.init()
 
     private fun lowPowerFrame(): ByteArray =
-        if (usesPlainControlFrames()) AnytimeFrames.Builders.lowPower()
+        if (isCt2()) AnytimeFrames.Builders.ct2LowPower()
+        else if (usesPlainControlFrames()) AnytimeFrames.Builders.lowPower()
         else if (usesSummedFrames()) AnytimeFrames.Builders.lowPowerSummed()
         else AnytimeFrames.Builders.lowPower()
 
@@ -2115,17 +2201,20 @@ class AnytimeBleManager(
         if (usesSummedFrames()) AnytimeFrames.Builders.resetSummed() else AnytimeFrames.Builders.reset()
 
     private fun unbindFrame(): ByteArray =
-        if (isCt5()) AnytimeFrames.Builders.ct5EndCycle(ct5TempId)
+        if (isCt2()) AnytimeFrames.Builders.ct2Unbind()
+        else if (isCt5()) AnytimeFrames.Builders.ct5EndCycle(ct5TempId)
         else if (usesSummedFrames()) AnytimeFrames.Builders.unbindSummed() else AnytimeFrames.Builders.unbind()
 
     private fun setDateFrame(): ByteArray =
-        if (isCt5()) AnytimeFrames.Builders.ct5GetDate()
+        if (isCt2()) AnytimeFrames.Builders.ct2SetDate()
+        else if (isCt5()) AnytimeFrames.Builders.ct5GetDate()
         else if (usesPlainControlFrames()) AnytimeFrames.Builders.setDate()
         else if (usesSummedFrames()) AnytimeFrames.Builders.setDateSummed()
         else AnytimeFrames.Builders.setDate()
 
     private fun pullGlucoseFrame(nextId: Int, count: Int = 1): ByteArray =
-        if (isCt5()) AnytimeFrames.Builders.ct5PullGlucoseSeries(nextId, count.coerceAtLeast(1))
+        if (isCt2()) AnytimeFrames.Builders.ct2PullGlucose(nextId)
+        else if (isCt5()) AnytimeFrames.Builders.ct5PullGlucoseSeries(nextId, count.coerceAtLeast(1))
         else if (count > 1 && supportsLegacySeriesHistory()) AnytimeFrames.Builders.pullGlucoseSeriesSummed(nextId, count)
         else if (usesPlainControlFrames()) AnytimeFrames.Builders.pullGlucose(nextId)
         else if (usesSummedFrames()) AnytimeFrames.Builders.pullGlucoseSummed(nextId)
@@ -2147,7 +2236,7 @@ class AnytimeBleManager(
     private fun transmitterFormalFrame(): ByteArray =
         if (usesSummedFrames()) AnytimeFrames.Builders.transmitterFormalSummed() else AnytimeFrames.Builders.transmitterFormal()
 
-    private fun usesPlainControlFrames(): Boolean = false
+    private fun usesPlainControlFrames(): Boolean = isCt2()
 
     private fun generateCt5TempId(): String {
         val generated = (1000 + ct5Random.nextInt(9000)).toString()
@@ -2244,6 +2333,7 @@ class AnytimeBleManager(
         }
         lastConnectRequestAtMs = now
         phase = Phase.CONNECTING
+        armConnectWatchdog()
         val scheduled = super.connectDevice(delayMillis)
         if (!scheduled && forceScan && phase == Phase.CONNECTING) {
             Log.i(TAG, "Forced scan-result reconnect is waiting for scanner to rediscover $SerialNumber")
@@ -2347,11 +2437,20 @@ class AnytimeBleManager(
                     .onFailure { Log.stack(TAG, "requestMtu", it) }
                     .getOrDefault(false)
                 Log.d(TAG, "requestMtu(${AnytimeConstants.DEFAULT_MTU}) started=$mtuStarted")
-                // Do not depend on onMtuChanged: after an interrupted write/reconnect
-                // Android can report STATE_CONNECTED but never deliver MTU callback.
-                // Start service discovery shortly anyway, and retry if discoverServices()
-                // returns false instead of waiting for the watchdog loop.
-                handler.postDelayed({ discoverServicesOrRetry(gatt, "connected-fallback") }, 350L)
+                // Wait for onMtuChanged before discovering. Calling discoverServices while
+                // the MTU exchange is still outstanding makes the stack drop the request
+                // ("already has a pending command"); onServicesDiscovered then never arrives
+                // and the driver sits in DISCOVERING until the sensor drops the idle link and
+                // the cycle repeats. Same failure AiDexBleManager documents. Fall back only if
+                // the stack never delivers onMtuChanged.
+                if (mtuStarted) {
+                    handler.postDelayed(
+                        { discoverServicesOrRetry(gatt, "mtu-callback-timeout") },
+                        MTU_CALLBACK_FALLBACK_MS,
+                    )
+                } else {
+                    discoverServicesOrRetry(gatt, "connected-fallback")
+                }
                 handler.postDelayed(serviceDiscoveryWatchdog, SERVICE_DISCOVERY_TIMEOUT_MS)
                 UiRefreshBus.requestStatusRefresh()
             }
@@ -2569,6 +2668,10 @@ class AnytimeBleManager(
         profile = AnytimeProfileResolver.resolve(resolvedName.ifBlank { activeName })
 
         when {
+            isCt2() -> {
+                Log.i(TAG, "CT2 family — starting handshake")
+                sendHandshake(resolvedName)
+            }
             familyEntry.family == AnytimeConstants.Family.CT5 && bound -> {
                 val randomB = ct5RandomB
                 if (randomB != null && randomB.size == 4 && ct5CipherKey in 0..255) {
@@ -2617,6 +2720,79 @@ class AnytimeBleManager(
                 writeFrame(checkFrame(), "check")
             }
         }
+    }
+
+    /** CT2 handshake: {0x48, ASCII(own advertised name), sum}. */
+    private fun sendHandshake(deviceName: String) {
+        val name = deviceName.ifBlank { SerialNumber.orEmpty() }
+        if (name.isBlank()) {
+            Log.w(TAG, "CT2 handshake has no device name to send")
+            writeFrame(checkFrame(), "check(ct2-no-name)")
+            return
+        }
+        writeFrame(AnytimeFrames.Builders.ct2Handshake(name), "ct2-handshake")
+    }
+
+    private fun handleHandshakeAck(data: ByteArray) {
+        Log.d(TAG, "RX CT2 handshake ack")
+        if (phase != Phase.HANDSHAKING) {
+            Log.d(TAG, "Ignoring CT2 handshake ack while phase=$phase")
+            return
+        }
+        writeFrame(setDateFrame(), "ct2-setDate")
+    }
+
+    private fun handleCt2SetDateAck(data: ByteArray) {
+        Log.d(TAG, "RX CT2 setDate ack")
+        if (phase != Phase.HANDSHAKING) {
+            Log.d(TAG, "Ignoring CT2 setDate ack while phase=$phase")
+            return
+        }
+        writeFrame(initFrame(), "ct2-init")
+    }
+
+    /**
+     * CT2 answers the init command with `{0x53, 0x55, 0xAA, sum}`. Without handling it
+     * the `ct2-init` protocol timeout fired 8s later and tore the link down, so the
+     * driver cycled connect → discovery → handshake → disconnect every few seconds.
+     */
+    private fun handleCt2InitAck(data: ByteArray) {
+        Log.d(TAG, "RX CT2 init ack")
+        if (phase != Phase.HANDSHAKING) {
+            Log.d(TAG, "Ignoring CT2 init ack while phase=$phase")
+            return
+        }
+        enterStreaming("CT2 init ack")
+    }
+
+    /** Manual CT2 self-test. Not part of the automatic connect sequence. */
+    override fun requestSelfTest(): Boolean {
+        if (!isCt2()) return false
+        if (phase != Phase.STREAMING && phase != Phase.HANDSHAKING) return false
+        return writeFrame(AnytimeFrames.Builders.ct2Check(), "ct2-check")
+    }
+
+    override fun supportsSelfTest(): Boolean = AnytimeConstants.supportsSelfTest(familyEntry.family)
+
+    private fun handleSelfTestResult(data: ByteArray) {
+        val result = AnytimeFrames.parseCt2CheckResponse(data)
+        if (result == null) {
+            Log.w(TAG, "CT2 self-test bad response: ${data.joinToHex()}")
+            return
+        }
+        lastIwNa = result.iwNa
+        lastIbNa = result.ibNa
+        lastTemperatureC = result.temperatureC
+        if (result.powerByte in 0..100) lastCt2BatteryPercent = result.powerByte
+        Log.i(
+            TAG,
+            "CT2 self-test: iw=${result.iwNa} ib=${result.ibNa} T=${result.temperatureC} " +
+                    "power=${result.powerByte} passed=${result.passed}",
+        )
+        if (result.powerByte in 0 until AnytimeConstants.BATTERY_LOW_PERCENT_CT2) {
+            Log.w(TAG, "CT2 self-test: low battery (${result.powerByte}%)")
+        }
+        UiRefreshBus.requestStatusRefresh()
     }
 
     override fun onCharacteristicWrite(
@@ -2685,6 +2861,15 @@ class AnytimeBleManager(
 
     private fun dispatch(opcode: Byte, data: ByteArray) {
         if (isCt5() && dispatchCt5(opcode, data)) return
+        // The CT-14 (CT2 family) has its own opcode namespace. Route it separately so its
+        // frames can never fall through to the generic CT3/CT2.5 handlers: 0x08 and 0x09
+        // mean different things in the two namespaces, and 0x58 is CT2 unbind vs CT5 generic.
+        if (isCt2()) {
+            if (!dispatchCt14(opcode, data)) {
+                Log.d(TAG, "Unhandled CT-14 opcode 0x%02X len=%d".format(opcode.toInt() and 0xFF, data.size))
+            }
+            return
+        }
         when (opcode) {
             AnytimeConstants.RX_VERSION -> Log.d(TAG, "RX 0x01 version: ${data.joinToHex()}")
             AnytimeConstants.RX_SET_DATE_ACK_A,
@@ -2718,6 +2903,22 @@ class AnytimeBleManager(
             AnytimeConstants.RX_TRANSMITTER_FORMAL -> handleFormalVersion(data)
             else -> Log.d(TAG, "Unhandled opcode 0x%02X len=%d".format(opcode.toInt() and 0xFF, data.size))
         }
+    }
+
+    /** CT-14 (CT2 family) response dispatch; false when the opcode is not ours. */
+    private fun dispatchCt14(opcode: Byte, data: ByteArray): Boolean {
+        if (!AnytimeConstants.isCt14Opcode(opcode)) return false
+        when (opcode) {
+            AnytimeConstants.RX_CT2_HANDSHAKE_ACK -> handleHandshakeAck(data)
+            AnytimeConstants.RX_CT2_SET_DATE_ACK -> handleCt2SetDateAck(data)
+            AnytimeConstants.RX_CT2_INIT_ACK -> handleCt2InitAck(data)
+            AnytimeConstants.RX_CT2_PUSH_GLUCOSE -> handleCt2GlucoseFrame(data, historical = false)
+            AnytimeConstants.RX_CT2_PULL_RESPONSE -> handleCt2GlucoseFrame(data, historical = true)
+            AnytimeConstants.RX_CT2_CHECK -> handleSelfTestResult(data)
+            AnytimeConstants.RX_UNBIND_ACK_GENERIC -> handleUnbindAck(data)
+            else -> Unit
+        }
+        return true
     }
 
     private fun dispatchCt5(opcode: Byte, data: ByteArray): Boolean {
@@ -3274,11 +3475,44 @@ class AnytimeBleManager(
         } else {
             AnytimeFrames.parseRawRecords(data, usesWideRawRecords())
         }
+        processRawRecords(records, push)
+    }
+
+    private fun handleCt2GlucoseFrame(data: ByteArray, historical: Boolean) {
+        val push = !historical
+        val frame = AnytimeFrames.parseCt2GlucoseRecord(data)
+        if (frame == null) {
+            Log.w(TAG, "CT2 glucose frame rejected (bad sum/size): ${data.joinToHex()}")
+            processRawRecords(emptyList(), push)
+            return
+        }
+        if (frame.isEndOfHistory) {
+            // Transmitter's own end-of-history sentinel (id == 0xFFFF on a pull
+            // response), not a malformed frame and not a real record. Same
+            // termination path as an empty pull response — see the original
+            // POCTech driver's equivalent check (docs/ct14-implementation-plan.md
+            // §5.4.1).
+            Log.d(TAG, "CT2 backfill reached end-of-history sentinel")
+            processRawRecords(emptyList(), push)
+            return
+        }
+        if (push && phase == Phase.HANDSHAKING) {
+            val intervalMs = profile.readingIntervalMinutes * 60L * 1000L
+            updateTimelineFromLiveGlucoseId(frame.record.glucoseId, System.currentTimeMillis(), intervalMs)
+            enterStreaming("CT2 raw glucose during handshake")
+        }
+        if (!historical) {
+            frame.batteryPercent?.takeIf { it in 0..100 }?.let { lastCt2BatteryPercent = it }
+        }
+        processRawRecords(listOf(frame.record), push)
+    }
+
+    private fun processRawRecords(records: List<AnytimeRawRecord>, push: Boolean) {
         val context = Applic.app
         val intervalMs = profile.readingIntervalMinutes * 60L * 1000L
         if (records.isEmpty()) {
             // Empty pull response — transmitter has nothing more to give.
-            Log.d(TAG, "Empty raw frame (pull caught-up): ${data.joinToHex()}")
+            Log.d(TAG, "Empty raw frame (pull caught-up)")
             if (!push) {
                 clearHistoryPullTimeout()
                 historyPullInFlight = false
@@ -3364,6 +3598,8 @@ class AnytimeBleManager(
                 recentRecordsProvider = { rawRecordsForAlgorithm(rec.glucoseId) },
                 sensorStartTimeMs = glucoseTimelineStartAtMs.takeIf { it > 0L } ?: sensorStartAtMs,
                 logNativeFallbackWarnings = push,
+                persistentSensorId = SerialNumber.orEmpty(),
+                advanceModelFallback = push,
             )
             val skipHistoryImport = shouldSkipStartupRoomImport(result, push = push, history = !push)
             val committed = commitReading(
@@ -3927,6 +4163,39 @@ class AnytimeBleManager(
         )
     }
 
+    /**
+     * Folds the app's fingerstick calibration into this driver's own output,
+     * the same way SibionicsBleManager does via IntegratedStockBaseline +
+     * CalibrationAccess.getIntegratedCalibratedSeries. This driver declares
+     * integratesUserCalibration(isRawMode=false) == true, so CalibrationManager's
+     * own post-hoc getCalibratedValue() skips it — this is the only place the
+     * correction gets applied.
+     *
+     * rawMgdl is left untouched: it is the uncalibrated K/R estimate the raw
+     * history view relies on. Only mgdlTimes10/mmol — the calibrated reading —
+     * are adjusted.
+     */
+    private fun applyUserCalibration(result: AnytimeAlgorithm.Result, sampleMs: Long): AnytimeAlgorithm.Result {
+        val isMmolDisplay = Applic.unit == 1
+        val stockDisplay = if (isMmolDisplay) result.mgdl / MGDL_PER_MMOLL_DISPLAY else result.mgdl
+        if (!stockDisplay.isFinite() || stockDisplay <= 0f) return result
+        tk.glucodata.IntegratedStockBaseline.record(SerialNumber, sampleMs, stockDisplay)
+        val calibratedDisplay = tk.glucodata.CalibrationAccess.getIntegratedCalibratedSeries(
+            values = floatArrayOf(stockDisplay),
+            timestamps = longArrayOf(sampleMs),
+            isRawMode = false,
+            sensorIdOverride = SerialNumber,
+        ).firstOrNull() ?: stockDisplay
+        if (!calibratedDisplay.isFinite() || calibratedDisplay <= 0f) return result
+        val calibratedMgdl = if (isMmolDisplay) calibratedDisplay * MGDL_PER_MMOLL_DISPLAY else calibratedDisplay
+        val calibratedMgdlTimes10 = (calibratedMgdl * 10f).roundToInt()
+        if (calibratedMgdlTimes10 == result.mgdlTimes10) return result
+        return result.copy(
+            mgdlTimes10 = calibratedMgdlTimes10,
+            mmol = calibratedMgdl * MGDL_TO_MMOLL,
+        )
+    }
+
     private fun commitReading(
         result: AnytimeAlgorithm.Result,
         sampleMs: Long,
@@ -3962,6 +4231,7 @@ class AnytimeBleManager(
             }
             return false
         }
+        val result = applyUserCalibration(result, sampleMs)
         val newest = sampleMs >= lastGlucoseAtMs
         if (result.calibrationStatus != AnytimeCalibrationPolicy.CALIBRATION_STATUS_UNKNOWN) {
             lastAlgorithmCalibrationStatus = result.calibrationStatus
@@ -4268,7 +4538,9 @@ class AnytimeBleManager(
                     sensorSerial = name,
                     readings = imports.map { it.reading },
                     logLabel = "Anytime $source",
-                    nearDuplicateWindowMs = if (source == AnytimeAlgorithm.Source.LINEAR) {
+                    nearDuplicateWindowMs = if (source == AnytimeAlgorithm.Source.LINEAR ||
+                        source == AnytimeAlgorithm.Source.MODEL
+                    ) {
                         HISTORY_ROOM_IMPORT_NEAR_DUPLICATE_MS
                     } else {
                         0L
@@ -4409,13 +4681,26 @@ class AnytimeBleManager(
         }.getOrDefault(false)
     }
 
+    /** Trend/noise estimate over the last [CALIBRATION_TREND_WINDOW_MS] of display history. */
+    private fun recentTrendEstimate(): AnytimeTrendEstimator.Estimate? {
+        val nowMs = System.currentTimeMillis()
+        val startMs = (nowMs - CALIBRATION_TREND_WINDOW_MS).coerceAtLeast(0L)
+        val points = runCatching {
+            NotificationHistorySource.getDisplayHistory(startMs, true, SerialNumber)
+        }.getOrDefault(emptyList())
+            .filter { it.value.isFinite() && it.value > 0f }
+            .sortedBy { it.timestamp }
+            .map { AnytimeTrendEstimator.Point(it.timestamp, it.value) }
+        return AnytimeTrendEstimator.estimate(points)
+    }
+
     private fun displayFallbackValue(result: AnytimeAlgorithm.Result): Float {
         val mgdl = when {
             result.errorCode == 0 && result.mgdlTimes10 >= 170 -> result.mgdl
             result.rawMgdl.isFinite() && result.rawMgdl > 0f -> result.rawMgdl
             else -> Float.NaN
         }
-        return if (Applic.unit == 1) mgdl / 18.0182f else mgdl
+        return if (Applic.unit == 1) mgdl / MGDL_PER_MMOLL_DISPLAY else mgdl
     }
 
     private fun algorithmTransmitterName(context: Context?): String {
@@ -4611,6 +4896,35 @@ class AnytimeBleManager(
             setCalibrationStatus(
                 resId = R.string.anytime_calibration_not_allowed_status,
                 fallback = "Calibration not allowed by sensor right now",
+            )
+            return false
+        }
+        // Null (too few recent points to fit a trend) does not block calibration —
+        // only a *confirmed* unstable/noisy trend does. Refusing just because
+        // history is sparse would be stricter than Reference App's own gate, which
+        // exists to catch rapid swings and noisy patches, not thin data.
+        val trendEstimate = recentTrendEstimate()
+        if (trendEstimate != null && !AnytimeCalibrationPolicy.canAcceptTrendForCalibration(trendEstimate.slopeMmolPerMin)) {
+            Log.w(
+                TAG,
+                "pushReferenceBg($mgdl) rejected — trend not stable " +
+                        "(slope=${"%.3f".format(trendEstimate.slopeMmolPerMin)} mmol/L/min)"
+            )
+            setCalibrationStatus(
+                resId = R.string.anytime_calibration_unstable_trend_status,
+                fallback = "Calibration unavailable; wait for a stable trend (→)",
+            )
+            return false
+        }
+        if (trendEstimate != null && !AnytimeCalibrationPolicy.canAcceptNoiseForCalibration(trendEstimate.noiseMmol)) {
+            Log.w(
+                TAG,
+                "pushReferenceBg($mgdl) rejected — noise too high " +
+                        "(noise=${"%.3f".format(trendEstimate.noiseMmol)} mmol/L)"
+            )
+            setCalibrationStatus(
+                resId = R.string.anytime_calibration_noisy_status,
+                fallback = "Calibration unavailable; signal noise is too high",
             )
             return false
         }
@@ -5063,7 +5377,7 @@ class AnytimeBleManager(
 
     override val batteryMillivolts: Int get() = (lastBatteryVolts * 1000f).toInt()
     override val batteryPercent: Int
-        get() = AnytimeFrames.batteryPercent(lastBatteryVolts, profile.lowBatteryVolts)
+        get() = if (isCt2()) lastCt2BatteryPercent else AnytimeFrames.batteryPercent(lastBatteryVolts, profile.lowBatteryVolts)
 
     override fun matchesManagedSensorId(sensorId: String?): Boolean =
         AnytimeConstants.matchesCanonicalOrKnownNativeAlias(sensorId, SerialNumber)
@@ -5135,6 +5449,19 @@ class AnytimeBleManager(
 
     override fun getSensorDetailTelemetry(): String = latestTelemetryStatus()
 
+    override fun integratesUserCalibration(isRawMode: Boolean): Boolean = !isRawMode
+
+    /**
+     * Unlike SibionicsBleManager, Anytime has no local DSP state that a new
+     * calibration point could invalidate: applyUserCalibration() re-queries
+     * CalibrationAccess on every commitReading() call, so a fresh point takes
+     * effect on the next reading with no replay needed. This just keeps
+     * calibrationRevision current for bookkeeping/parity with the interface.
+     */
+    override fun onUserCalibrationRevisionChanged(revision: Long) {
+        calibrationRevision = revision
+    }
+
     /**
      * Format the rich algorithm-internal state for a debug pane. Returns null if
      * we have no readings yet or are running on the linear-fallback path (where
@@ -5144,6 +5471,10 @@ class AnytimeBleManager(
         val r = lastAlgorithmResult ?: return null
         if (r.source == AnytimeAlgorithm.Source.LINEAR) {
             return "Linear fallback · K=${qr?.k ?: 0f} R=${qr?.r ?: 0f}\n" +
+                    "Iw=${"%.2f".format(r.iwNa)} nA · Ib=${"%.2f".format(r.ibNa)} nA · T=${"%.1f".format(r.temperatureC)}°C"
+        }
+        if (r.source == AnytimeAlgorithm.Source.MODEL) {
+            return "Reference App model (no native .so) · K0=${qr?.k ?: 0f} R=${qr?.r ?: 0f}\n" +
                     "Iw=${"%.2f".format(r.iwNa)} nA · Ib=${"%.2f".format(r.ibNa)} nA · T=${"%.1f".format(r.temperatureC)}°C"
         }
         val voltagesLine = if (r.weVoltageMv != Int.MIN_VALUE) {

@@ -190,6 +190,61 @@ object AnytimeConstants {
     /** CT5 encrypted QR/KR response. */
     const val RX_CT5_QUERY_SSN: Byte = 0x3F
 
+    // ---- CT2 opcode catalog — ASCII-letter opcodes, distinct numbering from CT3/CT2.5 ----
+    // Confirmed live on SN08402458, 2026-09-07 (see docs/ct-driver-plan.md §B0-B1).
+
+    /** Transmitter version request. Body: {0x03} (not an ASCII letter). */
+    const val TX_CT2_VERSION: Byte = 0x03
+
+    /** Handshake with the device's own advertised name. Body: {0x48, ASCII(name), sum}. */
+    const val TX_CT2_HANDSHAKE: Byte = 0x48
+
+    /** Sync clock. Body: {0x54, yearHi, yearLo, month, day, hour, min, sec, sum}. */
+    const val TX_CT2_SET_DATE: Byte = 0x54
+
+    /** Init session. Body: {0x53, 0x55, 0xAA, sum}. */
+    const val TX_CT2_INIT: Byte = 0x53
+
+    /** Self-test / check. Body: {0x43, 0x55, 0xAA, sum}. */
+    const val TX_CT2_CHECK: Byte = 0x43
+
+    /** Low power. Body: {0x57, 0x55, 0xAA, sum}. */
+    const val TX_CT2_LOW_POWER: Byte = 0x57
+
+    /** Unbind. Body: {0x58, 0x55, 0xAA, sum}. */
+    const val TX_CT2_UNBIND: Byte = 0x58
+
+    /** Pull one record by id. Body: {0x55, idHi, idLo, sum}. */
+    const val TX_CT2_PULL_GLUCOSE: Byte = 0x55
+
+    /** Fingerstick reference BG (mg/dL big-endian). Body: {0x08, mgdlHi, mgdlLo, sum}. */
+    const val TX_CT2_INPUT_BG_MG: Byte = 0x08
+
+    /** Glucose computed by the transmitter. Body: {0x09, idHi, idLo}. */
+    const val TX_CT2_GLUCOSE_BY_TRANSMITTER: Byte = 0x09
+
+    /** Handshake ACK — fixed frame {0x48, 0x55, 0xAA, sum}. */
+    const val RX_CT2_HANDSHAKE_ACK: Byte = 0x48
+
+    /** setDate ACK — fixed frame {0x54, 0x55, 0xAA, sum}. */
+    const val RX_CT2_SET_DATE_ACK: Byte = 0x54
+
+    /** Init ACK (echoes the init opcode). */
+    const val RX_CT2_INIT_ACK: Byte = 0x53
+
+    /** Self-test / check response (8 bytes: Iw, Ib, T, powerByte, sum). */
+    const val RX_CT2_CHECK: Byte = 0x43
+
+    /** Live glucose push — 15-byte record, battery byte carries real charge. */
+    const val RX_CT2_PUSH_GLUCOSE: Byte = 0x44
+
+    /**
+     * Pull response — same 15-byte layout as RX_CT2_PUSH_GLUCOSE but byte 13 is
+     * always 0xFF (no live battery). Confirmed live: NOT derivable from
+     * TX_CT2_PULL_GLUCOSE (0x55) arithmetically; hard-coded, never computed.
+     */
+    const val RX_CT2_PULL_RESPONSE: Byte = 0x47
+
     // ---- 9-byte / 11-byte raw-current records (RX_PUSH_GLUCOSE / RX_PULL_GLUCOSE) ----
 
     const val RAW_RECORD_SIZE = 9
@@ -251,6 +306,14 @@ object AnytimeConstants {
     /** End-of-life warning: percentage threshold under which battery is "low". */
     const val BATTERY_WARN_PERCENT = 30
 
+    /**
+     * CT2 low-battery threshold, percent (not volts). The CT2 check response
+     * byte 6 is a power byte that scales like a percentage (observed 96-100),
+     * not a voltage; no discharged-sensor capture exists yet, so 20 is a
+     * placeholder to revisit with live low-battery data.
+     */
+    const val BATTERY_LOW_PERCENT_CT2 = 20
+
     // ---- Lifecycle / cadence defaults (overridden per family in AnytimeProfile) ----
 
     /** Sensor rated lifetime. CT3 is 14, 15 or 16 days depending on chemistry. */
@@ -281,6 +344,49 @@ object AnytimeConstants {
 
     /** Linear fallback Auto floor only; Raw remains unclamped and native values bypass this. */
     const val ALGO_MMOL_FLOOR = 2.2
+
+    // ---- CT-14 empirical model (Apex/Blueberry reference, 2026-09-14) ----
+    //
+    // "CT-14" is the product (transmitter names SN04/SN08/SN20/SN48/SN50/SN52 in
+    // the CT2 protocol family — see FAMILY_TABLE). Derived from the Blueberry app's
+    // own CT-14 series: 3085 records with iw/ib/t and the model's rawGlucose/glucose.
+    // `rawGlucose` fits `Iw + CT14_AGING_NA_PER_DAY * elapsedDays` with a 0.0002
+    // residual, and `glucose = (raw - intercept) / slope`. With no user calibration
+    // the app used slope/intercept below; `Ib` does not participate at all (rows
+    // differing only in Ib gave identical rawGlucose).
+
+    /** Sensor-aging drift of the raw current, nA per day since the session start. */
+    const val CT14_AGING_NA_PER_DAY = 0.4f
+
+    /** Default CT-14 calibration line, used until the user enters a fingerstick. */
+    const val CT14_DEFAULT_SLOPE = 1.667f
+    const val CT14_DEFAULT_INTERCEPT = 3.33f
+
+    // ---- CT4 MK4 reference K0 (docs/MK4_FINAL_SUMMARY.md §2, §8) ----
+    //
+    // CT4 has no factory QR (like CT2), so `qr.k` is usually 0. The reference
+    // chain needs a real K0; the MK4 logs pin it at 1.13 (K_BASE = 1.2 * 1.13 =
+    // 1.356). Used only when no user/factory K is available.
+    const val CT4_DEFAULT_K0 = 1.13f
+
+    /**
+     * Response opcodes the CT-14 (CT2 protocol family) owns, including its unbind
+     * ack. Kept as an explicit set so this family is dispatched on its own and can
+     * never fall through to the generic CT3/CT2.5 handlers: 0x08 and 0x09 mean
+     * different things in the two namespaces, and 0x58 is CT2 unbind vs CT5 generic
+     * unbind.
+     */
+    @JvmStatic
+    fun isCt14Opcode(opcode: Byte): Boolean = when (opcode) {
+        RX_CT2_HANDSHAKE_ACK,
+        RX_CT2_SET_DATE_ACK,
+        RX_CT2_INIT_ACK,
+        RX_CT2_CHECK,
+        RX_CT2_PUSH_GLUCOSE,
+        RX_CT2_PULL_RESPONSE,
+        RX_UNBIND_ACK_GENERIC -> true
+        else -> false
+    }
 
     // ---- Device family enum (`EDevice` equivalent) ----
 
@@ -404,6 +510,13 @@ object AnytimeConstants {
             isLikelyPersistedSensorName(trimmed)
     }
 
+    /**
+     * On-demand electrode-current self-test (`{0x43, 0x55, 0xAA, sum}`). Only the
+     * CT2/CT-14 generation answers it; CT2.5 and later have no such request.
+     */
+    @JvmStatic
+    fun supportsSelfTest(family: Family): Boolean = family == Family.CT2
+
     @JvmStatic
     fun isLikelyPersistedSensorName(name: String?): Boolean {
         val trimmed = name?.trim().orEmpty()
@@ -499,6 +612,9 @@ object AnytimeConstants {
     const val PREF_REF_BG_APPLIED_GLUCOSE_ID_PREFIX = "anytime_ref_bg_applied_id_"
     const val PREF_REF_BG_HISTORY_PREFIX = "anytime_ref_bg_history_"
     const val PREF_RAW_HISTORY_PREFIX = "anytime_raw_history_"
+    const val PREF_CALIBRATOR_TEMP_SMOOTH_PREV_PREFIX = "anytime_calib_temp_smooth_"
+    const val PREF_CALIBRATOR_FILTERED_PREV_PREFIX = "anytime_calib_filtered_"
+    const val PREF_CALIBRATOR_LAST_ID_PREFIX = "anytime_calib_last_id_"
     const val PREF_TEMPERATURE_HISTORY_PREFIX = "anytime_temp_history_"
     const val PREF_CT5_CIPHER_KEY_PREFIX = "anytime_ct5_cipher_"
 

@@ -25,6 +25,17 @@ package tk.glucodata.drivers.anytime
  */
 internal const val GATT_CONNECTION_TIMEOUT_STATUS = 147
 
+/**
+ * `BluetoothGatt.GATT_ERROR`. Android before API 35 does not have a dedicated
+ * connection-timeout status: the direct-connect 30-second timer surfaces here as a
+ * plain 133. Live 2026-09-14 CT-14 trace on Android 13: every failed direct connect
+ * reported 133 after exactly 30.0s, so only the 147 check left the mode stuck on
+ * direct connects forever. [AnytimeConnectModeState.onDisconnected] still gates this
+ * on the attempt never having connected, which is what separates this timer from a
+ * link that came up and then dropped with 133.
+ */
+internal const val GATT_ERROR_STATUS = 133
+
 /** One timeout is already 30 seconds of silence — do not spend a second one to be sure. */
 internal const val AUTO_CONNECT_AFTER_TIMEOUTS = 1
 
@@ -32,7 +43,7 @@ internal const val AUTO_CONNECT_AFTER_TIMEOUTS = 1
 internal const val MAX_CONNECT_BACKOFF_DOUBLINGS = 30
 
 internal fun isConnectTimeoutStatus(status: Int): Boolean =
-    status == GATT_CONNECTION_TIMEOUT_STATUS
+    status == GATT_CONNECTION_TIMEOUT_STATUS || status == GATT_ERROR_STATUS
 
 internal fun shouldUseAutoConnect(userSetting: Boolean, directConnectUnreachable: Boolean): Boolean =
     userSetting || directConnectUnreachable

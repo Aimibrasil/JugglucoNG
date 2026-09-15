@@ -70,6 +70,8 @@ data class ManagedSensorUiSnapshot(
     val supportsManualCalibration: Boolean = false,
     val supportsHardwareReset: Boolean = false,
     val supportsClearCalibration: Boolean = false,
+    /** Vendor has an on-demand self-test that measures the raw electrode current. */
+    val supportsSelfTest: Boolean = false,
     val sensorDetailTelemetry: String = "",
     val isVendorPaired: Boolean = false,
     val vendorCalibrations: List<ManagedSensorCalibrationRecord> = emptyList(),

@@ -16,13 +16,38 @@ class AnytimeConnectRetryPolicyTests {
     private val baseMs = 2_000L
 
     @Test
-    fun onlyTheThirtySecondTimeoutStatusCountsAsAConnectTimeout() {
+    fun theThirtySecondTimerCountsUnderBothStatusesAndroidGivesIt() {
+        // API 35 has a dedicated GATT_CONNECTION_TIMEOUT (147); older Android reports
+        // the same 30-second direct-connect timer as GATT_ERROR (133). The live
+        // 2026-09-14 CT-14 trace on Android 13 was 133 after exactly 30.0s each time.
         assertTrue(isConnectTimeoutStatus(147))
-        // 257 (GATT_FAILURE) and 133 (GATT_ERROR) are lost links, not unreachable
-        // peripherals: they say nothing about whether the transmitter is advertising.
+        assertTrue(isConnectTimeoutStatus(133))
+        // 257 (GATT_FAILURE) is a different animal, and 0 is success.
         assertFalse(isConnectTimeoutStatus(257))
-        assertFalse(isConnectTimeoutStatus(133))
         assertFalse(isConnectTimeoutStatus(0))
+    }
+
+    @Test
+    fun aGattErrorAfterTheLinkWasUpIsNotAConnectTimeout() {
+        // 133 mid-session is a lost link, not an unreachable peripheral. The
+        // wasConnecting gate is what keeps this from flipping the mode.
+        val state = AnytimeConnectModeState()
+        state.onConnected(usedAutoConnect = false)
+
+        state.onDisconnected(status = 133, wasConnecting = false)
+
+        assertFalse(state.directConnectUnreachable)
+        assertFalse(state.useAutoConnect(userSetting = false))
+    }
+
+    @Test
+    fun anAndroid13ConnectTimerFlipsToAutoConnect() {
+        val state = AnytimeConnectModeState()
+
+        state.onDisconnected(status = 133, wasConnecting = true)
+
+        assertTrue(state.directConnectUnreachable)
+        assertTrue(state.useAutoConnect(userSetting = false))
     }
 
     @Test
