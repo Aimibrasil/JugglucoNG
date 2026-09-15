@@ -5,15 +5,15 @@ simple name appears in a test source (import or usage). This is a rough proxy fo
 class-level test presence, not line coverage.
 
 - Source types: 1451
-- Referenced by tests: 552
-- Not referenced: 899
-- Test files: 230
+- Referenced by tests: 554
+- Not referenced: 897
+- Test files: 231
 
 ## Coverage by area (top package)
 
 | area | referenced | unreferenced | total |
 |------|-----------:|-------------:|------:|
-| `tk.glucodata` | 133 | 270 | 403 |
+| `tk.glucodata` | 134 | 269 | 403 |
 | `tk.glucodata.NovoPen` | 21 | 4 | 25 |
 | `tk.glucodata.NovoPen.opennov` | 1 | 9 | 10 |
 | `tk.glucodata.NovoPen.opennov.buffer` | 0 | 3 | 3 |
@@ -50,7 +50,7 @@ class-level test presence, not line coverage.
 | `tk.glucodata.receivers` | 0 | 5 | 5 |
 | `tk.glucodata.service` | 0 | 3 | 3 |
 | `tk.glucodata.settings` | 1 | 18 | 19 |
-| `tk.glucodata.sms` | 8 | 9 | 17 |
+| `tk.glucodata.sms` | 9 | 8 | 17 |
 | `tk.glucodata.ui` | 19 | 76 | 95 |
 | `tk.glucodata.ui.alerts` | 0 | 4 | 4 |
 | `tk.glucodata.ui.calibration` | 0 | 5 | 5 |
@@ -204,7 +204,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.ObjIntConsumer`  (Common/src/main/java/tk/glucodata/ObjIntConsumer.java)
 - `tk.glucodata.Openfile`  (Common/src/main/java/tk/glucodata/Openfile.java)
 - `tk.glucodata.OutboundApiJournalSnapshot`  (Common/src/mobile/java/tk/glucodata/OutboundApiJournalSnapshot.kt)
-- `tk.glucodata.OutboundApiSettings`  (Common/src/main/java/tk/glucodata/OutboundApiSettings.kt)
 - `tk.glucodata.OutboundApiWorker`  (Common/src/main/java/tk/glucodata/OutboundApi.kt)
 - `tk.glucodata.PeerCurrent`  (Common/src/main/java/tk/glucodata/NotificationMultiSensorSource.kt)
 - `tk.glucodata.PeerSeries`  (Common/src/main/java/tk/glucodata/NotificationChartDrawer.java)
@@ -655,7 +654,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.sms.Condition`  (Common/src/main/java/tk/glucodata/sms/SmsEscalation.kt)
 - `tk.glucodata.sms.ConditionOutcome`  (Common/src/main/java/tk/glucodata/sms/SmsEscalation.kt)
 - `tk.glucodata.sms.SmsGateway`  (Common/src/main/java/tk/glucodata/sms/SmsGateway.kt)
-- `tk.glucodata.sms.SmsMessageComposer`  (Common/src/main/java/tk/glucodata/sms/SmsMessageComposer.kt)
 - `tk.glucodata.sms.SmsMessagePlan`  (Common/src/main/java/tk/glucodata/sms/SmsEscalation.kt)
 - `tk.glucodata.sms.SmsPlan`  (Common/src/main/java/tk/glucodata/sms/SmsEscalation.kt)
 - `tk.glucodata.sms.SmsWatchdog`  (Common/src/main/java/tk/glucodata/sms/SmsWatchdog.kt)
@@ -954,7 +952,6 @@ class-level test presence, not line coverage.
 
 ### Common/src/main/java/tk/glucodata/OutboundApiSettings.kt
 - `tk.glucodata.Destination`
-- `tk.glucodata.OutboundApiSettings`
 
 ### Common/src/main/java/tk/glucodata/Placer.java
 - `tk.glucodata.Placer`
@@ -1525,9 +1522,6 @@ class-level test presence, not line coverage.
 ### Common/src/main/java/tk/glucodata/sms/SmsGateway.kt
 - `tk.glucodata.sms.Availability`
 - `tk.glucodata.sms.SmsGateway`
-
-### Common/src/main/java/tk/glucodata/sms/SmsMessageComposer.kt
-- `tk.glucodata.sms.SmsMessageComposer`
 
 ### Common/src/main/java/tk/glucodata/sms/SmsWatchdog.kt
 - `tk.glucodata.sms.SmsWatchdog`
@@ -3040,7 +3034,7 @@ package `tk.glucodata` — types `x `: OutboundApiInsulinTokens, TypeSnapshot
 functions: `assignSlugs()`, `expand()`, `formatUnits()`, `minutesSince()`, `orZero()`, `parse()`, `slugFor()`, `tokensForNames()`, `tokensForSlug()`
 
 ### Common/src/main/java/tk/glucodata/OutboundApiSettings.kt
-package `tk.glucodata` — types `x  `: Config, Destination, OutboundApiSettings
+package `tk.glucodata` — types `x x`: Config, Destination, OutboundApiSettings
 functions: `activeDestinations()`, `clearRecipientState()`, `createDestination()`, `decodeDestinations()`, `decodeIntMap()`, `decodeLongMap()`, `defaultName()`, `defaultTemplate()`, `defaultUrl()`, `encodeDestinations()`, `encodeIntMap()`, `encodeLongMap()`, `findDestination()`, `isEnabled()`, `isReady()`, `isSms()`, `isTelegramRecipient()`, `isVkRecipient()`, `load()`, `loadUncached()`, `migrateLegacy()`, `normalizePreset()`, `normalizeTriggerMode()`, `normalizedPreset()`, `normalizedTriggerMode()`, `prefs()`, `rangeStatus()`, `recipients()`, `recordAttempt()`, `recordBubbleSent()`, `recordQueued()`, `recordReadingArrived()`, `recordStaleAt()`, `recordSuccess()`, `resolvedName()`, `resolvedTemplate()`, `resolvedUrl()`, `save()`, `shouldQueue()`, `shouldSendForGlucose()`, `updateDestination()`, `withPreset()`
 
 ### Common/src/main/java/tk/glucodata/Placer.java
@@ -3920,7 +3914,7 @@ package `tk.glucodata.sms` — types `  `: Availability, SmsGateway
 functions: `availability()`, `hasPermission()`, `hasTelephony()`, `resolveManager()`, `resultIntent()`, `send()`
 
 ### Common/src/main/java/tk/glucodata/sms/SmsMessageComposer.kt
-package `tk.glucodata.sms` — types ` `: SmsMessageComposer
+package `tk.glucodata.sms` — types `x`: SmsMessageComposer
 functions: `alertName()`, `assemble()`, `compose()`, `composeTest()`, `currentReading()`, `headline()`
 
 ### Common/src/main/java/tk/glucodata/sms/SmsPolicy.kt
