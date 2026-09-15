@@ -5,9 +5,9 @@ simple name appears in a test source (import or usage). This is a rough proxy fo
 class-level test presence, not line coverage.
 
 - Source types: 1451
-- Referenced by tests: 530
-- Not referenced: 921
-- Test files: 214
+- Referenced by tests: 549
+- Not referenced: 902
+- Test files: 226
 
 ## Coverage by area (top package)
 
@@ -23,23 +23,23 @@ class-level test presence, not line coverage.
 | `tk.glucodata.aidex` | 1 | 2 | 3 |
 | `tk.glucodata.alerts` | 30 | 12 | 42 |
 | `tk.glucodata.data` | 12 | 29 | 41 |
-| `tk.glucodata.data.calibration` | 13 | 15 | 28 |
+| `tk.glucodata.data.calibration` | 15 | 13 | 28 |
 | `tk.glucodata.data.journal` | 24 | 26 | 50 |
 | `tk.glucodata.data.prediction` | 9 | 5 | 14 |
 | `tk.glucodata.data.settings` | 0 | 1 | 1 |
 | `tk.glucodata.drivers` | 3 | 14 | 17 |
-| `tk.glucodata.drivers.aidex` | 2 | 4 | 6 |
+| `tk.glucodata.drivers.aidex` | 3 | 3 | 6 |
 | `tk.glucodata.drivers.aidex.native.ble` | 17 | 13 | 30 |
 | `tk.glucodata.drivers.aidex.native.crypto` | 4 | 0 | 4 |
-| `tk.glucodata.drivers.aidex.native.data` | 5 | 7 | 12 |
+| `tk.glucodata.drivers.aidex.native.data` | 6 | 6 | 12 |
 | `tk.glucodata.drivers.aidex.native.protocol` | 11 | 15 | 26 |
 | `tk.glucodata.drivers.anytime` | 24 | 12 | 36 |
 | `tk.glucodata.drivers.api` | 2 | 3 | 5 |
-| `tk.glucodata.drivers.icanhealth` | 10 | 22 | 32 |
+| `tk.glucodata.drivers.icanhealth` | 16 | 16 | 32 |
 | `tk.glucodata.drivers.mq` | 5 | 39 | 44 |
 | `tk.glucodata.drivers.nightscout` | 14 | 5 | 19 |
 | `tk.glucodata.drivers.ottai` | 28 | 22 | 50 |
-| `tk.glucodata.drivers.sibionics` | 38 | 46 | 84 |
+| `tk.glucodata.drivers.sibionics` | 47 | 37 | 84 |
 | `tk.glucodata.drivers.sibionics.adaptive2` | 10 | 12 | 22 |
 | `tk.glucodata.drivers.sibionics.v116a` | 1 | 5 | 6 |
 | `tk.glucodata.glucosecomplication` | 3 | 16 | 19 |
@@ -384,7 +384,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.data.ReadingUncertaintyDao`  (Common/src/mobile/java/tk/glucodata/data/ReadingUncertaintyDao.kt)
 - `tk.glucodata.data.SettingsExporter`  (Common/src/mobile/java/tk/glucodata/data/SettingsExporter.kt)
 - `tk.glucodata.data.calibration.AlgorithmComputation`  (Common/src/main/java/tk/glucodata/data/calibration/CalibrationMath.kt)
-- `tk.glucodata.data.calibration.CalibrationAlgorithm`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
 - `tk.glucodata.data.calibration.CalibrationCacheKey`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
 - `tk.glucodata.data.calibration.CalibrationContext`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
 - `tk.glucodata.data.calibration.CalibrationDao`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationDao.kt)
@@ -392,7 +391,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.data.calibration.CalibrationDiagnostics`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
 - `tk.glucodata.data.calibration.CalibrationProfileImportResult`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
 - `tk.glucodata.data.calibration.CalibrationSample`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
-- `tk.glucodata.data.calibration.CalibrationWeightMode`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
 - `tk.glucodata.data.calibration.IntegratedBaselineCacheKey`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
 - `tk.glucodata.data.calibration.IntegratedContextCacheKey`  (Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt)
 - `tk.glucodata.data.calibration.JournalCalibrationSync`  (Common/src/mobile/java/tk/glucodata/data/calibration/JournalCalibrationSync.kt)
@@ -443,7 +441,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.ManagedSensorUiSignals`  (Common/src/main/java/tk/glucodata/drivers/ManagedSensorUiSignals.kt)
 - `tk.glucodata.drivers.ManagedSensorUiSnapshot`  (Common/src/main/java/tk/glucodata/drivers/ManagedBluetoothSensorDriver.kt)
 - `tk.glucodata.drivers.ManagedSensorViewModeStore`  (Common/src/main/java/tk/glucodata/drivers/ManagedSensorViewModeStore.kt)
-- `tk.glucodata.drivers.aidex.AiDexDriver`  (Common/src/main/java/tk/glucodata/drivers/aidex/AiDexDriver.kt)
 - `tk.glucodata.drivers.aidex.AiDexNativeFactory`  (Common/src/main/java/tk/glucodata/drivers/aidex/AiDexNativeFactory.kt)
 - `tk.glucodata.drivers.aidex.CalibrationRecord`  (Common/src/main/java/tk/glucodata/drivers/aidex/AiDexDriver.kt)
 - `tk.glucodata.drivers.aidex.native.ble.AiDexActivationTimeZone`  (Common/src/main/java/tk/glucodata/drivers/aidex/native/ble/AiDexBleManager.kt)
@@ -459,7 +456,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.aidex.native.ble.SensorPersistence`  (Common/src/main/java/tk/glucodata/drivers/aidex/native/ble/AiDexNativeSensorManager.kt)
 - `tk.glucodata.drivers.aidex.native.ble.SensorState`  (Common/src/main/java/tk/glucodata/drivers/aidex/native/ble/AiDexNativeSensorManager.kt)
 - `tk.glucodata.drivers.aidex.native.ble.StartupControlStage`  (Common/src/main/java/tk/glucodata/drivers/aidex/native/ble/AiDexBleManager.kt)
-- `tk.glucodata.drivers.aidex.native.data.BroadcastReading`  (Common/src/main/java/tk/glucodata/drivers/aidex/native/data/DataClasses.kt)
 - `tk.glucodata.drivers.aidex.native.data.CalibrationRecord`  (Common/src/main/java/tk/glucodata/drivers/aidex/native/data/DataClasses.kt)
 - `tk.glucodata.drivers.aidex.native.data.FilterResult`  (Common/src/main/java/tk/glucodata/drivers/aidex/native/data/HistoryMerge.kt)
 - `tk.glucodata.drivers.aidex.native.data.GlucoseFrame`  (Common/src/main/java/tk/glucodata/drivers/aidex/native/data/DataClasses.kt)
@@ -500,13 +496,7 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.icanhealth.GattOp`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthBleManager.kt)
 - `tk.glucodata.drivers.icanhealth.HistoryBackfillPhase`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthBleManager.kt)
 - `tk.glucodata.drivers.icanhealth.ICanHealthBleManager`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthBleManager.kt)
-- `tk.glucodata.drivers.icanhealth.ICanHealthCeCalibration`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthCeCalibration.kt)
 - `tk.glucodata.drivers.icanhealth.ICanHealthCeCalibrationResult`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthCeCalibration.kt)
-- `tk.glucodata.drivers.icanhealth.ICanHealthCurrentSnapshot`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthDriver.kt)
-- `tk.glucodata.drivers.icanhealth.ICanHealthDriver`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthDriver.kt)
-- `tk.glucodata.drivers.icanhealth.ICanHealthProfile`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthProfile.kt)
-- `tk.glucodata.drivers.icanhealth.ICanHealthProfileResolver`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthProfile.kt)
-- `tk.glucodata.drivers.icanhealth.ICanHealthRegistry`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthRegistry.kt)
 - `tk.glucodata.drivers.icanhealth.ICanHealthSequenceGap`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthHistoryPolicy.kt)
 - `tk.glucodata.drivers.icanhealth.ICanHealthSnHistoryBatch`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthParser.kt)
 - `tk.glucodata.drivers.icanhealth.ICanHealthSnHistoryRecord`  (Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthParser.kt)
@@ -581,9 +571,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.sibionics.AlgorithmRebuildResult`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBleManager.kt)
 - `tk.glucodata.drivers.sibionics.BatteryReadPurpose`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBleManager.kt)
 - `tk.glucodata.drivers.sibionics.CalibrationbaselineFrame`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GClip.kt)
-- `tk.glucodata.drivers.sibionics.ChecksumError`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt)
-- `tk.glucodata.drivers.sibionics.ChineseData`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt)
-- `tk.glucodata.drivers.sibionics.ChineseEcho`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt)
 - `tk.glucodata.drivers.sibionics.ClippingfilterFrame`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GClip.kt)
 - `tk.glucodata.drivers.sibionics.CurrentCorrection`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GCore.kt)
 - `tk.glucodata.drivers.sibionics.CurrentJudgment`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GCore.kt)
@@ -595,30 +582,24 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.sibionics.ExactV115GClipResult`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GClip.kt)
 - `tk.glucodata.drivers.sibionics.FilterStage`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GCore.kt)
 - `tk.glucodata.drivers.sibionics.Filters`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GCore.kt)
-- `tk.glucodata.drivers.sibionics.Handshake`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt)
 - `tk.glucodata.drivers.sibionics.IntegratedCalibrationBaseline`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsRegistry.kt)
 - `tk.glucodata.drivers.sibionics.Kalman`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GCore.kt)
 - `tk.glucodata.drivers.sibionics.MotionModel`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAdaptiveAlgorithm.kt)
 - `tk.glucodata.drivers.sibionics.Plausibility`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAdaptiveAlgorithm.kt)
 - `tk.glucodata.drivers.sibionics.Ptr`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GClip.kt)
-- `tk.glucodata.drivers.sibionics.ResponseType`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt)
 - `tk.glucodata.drivers.sibionics.SetupIdentity`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsRegistry.kt)
 - `tk.glucodata.drivers.sibionics.SibionicsAdaptiveV2Trace`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAdaptiveV2Trace.kt)
 - `tk.glucodata.drivers.sibionics.SibionicsAdvertisement`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAdvertisementRecovery.kt)
 - `tk.glucodata.drivers.sibionics.SibionicsAdvertisementRecovery`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAdvertisementRecovery.kt)
-- `tk.glucodata.drivers.sibionics.SibionicsBalancedAlgorithmContext`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBalancedAlgorithm.kt)
 - `tk.glucodata.drivers.sibionics.SibionicsBleManager`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBleManager.kt)
 - `tk.glucodata.drivers.sibionics.SibionicsIntegratedCalibrationBaseline`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAlgorithmRebuilder.kt)
 - `tk.glucodata.drivers.sibionics.SibionicsRebuiltReading`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAlgorithmRebuilder.kt)
 - `tk.glucodata.drivers.sibionics.SibionicsReplayResult`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAlgorithmRebuilder.kt)
 - `tk.glucodata.drivers.sibionics.SibionicsResetReminder`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsResetReminder.kt)
-- `tk.glucodata.drivers.sibionics.SibionicsResponsiveAlgorithmContext`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsResponsiveAlgorithm.kt)
 - `tk.glucodata.drivers.sibionics.SignalQuality`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBalancedAlgorithm.kt)
 - `tk.glucodata.drivers.sibionics.SignalQuality`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsAdaptiveAlgorithm.kt)
 - `tk.glucodata.drivers.sibionics.Summary`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsReplayHarness.kt)
 - `tk.glucodata.drivers.sibionics.Temperature`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GCore.kt)
-- `tk.glucodata.drivers.sibionics.V120AuthRequired`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt)
-- `tk.glucodata.drivers.sibionics.V120Data`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt)
 - `tk.glucodata.drivers.sibionics.V120Entry`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt)
 - `tk.glucodata.drivers.sibionics.adjustmentrangeFrame`  (Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsExactV115GClip.kt)
 - `tk.glucodata.drivers.sibionics.adaptive2.AdaptiveV2ArtifactPrior`  (Common/src/main/java/tk/glucodata/drivers/sibionics/adaptive2/AdaptiveV2Modes.kt)
@@ -1139,7 +1120,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.ManagedSensorViewModeStore`
 
 ### Common/src/main/java/tk/glucodata/drivers/aidex/AiDexDriver.kt
-- `tk.glucodata.drivers.aidex.AiDexDriver`
 - `tk.glucodata.drivers.aidex.CalibrationRecord`
 
 ### Common/src/main/java/tk/glucodata/drivers/aidex/AiDexNativeFactory.kt
@@ -1168,7 +1148,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.aidex.native.ble.SensorState`
 
 ### Common/src/main/java/tk/glucodata/drivers/aidex/native/data/DataClasses.kt
-- `tk.glucodata.drivers.aidex.native.data.BroadcastReading`
 - `tk.glucodata.drivers.aidex.native.data.CalibrationRecord`
 - `tk.glucodata.drivers.aidex.native.data.GlucoseFrame`
 - `tk.glucodata.drivers.aidex.native.data.SensorInfo`
@@ -1247,15 +1226,10 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.icanhealth.UiStatusKind`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthCeCalibration.kt
-- `tk.glucodata.drivers.icanhealth.ICanHealthCeCalibration`
 - `tk.glucodata.drivers.icanhealth.ICanHealthCeCalibrationResult`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthConstants.kt
 - `tk.glucodata.drivers.icanhealth.BundledKeyFamily`
-
-### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthDriver.kt
-- `tk.glucodata.drivers.icanhealth.ICanHealthCurrentSnapshot`
-- `tk.glucodata.drivers.icanhealth.ICanHealthDriver`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthHistoryPolicy.kt
 - `tk.glucodata.drivers.icanhealth.ICanHealthSequenceGap`
@@ -1268,15 +1242,8 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.icanhealth.ICanHealthSnHistoryRecord`
 - `tk.glucodata.drivers.icanhealth.ICanHealthStatusInfo`
 
-### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthProfile.kt
-- `tk.glucodata.drivers.icanhealth.ICanHealthProfile`
-- `tk.glucodata.drivers.icanhealth.ICanHealthProfileResolver`
-
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthReconnectReceiver.kt
 - `tk.glucodata.drivers.icanhealth.ICanHealthReconnectReceiver`
-
-### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthRegistry.kt
-- `tk.glucodata.drivers.icanhealth.ICanHealthRegistry`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQAlgorithm.kt
 - `tk.glucodata.drivers.mq.MQAlgorithm`
@@ -1417,7 +1384,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.sibionics.SibionicsReplayResult`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBalancedAlgorithm.kt
-- `tk.glucodata.drivers.sibionics.SibionicsBalancedAlgorithmContext`
 - `tk.glucodata.drivers.sibionics.SignalQuality`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBleManager.kt
@@ -1447,13 +1413,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.sibionics.Temperature`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt
-- `tk.glucodata.drivers.sibionics.ChecksumError`
-- `tk.glucodata.drivers.sibionics.ChineseData`
-- `tk.glucodata.drivers.sibionics.ChineseEcho`
-- `tk.glucodata.drivers.sibionics.Handshake`
-- `tk.glucodata.drivers.sibionics.ResponseType`
-- `tk.glucodata.drivers.sibionics.V120AuthRequired`
-- `tk.glucodata.drivers.sibionics.V120Data`
 - `tk.glucodata.drivers.sibionics.V120Entry`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsRegistry.kt
@@ -1466,9 +1425,6 @@ class-level test presence, not line coverage.
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsResetReminder.kt
 - `tk.glucodata.drivers.sibionics.SibionicsResetReminder`
 - `tk.glucodata.drivers.sibionics.SibionicsResetReminderReceiver`
-
-### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsResponsiveAlgorithm.kt
-- `tk.glucodata.drivers.sibionics.SibionicsResponsiveAlgorithmContext`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/adaptive2/AdaptiveV2Estimate.kt
 - `tk.glucodata.drivers.sibionics.adaptive2.GaussianMixture1D`
@@ -1897,13 +1853,11 @@ class-level test presence, not line coverage.
 - `tk.glucodata.data.calibration.CalibrationDatabase`
 
 ### Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt
-- `tk.glucodata.data.calibration.CalibrationAlgorithm`
 - `tk.glucodata.data.calibration.CalibrationCacheKey`
 - `tk.glucodata.data.calibration.CalibrationContext`
 - `tk.glucodata.data.calibration.CalibrationDiagnostics`
 - `tk.glucodata.data.calibration.CalibrationProfileImportResult`
 - `tk.glucodata.data.calibration.CalibrationSample`
-- `tk.glucodata.data.calibration.CalibrationWeightMode`
 - `tk.glucodata.data.calibration.IntegratedBaselineCacheKey`
 - `tk.glucodata.data.calibration.IntegratedContextCacheKey`
 - `tk.glucodata.data.calibration.ValidPointsCacheKey`
@@ -3407,7 +3361,7 @@ package `tk.glucodata.drivers` — types `xx`: Reading, VirtualGlucoseSensorBrid
 functions: `hasNearbyTimestamp()`, `importHistory()`, `isPlausibleTimestamp()`, `isUsableCurrentReading()`, `isUsableHistoryReading()`, `pruneFutureHistory()`, `publishCurrent()`
 
 ### Common/src/main/java/tk/glucodata/drivers/aidex/AiDexDriver.kt
-package `tk.glucodata.drivers.aidex` — types `  x`: AiDexDriver, CalibrationRecord, between
+package `tk.glucodata.drivers.aidex` — types `x x`: AiDexDriver, CalibrationRecord, between
 functions: `calibrateSensor()`, `canConnectWithoutDataptr()`, `disableResetCompensation()`, `enableResetCompensation()`, `forgetVendor()`, `getBatteryMillivolts()`, `getCalibrationRecords()`, `getCompensationStatusText()`, `getManagedUiSnapshot()`, `getSensorAgeHours()`, `getSensorRemainingHours()`, `getSensorReportedWearDays()`, `isSensorExpired()`, `isVendorConnected()`, `isVendorPaired()`, `managesLiveRoomStorage()`, `manualReconnectNow()`, `rePairSensor()`, `removeManagedPersistence()`, `resetSensor()`, `sendMaintenanceCommand()`, `setBroadcastOnlyConnection()`, `shouldDeleteLocalSensorDirectoryOnWipe()`, `shouldShowSearchingStatusWhenIdle()`, `shouldUseNativeOfficialEndFallback()`, `softDisconnect()`, `softReconnect()`, `startNewSensor()`, `supportsDisplayModes()`, `supportsManualCalibration()`, `terminateManagedSensor()`, `unpairSensor()`
 
 ### Common/src/main/java/tk/glucodata/drivers/aidex/AiDexManagedSensorIdentityAdapter.kt
@@ -3463,7 +3417,7 @@ package `tk.glucodata.drivers.aidex.native.crypto` — types `x`: SerialCrypto
 functions: `charToNumeric()`, `deriveIv()`, `deriveSecret()`, `md5()`, `snToBytes()`, `stripPrefix()`
 
 ### Common/src/main/java/tk/glucodata/drivers/aidex/native/data/DataClasses.kt
-package `tk.glucodata.drivers.aidex.native.data` — types `x x  x  `: AdcHistoryEntry, BroadcastReading, CalibratedHistoryEntry, CalibrationRecord, GlucoseFrame, GlucoseReading, SensorInfo, StatusFrame
+package `tk.glucodata.drivers.aidex.native.data` — types `xxx  x  `: AdcHistoryEntry, BroadcastReading, CalibratedHistoryEntry, CalibrationRecord, GlucoseFrame, GlucoseReading, SensorInfo, StatusFrame
 
 ### Common/src/main/java/tk/glucodata/drivers/aidex/native/data/HistoryMerge.kt
 package `tk.glucodata.drivers.aidex.native.data` — types ` xx `: FilterResult, HistoryMerge, HistoryStoreEntry, MergeResult
@@ -3557,7 +3511,7 @@ package `tk.glucodata.drivers.icanhealth` — types `      xx  x`: EnableIndicat
 functions: `adoptNativeSensorIfAppropriate()`, `applyAesKeyFromASCII()`, `applyBundledGlucoseKey()`, `applyNativeSensorMetadata()`, `applyViewModeToNative()`, `beginHistoryBackfillPhase()`, `beginServiceDiscovery()`, `bundledKeyContext()`, `calibrateSensor()`, `canConnectWithoutDataptr()`, `canStartAuthenticatedHistoryBackfill()`, `canUseHistoryPastEndedStatusCap()`, `canUseSessionTimeline()`, `cancelReconnectAlarm()`, `cancelScheduledReconnect()`, `clearGattTransportState()`, `clearLegacyAuthBypassState()`, `clearSoftDisconnectState()`, `close()`, `computeReconnectPlan()`, `connectDevice()`, `connectedStatus()`, `connectingStatus()`, `continuePendingHistoryBackfill()`, `destroy()`, `disconnectedStatus()`, `drainGattQueue()`, `earliestObservedHistoryTimeMs()`, `enqueueOp()`, `enqueuePreAuthReads()`, `ensureNativeDataptr()`, `estimatePersistedTailSequence()`, `finalizeHistoryBackfillAfterOriginalPhase()`, `findCharacteristic()`, `finishGattOp()`, `flushHistoryBackfillBatch()`, `flushImportedGlucoseHistory()`, `getCurrentSnapshot()`, `getDetailedBleStatus()`, `getExpectedEndMs()`, `getLifecycleSummary()`, `getOfficialEndMs()`, `getPassiveConnectionStatus()`, `getReadingIntervalMinutes()`, `getSensorAgeHours()`, `getSensorRemainingHours()`, `getService()`, `getStartTimeMs()`, `handleEncryptedHistoryRecord()`, `handleGlucoseNotification()`, `handleRacpFailed()`, `handleRacpNotSupported()`, `handleRacpPhaseCompletion()`, `handleRacpResponse()`, `handleReconnectAlarm()`, `handleResolvedSerial()`, `handleScheduledReconnect()`, `handleSnHistoryNotification()`, `handleVendorAuthResponse()`, `hasConfirmedLiveSession()`, `hasLocalPersistedRecord()`, `hasNativeSensorBacking()`, `hasObservedLiveMeasurement()`, `hasRecentOperationalData()`, `hasStartedOrWarmupSession()`, `historyTimezoneRepairPending()`, `hydrateBluetoothDeviceFromAddress()`, `invalidGlucoseStatus()`, `invalidatePersistedCoveredEdge()`, `isLiveSequence()`, `isPassiveUiStatus()`, `isPlausibleHistoryAnchor()`, `isPlausibleHistoryTailDelta()`, `isSensorExpired()`, `isUiEnabled()`, `latestObservedHistoryTimeMs()`, `legacyAuthBypassPrefKeys()`, `lifecycleSummary()`, `loadAesKeyFromPrefs()`, `loadPersistedCoveredEdge()`, `loadRecoveredUserIdFromPrefs()`, `logSkippedUnanchoredHistory()`, `logUnhandledHistoryPayload()`, `markHistoryTimezoneRepairApplied()`, `maskAuthUserId()`, `matchDeviceName()`, `matchScanResult()`, `matchesManagedSensorId()`, `maybeHandleQueueDrained()`, `maybeIssueStandaloneStart()`, `mirrorDerivedStartTimeMs()`, `mirrorHistoryBatchIntoNative()`, `mygetDeviceName()`, `nativeCreationSensorName()`, `nativeLookupSensorName()`, `normalizeViewMode()`, `observedEndedStatusEndMs()`, `observedHistoryWindowMs()`, `onBluetoothAdapterUnavailable()`, `onCharacteristicChanged()`, `onCharacteristicRead()`, `onCharacteristicWrite()`, `onConnectionStateChange()`, `onDescriptorWrite()`, `onMtuChanged()`, `onServicesDiscovered()`, `packGlucoseResult()`, `parseDeviceInfoString()`, `persistRecoveredUserId()`, `prepareNativeMirrorWindow()`, `promoteNativeSensorIdentity()`, `promotePersistedSensorIdentity()`, `purgeHistoryForTimezoneRepair()`, `readingIntervalMinutes()`, `readingIntervalMs()`, `rearmHistoryBackfillForLiveGap()`, `reconnect()`, `reconnectAlarmPendingIntent()`, `recordHistoryBackfillSample()`, `refreshHistorySyncProgressStatus()`, `refreshPersistedHistoryTailTimestamp()`, `rejectMismatchedOnboardingCandidate()`, `rememberCoveredEdge()`, `rememberDriverCurrentReading()`, `rememberRecentGlucose()`, `removeManagedPersistence()`, `reportInvalidGlucoseFromSensor()`, `requestHighConnectionPriority()`, `requestHistoryBackfill()`, `resetConnectionAttemptState()`, `resetdataptr()`, `resolveAuthUserId()`, `resolveAutomaticGlucoseHistoryStartSequence()`, `resolveBundledKeySelector()`, `resolveCappedEndedHistoryStartSequence()`, `resolveCappedEndedSequenceAnchorTimeMs()`, `resolveExistingNativeSensorName()`, `resolveHistoryTimestampMs()`, `resolveNativeSensorPtr()`, `resolveNativeShellStartTimeSec()`, `resolvePersistedViewMode()`, `resolveRawLaneValue()`, `resolveSampleTimestampMs()`, `resolveSequenceAnchorTimeMs()`, `resolveSequenceTimelineTimestampMs()`, `resolveStandaloneStartTimeMs()`, `resolvedProfile()`, `run()`, `scheduleForegroundNotificationRefresh()`, `scheduleMirrorHistoryMerge()`, `scheduleNoDataWatchdog()`, `scheduleNoDataWatchdogIfNeeded()`, `scheduleReconnect()`, `scheduleReconnectAlarm()`, `sessionTimelineMatchesSequenceCounter()`, `setAesKey()`, `setAesKeyFromASCII()`, `setConfiguredAesKeyFromASCII()`, `setConfiguredAuthUserId()`, `setOnboardingDeviceSn()`, `setPause()`, `setUiStatus()`, `shouldAttemptStandaloneStart()`, `shouldRefreshSessionMetadata()`, `shouldRefreshStaticDeviceInfo()`, `shouldShowSearchingStatusWhenIdle()`, `shouldSkipHistoryOverlap()`, `shouldUseAuthenticatedContinuousReconnect()`, `softDisconnect()`, `softReconnect()`, `startPostAuthSetup()`, `storeMeasurement()`, `supportsRawDisplayModes()`, `syncingStatus()`, `terminateManagedSensor()`, `toHexString()`, `updatePersistedHistoryTailTimestamp()`, `waitingForDataStatus()`, `warmupMinutes()`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthCeCalibration.kt
-package `tk.glucodata.drivers.icanhealth` — types `  `: ICanHealthCeCalibration, ICanHealthCeCalibrationResult
+package `tk.glucodata.drivers.icanhealth` — types `x `: ICanHealthCeCalibration, ICanHealthCeCalibrationResult
 functions: `lineFit()`, `planCalib()`, `startCalib()`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthConstants.kt
@@ -3569,7 +3523,7 @@ package `tk.glucodata.drivers.icanhealth` — types `x`: ICanHealthCrypto
 functions: `decryptBlock()`, `decryptCbcPkcs7()`, `encryptBlock()`, `encryptCbcPkcs7()`, `keyFromASCII()`, `runSelfTest()`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthDriver.kt
-package `tk.glucodata.drivers.icanhealth` — types `  `: ICanHealthCurrentSnapshot, ICanHealthDriver
+package `tk.glucodata.drivers.icanhealth` — types `xx`: ICanHealthCurrentSnapshot, ICanHealthDriver
 functions: `calibrateSensor()`, `canConnectWithoutDataptr()`, `getCurrentSnapshot()`, `getExpectedEndMs()`, `getLifecycleSummary()`, `getManagedCurrentSnapshot()`, `getManagedUiSnapshot()`, `getOfficialEndMs()`, `getPassiveConnectionStatus()`, `getReadingIntervalMinutes()`, `getSensorAgeHours()`, `getSensorRemainingHours()`, `getStartTimeMs()`, `isSensorExpired()`, `isUiEnabled()`, `managesLiveRoomStorage()`, `shouldUseSharedCurrentSensorHandoffOnTerminate()`, `softDisconnect()`, `softReconnect()`, `supportsDisplayModes()`, `supportsManualCalibration()`, `supportsRawDisplayModes()`, `supportsSensorCalibration()`, `terminateManagedSensor()`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthHistoryPolicy.kt
@@ -3585,7 +3539,7 @@ package `tk.glucodata.drivers.icanhealth` — types `xxx   `: ICanHealthGlucoseR
 functions: `buildAuthIv()`, `buildAuthPlaintext()`, `buildAuthTokenPacket()`, `buildCalibrationPacket()`, `buildSessionStartWrite()`, `decodeCurrentValue()`, `decodeHistoryGlucoseBytes()`, `deriveAuthToken()`, `extractChallenge()`, `isAuthSuccess()`, `isChallengeResponse()`, `isRACPComplete()`, `isSNNotification()`, `isSensorInfoResponse()`, `logError()`, `logWarn()`, `parseAuthResult()`, `parseCalibrationResult()`, `parseCgmStatus()`, `parseDecryptedHistoryRecord()`, `parseDeviceSerial()`, `parseEncryptedHistoryRecord()`, `parseGlucoseNotification()`, `parseLeUnsigned()`, `parseRacpResultCode()`, `parseRawDeviceSerial()`, `parseSNType()`, `parseSessionStartTime()`, `parseSnHistoryBatch()`, `parseStartSensorResult()`, `parseTimeOffset()`, `recoverUserIdFromAuthReject()`, `toEpochMillis()`, `toHexCompact()`, `utcOffset15MinOrNull()`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthProfile.kt
-package `tk.glucodata.drivers.icanhealth` — types `  `: ICanHealthProfile, ICanHealthProfileResolver
+package `tk.glucodata.drivers.icanhealth` — types `xx`: ICanHealthProfile, ICanHealthProfileResolver
 functions: `expectedLifetimeMs()`, `normalize()`, `ratedLifetimeMs()`, `resolve()`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthReconnectReceiver.kt
@@ -3593,7 +3547,7 @@ package `tk.glucodata.drivers.icanhealth` — types ` `: ICanHealthReconnectRece
 functions: `onReceive()`
 
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthRegistry.kt
-package `tk.glucodata.drivers.icanhealth` — types ` x`: ICanHealthRegistry, SensorRecord
+package `tk.glucodata.drivers.icanhealth` — types `xx`: ICanHealthRegistry, SensorRecord
 functions: `addSensor()`, `configureCallback()`, `createRestoredCallback()`, `encodeRecord()`, `findRecord()`, `matchesId()`, `parseRecord()`, `persistedRecords()`, `prefs()`, `promoteSensorIdentity()`, `readRecords()`, `removeSensor()`, `resolveCanonicalSensorId()`, `resolvePersistedAuthUserId()`, `writeRecords()`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQAlgorithm.kt
@@ -3777,7 +3731,7 @@ package `tk.glucodata.drivers.sibionics` — types `x   `: SibionicsAlgorithmReb
 functions: `calibrationBaselineAtAnchors()`, `isContiguousFromSensorStart()`, `rebuild()`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBalancedAlgorithm.kt
-package `tk.glucodata.drivers.sibionics` — types `  `: SibionicsBalancedAlgorithmContext, SignalQuality
+package `tk.glucodata.drivers.sibionics` — types `x `: SibionicsBalancedAlgorithmContext, SignalQuality
 functions: `applyIntegratedCalibration()`, `configure()`, `continuationIndex()`, `isStateValid()`, `median()`, `process()`, `reset()`, `restore()`, `roundTenth()`, `signalQuality()`, `snapshot()`, `updateTelemetry()`, `weightedAffine()`, `weightedOffset()`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsBattery.kt
@@ -3809,7 +3763,7 @@ package `tk.glucodata.drivers.sibionics` — types `x`: SibionicsNotificationDis
 functions: `beginSession()`, `dispatch()`, `invalidateSession()`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsProtocol.kt
-package `tk.glucodata.drivers.sibionics` — types `   x x xxxx   `: ChecksumError, ChineseData, ChineseEcho, ChineseEntry, Handshake, ParseResult, ResponseType, SibionicsProtocol, SibionicsSensitivity, Trend, Unknown, V120AuthRequired, V120Data, V120Entry
+package `tk.glucodata.drivers.sibionics` — types `xxxxxxxxxxxxx `: ChecksumError, ChineseData, ChineseEcho, ChineseEntry, Handshake, ParseResult, ResponseType, SibionicsProtocol, SibionicsSensitivity, Trend, Unknown, V120AuthRequired, V120Data, V120Entry
 functions: `buildActivationPacket()`, `buildAuthPacket()`, `buildChineseDataRequest()`, `buildChineseResetPacket()`, `buildDataRequestPacket()`, `buildGs1ResetPacket()`, `buildMaintenanceResetPacket()`, `buildResetPacket()`, `buildTimeSyncPacket()`, `checksum()`, `decodedDigits()`, `decrypt()`, `deriveSessionKey()`, `deriveShortCode()`, `encrypt()`, `estimateChineseHistoryTotal()`, `eventTimeMs()`, `floorMod()`, `fromCode()`, `fromFlags()`, `isSupported()`, `parseChinese()`, `parseV120()`, `parseV120Data()`, `rc4()`, `sensitivityFor()`, `toHex()`, `tryDecode()`, `u16Be()`, `u16Le()`, `u32Le()`, `verifyChecksum()`, `writeU16Le()`, `writeU32Le()`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsRegistry.kt
@@ -3829,7 +3783,7 @@ package `tk.glucodata.drivers.sibionics` — types `  `: SibionicsResetReminder,
 functions: `actionPendingIntent()`, `cancel()`, `createChannel()`, `hardDeadlineMs()`, `notificationId()`, `onReceive()`, `sensorId()`, `show()`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsResponsiveAlgorithm.kt
-package `tk.glucodata.drivers.sibionics` — types ` `: SibionicsResponsiveAlgorithmContext
+package `tk.glucodata.drivers.sibionics` — types `x`: SibionicsResponsiveAlgorithmContext
 functions: `applyIntegratedCalibration()`, `configure()`, `continuationIndex()`, `isStateValid()`, `median()`, `process()`, `reset()`, `restore()`, `roundTenth()`, `signalQuality()`, `snapshot()`, `updateTelemetry()`, `weightedAffine()`, `weightedOffset()`
 
 ### Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsSampleJournal.kt
@@ -4439,7 +4393,7 @@ functions: `calibrationDao()`, `getInstance()`, `migrate()`
 package `tk.glucodata.data.calibration` — types `x`: CalibrationEntity
 
 ### Common/src/mobile/java/tk/glucodata/data/calibration/CalibrationManager.kt
-package `tk.glucodata.data.calibration` — types `    x     x `: CalibrationAlgorithm, CalibrationCacheKey, CalibrationContext, CalibrationDiagnostics, CalibrationManager, CalibrationProfileImportResult, CalibrationSample, CalibrationWeightMode, IntegratedBaselineCacheKey, IntegratedContextCacheKey, SensorCalibrationEnablement, ValidPointsCacheKey
+package `tk.glucodata.data.calibration` — types `x   x  x  x `: CalibrationAlgorithm, CalibrationCacheKey, CalibrationContext, CalibrationDiagnostics, CalibrationManager, CalibrationProfileImportResult, CalibrationSample, CalibrationWeightMode, IntegratedBaselineCacheKey, IntegratedContextCacheKey, SensorCalibrationEnablement, ValidPointsCacheKey
 functions: `addCalibration()`, `addCalibrationFromWearAtBlocking()`, `addCalibrationFromWearBlocking()`, `applyJournalCalibrationPlan()`, `applyRecordedStock()`, `buildDiagnostics()`, `bumpProfileRevision()`, `calibrationMatchesSensor()`, `clearAll()`, `clearAllBlocking()`, `computeCalibratedValue()`, `deferGlucoseAlertsUntilNextReading()`, `deleteCalibration()`, `deleteCalibrationAtBlocking()`, `emitDiagnostics()`, `ensureCalibrationStateLoaded()`, `ensureInitialized()`, `evaluateCalibratedSeries()`, `exportProfileForSensorAsJson()`, `fromStorage()`, `getActiveCalibrationAnchors()`, `getAlgorithmForMode()`, `getCachedCalibrations()`, `getCalibratedSeries()`, `getCalibratedSeriesInternal()`, `getCalibratedValue()`, `getCalibrationAt()`, `getCalibrationsFlow()`, `getHistoryAwarePointsForSensor()`, `getIntegratedCalibratedSeries()`, `getIntegratedCalibrationAnchors()`, `getIntegratedCalibrationFingerprint()`, `getResolvedCurrentSensorId()`, `getRevision()`, `getSensorEnablementSnapshot()`, `getValidPoints()`, `getValidPointsForSensor()`, `getVisibleCalibrations()`, `getWeightMode()`, `hasActiveCalibration()`, `hasCalibrationAt()`, `hasCalibrationPointsForMode()`, `importMirrorProfileFromJsonBlocking()`, `importProfileFromJson()`, `importProfileFromJsonBlocking()`, `init()`, `initializeLocked()`, `integratedBaselineSamples()`, `invalidateComputationCache()`, `isCalibrationStateLoaded()`, `isEnabledForMode()`, `isLegacyUnresolvedCalibration()`, `loadCalibrations()`, `localProfileRevision()`, `matchesMode()`, `migrateBlankSensorIdsIfPossible()`, `migrateCalibrationSensorIdsIfPossible()`, `migrateLegacyEnablementIfPossible()`, `migrateOverwriteSensorValuesToFreeze()`, `mix()`, `normalizeSensorId()`, `notifyExternalCalibrationPipelineChanged()`, `persistDisabledSensorSet()`, `profileRevisionKey()`, `purgeJournalCalibrations()`, `pushMirrorCalibrationProfile()`, `readSensorIdSet()`, `rebaseIntegratedContext()`, `refreshDiagnosticsPreview()`, `removeEldestEntry()`, `repairHistoryAssignedSensorIdsIfPossible()`, `requestMirrorCalibrationSync()`, `requestMirrorCalibrationSyncForCurrentOrKnownSensors()`, `requestMirrorCalibrationSyncForSensors()`, `requestUiRefreshAfterCalibrationChange()`, `resolveCalibrationContext()`, `resolveLegacyCalibrationSensorFromHistory()`, `resolveSensorId()`, `restoreAll()`, `restoreCalibration()`, `seedIntegratedCalibrationBaseline()`, `sensorMatches()`, `setAlgorithmForMode()`, `setApplyToPast()`, `setCalibrateFromJournal()`, `setEnabledForMode()`, `setFreezeDisplayedValues()`, `setHideInitialWhenCalibrated()`, `setKeepDisabledHistory()`, `setLockPastHistory()`, `setOverwriteSensorValues()`, `setStoredProfileRevision()`, `setVisualContinuity()`, `setWeightMode()`, `shouldApplyToPast()`, `shouldCalibrateFromJournal()`, `shouldFreezeDisplayedValues()`, `shouldHideInitialWhenCalibrated()`, `shouldKeepDisabledHistory()`, `shouldLockPastHistory()`, `shouldMirrorSync()`, `shouldOverwriteSensorValues()`, `shouldVisualContinuity()`, `storedProfileRevision()`, `storedStockValue()`, `storedValueFromMgdl()`, `tuningForMode()`, `updateCalibration()`, `updateCalibrationUserValueBlocking()`, `updateDisabledSensorSet()`, `withoutMirrorSync()`
 
 ### Common/src/mobile/java/tk/glucodata/data/calibration/JournalCalibrationPolicy.kt
