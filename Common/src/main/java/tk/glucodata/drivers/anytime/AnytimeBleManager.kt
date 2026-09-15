@@ -1789,6 +1789,36 @@ class AnytimeBleManager(
         )
     }
 
+    /**
+     * A connect attempt can hand back a GATT that never delivers another callback.
+     *
+     * Other managed drivers bound this with a fixed connect-callback timer (Sibionics:
+     * 20 s). Anytime cannot reuse that number: its retry policy only learns that a
+     * direct connect cannot reach a low-power transmitter from Android's ~30-second
+     * timeout (status 133/147), and tearing the attempt down first would mean the mode
+     * never flips to the background (autoConnect) fallback. So the bound here is one
+     * reading interval instead — the same ceiling [connectMode.retryDelayMs] uses, and
+     * the period in which the transmitter is guaranteed connectable. A healthy direct
+     * attempt gets its OS callback long before this fires; only a dead background
+     * attempt, which Android does not bound at all, reaches it.
+     *
+     * Without it, nothing re-drove the manager while the phase sat at CONNECTING:
+     * [reconnect] only calls `disconnect()` and waits for exactly the callback that
+     * never comes, so it looped on the 330-second loss-of-signal alarm forever
+     * (2026-09-15, after the 01:53 restart, "Loss of signal" every 350 s in
+     * ble_error_history, no data written since 01:23).
+     */
+    private val connectWatchdog = Runnable {
+        if (stop || phase != Phase.CONNECTING) return@Runnable
+        Log.w(TAG, "No GATT callback for ${connectWatchdogMs() / 1000}s — resetting connection")
+        recoverGattAndReconnect("connect watchdog", ACTIVE_SESSION_RECONNECT_DELAY_MS)
+    }
+
+    private fun armConnectWatchdog() {
+        handler.removeCallbacks(connectWatchdog)
+        if (!stop) handler.postDelayed(connectWatchdog, connectWatchdogMs())
+    }
+
     private val serviceDiscoveryRetryRunnable: Runnable = Runnable {
         if (stop || serviceDiscoveryHandled) return@Runnable
         if (serviceDiscoveryRetryCount >= MAX_SERVICE_DISCOVERY_RETRIES) return@Runnable
@@ -1864,6 +1894,7 @@ class AnytimeBleManager(
 
     private fun clearGattCallbacks() {
         handler.removeCallbacks(serviceDiscoveryWatchdog)
+        handler.removeCallbacks(connectWatchdog)
         handler.removeCallbacks(serviceDiscoveryRetryRunnable)
         handler.removeCallbacks(cccdWriteTimeoutRunnable)
         handler.removeCallbacks(forceScanReconnectRetryRunnable)
@@ -2106,6 +2137,9 @@ class AnytimeBleManager(
     private fun noDataWatchdogMs(): Long =
         NO_DATA_WATCHDOG_MULTIPLIER * profile.readingIntervalMinutes * 60L * 1000L
 
+    private fun connectWatchdogMs(): Long =
+        maxOf(STALE_GATT_RECOVERY_MS, profile.readingIntervalMinutes * 60L * 1000L)
+
     private fun armNoDataWatchdog() {
         handler.removeCallbacks(noDataWatchdog)
         if (lastSensorDataAtMs() > 0L) {
@@ -2299,6 +2333,7 @@ class AnytimeBleManager(
         }
         lastConnectRequestAtMs = now
         phase = Phase.CONNECTING
+        armConnectWatchdog()
         val scheduled = super.connectDevice(delayMillis)
         if (!scheduled && forceScan && phase == Phase.CONNECTING) {
             Log.i(TAG, "Forced scan-result reconnect is waiting for scanner to rediscover $SerialNumber")
