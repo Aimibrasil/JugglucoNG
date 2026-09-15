@@ -100,6 +100,15 @@ interface ReadingDisplayDao {
     @Query("DELETE FROM reading_display WHERE sensorSerial IN (:serials)")
     suspend fun deleteForSensors(serials: List<String>)
 
+    /**
+     * Voids records whose sensor has rewritten the number they were drawn from —
+     * see [tk.glucodata.data.RecordedDisplayVoiding]. A deletion, not a
+     * revision: the minute goes back to having no record, and is recorded again
+     * the next time it is presented.
+     */
+    @Query("DELETE FROM reading_display WHERE timestamp IN (:minutes)")
+    suspend fun deleteAtMinutes(minutes: List<Long>): Int
+
     @Query("DELETE FROM reading_display")
     suspend fun deleteAll()
 
