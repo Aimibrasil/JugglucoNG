@@ -220,31 +220,57 @@ class GlucoseRepository {
         }
     }
 
+    // ── The windowed timeline ──
+
     /**
-     * Dedicated merged multi-sensor flow for the History browse screen.
+     * The merged cross-sensor timeline over one window of time, in stored
+     * mg/dL, live.
      *
-     * The dashboard chart deliberately narrows to the current sensor (so the
-     * live chart and `shouldRequestHistoryRecovery` see only that sensor's tail
-     * — see commits c812ddb9 and 30e4d11f). The History screen needs the full
-     * cross-sensor timeline so the previous sensor's calibrated readings, CSV
-     * imports, and older device data remain visible after a sensor swap.
+     * The chart used to be handed the whole store on every write, because two
+     * things looked like properties of the whole list: the cross-sensor merge
+     * decides who owns a stretch from every sensor's coverage, and the chart
+     * read "latest" off the end of the list. A bounded query was tried once and
+     * showed a retired sensor's line across the chart and a stale "back to now".
+     * Both are now answered without the list — the coverage by the timestamp
+     * index the merge reads (HistoryDisplayMerge.mergeWindow gives the whole
+     * merge restricted to the window, exactly), and "latest" by
+     * [getTimelineExtentsFlow] — so the chart can be handed what it shows plus a
+     * margin, and a write costs the window, not the store.
      *
-     * Merge prefers the current sensor inside a 5-min overlap window; older
-     * sensor rows only fill genuine gaps.
+     * The native backfill is still requested from the beginning, as before:
+     * which readings Room holds is the sync's business, not the window's.
      */
-    fun getMergedHistoryFlowRaw(startTime: Long = 0L): Flow<List<GlucosePoint>> {
+    fun getMergedWindowFlowRaw(startTime: Long, endTime: Long): Flow<List<GlucosePoint>> {
         return _currentSerial.flatMapLatest { serial ->
             val preferredSerial = resolveDisplayPreferredSerial(serial)
             channelFlow {
                 launch {
-                    historyRepository.ensureBackfilled(preferredSerial, startTime)
+                    historyRepository.ensureBackfilled(preferredSerial, 0L)
                 }
-                historyRepository.getDisplayHistoryFlow(preferredSerial, startTime).collect { points ->
+                historyRepository.observeMergedWindow(preferredSerial, startTime, endTime).collect { points ->
                     send(points)
                 }
             }
         }
     }
+
+    /** One-shot form of [getMergedWindowFlowRaw]; see HistoryRepository.loadMergedWindow for [allowProvisional]. */
+    suspend fun loadMergedWindowRaw(startTime: Long, endTime: Long, allowProvisional: Boolean = false): List<GlucosePoint> {
+        val preferredSerial = resolveDisplayPreferredSerial(_currentSerial.value)
+        return historyRepository.loadMergedWindow(preferredSerial, startTime, endTime, allowProvisional)
+    }
+
+    /** Oldest and newest stored reading across every sensor, live. */
+    fun getTimelineExtentsFlow(): Flow<TimelineExtents?> = historyRepository.observeTimelineExtents()
+
+    /** The merged readings in a range, counted and bounded, for the history screen's range selector. */
+    suspend fun mergedRangeSummary(startTime: Long, endTime: Long): TimelineRangeSummary? {
+        val preferredSerial = resolveDisplayPreferredSerial(_currentSerial.value)
+        return historyRepository.mergedRangeSummary(preferredSerial, startTime, endTime)
+    }
+
+    /** Bumped when the store was rewritten underneath the windows; see HistoryRepository.observeTimelineRewrites. */
+    fun getTimelineRewritesFlow(): Flow<Long> = historyRepository.observeTimelineRewrites()
 
     /**
      * Get ALL history from the Room database for the main sensor.
@@ -296,81 +322,6 @@ class GlucoseRepository {
                 }
             }
         }.map { list -> list.inDisplayUnit(isMmol) }
-    }
-
-    /**
-     * Get history as a Flow in RAW mg/dL (no conversion).
-     * Uses the current sensor's Room history when available.
-     */
-    fun getHistoryFlowRaw(startTime: Long = 0L): Flow<List<GlucosePoint>> {
-        return _currentSerial.flatMapLatest { serial ->
-            val preferredSerial = resolveDisplayPreferredSerial(serial)
-            channelFlow {
-                launch {
-                    historyRepository.ensureBackfilled(preferredSerial, startTime)
-                }
-                observeDisplayHistory(preferredSerial, startTime).collect { points ->
-                    send(points)
-                }
-            }
-        }
-    }
-
-    /**
-     * The dashboard chart's line: the same merged cross-sensor timeline the
-     * History screen draws, over the same unbounded range.
-     *
-     * It used to follow the current sensor's serial alone, so a swapped-out
-     * sensor — no longer in `activeSensors()`, so its serial resolved to nothing
-     * — silently left the dashboard while History, stats and export all still
-     * showed it. This is deliberately the identical call History makes, because
-     * the two disagreeing about the same readings is the bug.
-     *
-     * Bounding this to the visible window is not available, and the reason is
-     * worth writing down because it looks like an obvious optimisation:
-     *
-     *  - [HistoryDisplayMerge] decides which sensor wins by building the
-     *    preferred sensor's coverage segments *from the rows it is given*. Hand
-     *    it a window containing none of that sensor's rows — any span older than
-     *    the current sensor — and it suppresses nothing, so every other sensor's
-     *    rows draw raw. The merge is only correct over the whole timeline.
-     *  - The chart takes "latest reading" to mean the last point in this list.
-     *    Bounded, that is the newest point *in the window*, which breaks
-     *    back-to-now, the auto-scroll and the prediction anchor.
-     *
-     * Both are properties of the whole list, so the list has to be the whole
-     * timeline. Cost belongs in how points are mapped, not in how few are read.
-     */
-    fun getDashboardHistoryFlowRaw(startTime: Long): Flow<List<GlucosePoint>> {
-        return _currentSerial.flatMapLatest { serial ->
-            val preferredSerial = resolveDisplayPreferredSerial(serial)
-            channelFlow {
-                launch {
-                    historyRepository.ensureBackfilled(preferredSerial, startTime)
-                }
-                // Coarse to fine over one authoritative query, rather than a
-                // narrower query: paint the recent tail as soon as it is ready,
-                // then replace it with the full timeline. The tail is a superset
-                // of what the default range draws and contains the newest
-                // reading, so the first frame is already correct at the live
-                // edge; the full list follows and is what panning reads, so
-                // scrolling back never waits on Room.
-                historyRepository.getDisplayHistoryFirstPaint(preferredSerial, startTime)
-                    ?.let { firstPaint ->
-                        BatteryTrace.bump(
-                            key = "dashboard.history.first_paint",
-                            logEvery = 20L,
-                            detail = "size=${firstPaint.size}"
-                        )
-                        send(firstPaint)
-                    }
-                historyRepository.getDisplayHistoryFlow(preferredSerial, startTime)
-                    .collect { points ->
-                        HistoryRepository.reportRecentSensorComposition(points)
-                        send(points)
-                    }
-            }
-        }
     }
 
     /**

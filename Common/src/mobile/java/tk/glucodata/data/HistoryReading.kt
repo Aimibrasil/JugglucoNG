@@ -28,3 +28,21 @@ data class HistoryReading(
     val rawValue: Float,          // Raw sensor value (mg/dL)
     val rate: Float?              // Rate of change (nullable - may not always be available)
 )
+
+/** A reading's identity without its values — what the timestamp index is built from. */
+data class HistoryIndexRow(
+    val id: Long,
+    val timestamp: Long,
+    val sensorSerial: String,
+)
+
+/**
+ * The readings table summarised: enough to tell an append from a rewrite.
+ * Nullable aggregates are null on an empty table.
+ */
+data class HistoryTableFingerprint(
+    val rowCount: Int,
+    val maxId: Long?,
+    val minTimestamp: Long?,
+    val maxTimestamp: Long?,
+)

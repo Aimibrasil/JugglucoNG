@@ -313,6 +313,14 @@ fun DashboardScreen(
     val sensorName by viewModel.sensorName.collectAsState()
     val daysRemaining by viewModel.daysRemaining.collectAsState()
     val glucoseHistory by viewModel.glucoseHistory.collectAsState()
+    val timelineExtents by viewModel.timelineExtents.collectAsState()
+    // Only once there is data to draw: with bounds alone the chart would compose
+    // empty and paint its axes over nothing for the frames before the first
+    // readings land, where it used to appear complete in one frame. The live
+    // tail is always loaded, so data is never far behind the bounds.
+    val chartDataBounds = remember(timelineExtents, glucoseHistory.isEmpty()) {
+        timelineExtents?.takeIf { glucoseHistory.isNotEmpty() }?.let { ChartDataBounds(it.earliestMs, it.latestMs) }
+    }
     val multiSensorDisplay by viewModel.multiSensorDisplay.collectAsState()
     val mainSensorOwnership by viewModel.mainSensorOwnership.collectAsState()
     val peerCurrentReadings by viewModel.peerCurrentReadings.collectAsState()
@@ -1599,6 +1607,8 @@ fun DashboardScreen(
                                 DashboardChartSection(
                                     modifier = Modifier.fillMaxSize(),
                                     glucoseHistory = glucoseHistory,
+                                    dataBounds = chartDataBounds,
+                                    onVisibleRangeChanged = viewModel::onChartViewportChanged,
                                     multiSensorDisplay = multiSensorDisplay,
                                     mainSensorOwnership = mainSensorOwnership,
                                     peerPredictionSeries = peerPredictionSeries,
@@ -1835,6 +1845,8 @@ fun DashboardScreen(
                                         .fillMaxSize()
                                         .padding(bottom = 0.dp),
                                     glucoseHistory = glucoseHistory,
+                                    dataBounds = chartDataBounds,
+                                    onVisibleRangeChanged = viewModel::onChartViewportChanged,
                                     multiSensorDisplay = multiSensorDisplay,
                                     mainSensorOwnership = mainSensorOwnership,
                                     peerPredictionSeries = peerPredictionSeries,

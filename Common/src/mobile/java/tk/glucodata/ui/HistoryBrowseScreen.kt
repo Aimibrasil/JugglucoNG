@@ -48,6 +48,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,7 +68,10 @@ import kotlinx.coroutines.launch
 import tk.glucodata.R
 import tk.glucodata.SensorIdentity
 import tk.glucodata.UiRefreshBus
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tk.glucodata.data.HistoryRepository
+import tk.glucodata.data.TimelineExtents
+import tk.glucodata.data.TimelineRangeSummary
 import tk.glucodata.data.journal.JournalEntry
 import tk.glucodata.data.journal.JournalEntryType
 import tk.glucodata.data.journal.JournalFood
@@ -95,17 +99,29 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
+/** The viewport a freshly chosen range is loaded for before its chart can say where it is looking: TimeRange.H24, the screen's default. */
+private const val HISTORY_RANGE_FIRST_VIEWPORT_MS = 24L * 60L * 60L * 1000L
+
 private data class HistoryDateSection(
     val date: LocalDate,
     val label: String,
-    val items: List<TimelineRowItem>
+    val items: List<TimelineRowItem>,
+    /** One stable LazyColumn key per item; see [uniqueRowKeys]. */
+    val keys: List<String>
 )
 
 private data class TimelineRowItem(
     val timestamp: Long,
     val point: GlucosePoint?,
-    val journalEntries: List<JournalEntry>
+    val journalEntries: List<JournalEntry>,
+    /** What the row's arrow regresses over; see [rowTrendHistory]. Empty for a journal-only row. */
+    val trendHistory: List<GlucosePoint> = emptyList()
 )
+
+private fun TimelineRowItem.rowKey(): String {
+    val journalKey = journalEntries.joinToString(separator = ",") { it.id.toString() }
+    return "$timestamp-${point?.timestamp ?: "journal"}-$journalKey"
+}
 
 private data class TimelineJournalGrouping(
     val entriesByPointTimestamp: Map<Long, List<JournalEntry>>,
@@ -168,8 +184,11 @@ private fun buildHistorySections(items: List<TimelineRowItem>): List<HistoryDate
     val formatter = SimpleDateFormat("MMM d", Locale.getDefault())
     val zone = ZoneId.systemDefault()
     val sections = ArrayList<HistoryDateSection>()
+    // Keys are unique across the whole list, not per section: LazyColumn requires it.
+    val keys = uniqueRowKeys(items.map(TimelineRowItem::rowKey)).iterator()
     var currentDate: LocalDate? = null
     var currentItems = ArrayList<TimelineRowItem>()
+    var currentKeys = ArrayList<String>()
 
     fun flushSection() {
         val date = currentDate ?: return
@@ -178,34 +197,42 @@ private fun buildHistorySections(items: List<TimelineRowItem>): List<HistoryDate
             HistoryDateSection(
                 date = date,
                 label = formatter.format(Date(currentItems.first().timestamp)),
-                items = currentItems.toList()
+                items = currentItems.toList(),
+                keys = currentKeys.toList()
             )
         )
     }
 
-    for (item in items.sortedByDescending { it.timestamp }) {
+    for (item in items) {
         val itemDate = Instant.ofEpochMilli(item.timestamp).atZone(zone).toLocalDate()
         if (currentDate == null || itemDate != currentDate) {
             flushSection()
             currentDate = itemDate
             currentItems = ArrayList()
+            currentKeys = ArrayList()
         }
         currentItems.add(item)
+        currentKeys.add(keys.next())
     }
     flushSection()
     return sections
 }
 
-private fun resolveAvailableTimelineRange(
-    points: List<GlucosePoint>,
+/**
+ * How far the timeline reaches: the store's ends, from its extents rather than
+ * from the loaded list — which is now only the stretch on screen — widened by
+ * any journal entry outside them.
+ */
+internal fun resolveAvailableTimelineRange(
+    extents: TimelineExtents?,
     entries: List<JournalEntry>
 ): StatsDateRange? {
     val startMillis = listOfNotNull(
-        points.firstOrNull()?.timestamp,
+        extents?.earliestMs,
         entries.minOfOrNull { it.timestamp }
     ).minOrNull() ?: return null
     val endMillis = listOfNotNull(
-        points.lastOrNull()?.timestamp,
+        extents?.latestMs,
         entries.maxOfOrNull { it.timestamp }
     ).maxOrNull() ?: return null
     return StatsDateRange(startMillis = startMillis, endMillis = endMillis)
@@ -217,7 +244,7 @@ fun groupJournalEntriesByReading(
     maxDistanceMillis: Long = 20L * 60L * 1000L
 ): Map<Long, List<JournalEntry>> {
     if (points.isEmpty() || entries.isEmpty()) return emptyMap()
-    val sortedPoints = points.sortedBy { it.timestamp }
+    val sortedPoints = points.ascendingByTimestamp()
     val grouped = linkedMapOf<Long, MutableList<JournalEntry>>()
 
     entries.forEach { entry ->
@@ -268,7 +295,7 @@ private fun groupJournalEntriesForTimeline(
         )
     }
 
-    val sortedPoints = points.sortedBy { it.timestamp }
+    val sortedPoints = points.ascendingByTimestamp()
     val entriesByPoint = linkedMapOf<Long, MutableList<JournalEntry>>()
     val journalOnly = linkedMapOf<Long, MutableList<JournalEntry>>()
 
@@ -310,7 +337,9 @@ private fun groupJournalEntriesForTimeline(
 private fun buildTimelineRows(
     points: List<GlucosePoint>,
     entries: List<JournalEntry>,
-    browseMode: TimelineBrowseMode
+    browseMode: TimelineBrowseMode,
+    /** The whole history, ascending, for the rows' arrows; [points] is the visible slice. */
+    trendSource: List<GlucosePoint> = points
 ): List<TimelineRowItem> {
     val grouping = groupJournalEntriesForTimeline(points, entries)
     val pointRows = points.mapNotNull { point ->
@@ -319,14 +348,16 @@ private fun buildTimelineRows(
             TimelineBrowseMode.HISTORY -> TimelineRowItem(
                 timestamp = point.timestamp,
                 point = point,
-                journalEntries = rowEntries
+                journalEntries = rowEntries,
+                trendHistory = rowTrendHistory(trendSource, point.timestamp)
             )
 
             TimelineBrowseMode.JOURNAL -> rowEntries.takeIf { it.isNotEmpty() }?.let {
                 TimelineRowItem(
                     timestamp = point.timestamp,
                     point = point,
-                    journalEntries = it
+                    journalEntries = it,
+                    trendHistory = rowTrendHistory(trendSource, point.timestamp)
                 )
             }
         }
@@ -385,15 +416,31 @@ fun HistoryBrowseScreen(
     showTransferActions: Boolean = true,
     quickAddAlwaysNow: Boolean = false,
     showRowDelta: Boolean = false,
-    deltaIntervalMinutes: Int = tk.glucodata.GlucoseDelta.DEFAULT_INTERVAL_MINUTES
+    deltaIntervalMinutes: Int = tk.glucodata.GlucoseDelta.DEFAULT_INTERVAL_MINUTES,
+    /**
+     * The whole store's ends. [glucoseHistory] is the stretch loaded around the
+     * chart's viewport plus the live tail, not the whole timeline, so anything
+     * that needs to know how far the data reaches asks this.
+     */
+    timelineExtents: TimelineExtents? = null,
+    /** Reports the chart's viewport so the owner of [glucoseHistory] can load around it. */
+    onVisibleRangeChanged: ((startMs: Long, endMs: Long) -> Unit)? = null,
+    /** What a range of the timeline holds, live; null falls back to the loaded list. */
+    rangeSummaryFlow: ((startMs: Long, endMs: Long) -> kotlinx.coroutines.flow.Flow<TimelineRangeSummary?>)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val sortedHistory = remember(glucoseHistory) { glucoseHistory.sortedBy { it.timestamp } }
+    val sortedHistory = remember(glucoseHistory) { glucoseHistory.ascendingByTimestamp() }
     val journalPresetsById = remember(journalInsulinPresets) { journalInsulinPresets.associateBy { it.id } }
     val journalFoodsById = remember(journalFoods) { journalFoods.associateBy { it.id } }
-    val availableRange = remember(sortedHistory, journalEntries) {
-        resolveAvailableTimelineRange(sortedHistory, journalEntries)
+    val loadedExtents = remember(sortedHistory) {
+        sortedHistory.takeIf { it.isNotEmpty() }?.let {
+            TimelineExtents(it.first().timestamp, it.last().timestamp, it.size)
+        }
+    }
+    val effectiveExtents = timelineExtents ?: loadedExtents
+    val availableRange = remember(effectiveExtents, journalEntries) {
+        resolveAvailableTimelineRange(effectiveExtents, journalEntries)
     }
 
     var selectedHistoryRange by rememberSaveable(browseMode) {
@@ -432,6 +479,31 @@ fun HistoryBrowseScreen(
     val activeHistory = remember(sortedHistory, activeRange) {
         activeRange?.let { sortedHistory.sliceByTimestampRange(it.startMillis, it.endMillis) } ?: sortedHistory
     }
+    // What the active range holds across the whole store — the loaded list is
+    // only a window of it. Live, so the count follows the store like it did.
+    val loadedRangeSummary = remember(activeHistory) {
+        activeHistory.takeIf { it.isNotEmpty() }?.let {
+            TimelineRangeSummary(it.size, it.first().timestamp, it.last().timestamp)
+        }
+    }
+    val rangeSummary = if (rangeSummaryFlow != null && activeRange != null) {
+        val flow = remember(activeRange, rangeSummaryFlow) {
+            rangeSummaryFlow(activeRange.startMillis, activeRange.endMillis)
+        }
+        flow.collectAsStateWithLifecycle(initialValue = loadedRangeSummary).value
+    } else {
+        loadedRangeSummary
+    }
+    // A range the loaded stretches do not reach — last month, say — has
+    // nothing on screen to ask for it; ask for its last day here, and the
+    // chart takes over once it has data to report a viewport from.
+    LaunchedEffect(activeRange, rangeSummary?.latestMs, activeHistory.isEmpty(), onVisibleRangeChanged) {
+        val callback = onVisibleRangeChanged ?: return@LaunchedEffect
+        val end = rangeSummary?.latestMs ?: return@LaunchedEffect
+        if (activeHistory.isEmpty()) {
+            callback(end - HISTORY_RANGE_FIRST_VIEWPORT_MS, end)
+        }
+    }
     val activeJournalEntries = remember(journalEntries, activeRange) {
         activeRange?.let { range ->
             journalEntries.filter { entry -> entry.timestamp in range.startMillis..range.endMillis }
@@ -468,7 +540,8 @@ fun HistoryBrowseScreen(
         buildTimelineRows(
             points = visibleHistory,
             entries = visibleJournalEntries,
-            browseMode = effectiveBrowseMode
+            browseMode = effectiveBrowseMode,
+            trendSource = sortedHistory
         )
     }
     val visibleSections = remember(visibleTimelineRows) { buildHistorySections(visibleTimelineRows) }
@@ -501,7 +574,9 @@ fun HistoryBrowseScreen(
             deltaIntervalMinutes
         ).orEmpty()
     }
-    val journalMarkers = remember(filteredJournalEntries, journalPresetsById, journalFoodsById, unit, activeHistory) {
+    // Not keyed on the history: the markers do not depend on it, and keying on
+    // it rebuilt them — and so recomposed the chart — on every new reading.
+    val journalMarkers = remember(filteredJournalEntries, journalPresetsById, journalFoodsById, unit) {
         buildJournalChartMarkers(filteredJournalEntries, journalPresetsById, unit, journalFoodsById)
     }
     val journalEntriesById = remember(filteredJournalEntries) { filteredJournalEntries.associateBy { it.id } }
@@ -590,7 +665,7 @@ fun HistoryBrowseScreen(
             )
         }
     ) { innerPadding ->
-        if (sortedHistory.isEmpty() && journalEntries.isEmpty()) {
+        if (effectiveExtents == null && journalEntries.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -620,8 +695,10 @@ fun HistoryBrowseScreen(
                         hasData = visibleTimelineRows.isNotEmpty(),
                         readingCount = if (effectiveBrowseMode == TimelineBrowseMode.JOURNAL) {
                             visibleTimelineRows.size
+                        } else if (journalEnabled && !showReadingRows) {
+                            0
                         } else {
-                            filteredHistory.size
+                            rangeSummary?.readingCount ?: 0
                         },
                         countLabelResId = if (effectiveBrowseMode == TimelineBrowseMode.JOURNAL) {
                             R.string.journal_visible_events
@@ -637,7 +714,7 @@ fun HistoryBrowseScreen(
                 }
             }
 
-            if (activeHistory.isNotEmpty()) {
+            if (activeHistory.isNotEmpty() || rangeSummary != null) {
                 item(key = "history-chart") {
                     Box(modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)) {
                         DashboardChartSection(
@@ -646,6 +723,11 @@ fun HistoryBrowseScreen(
                                 .height(420.dp),
                             appChartRangeColors = chartRangeColors,
                             glucoseHistory = activeHistory,
+                            // The chart may pan over the whole active range, of
+                            // which it holds a window; "latest" is the range's
+                            // last reading, as it was when the list was the range.
+                            dataBounds = rangeSummary?.let { ChartDataBounds(it.earliestMs, it.latestMs) },
+                            onVisibleRangeChanged = onVisibleRangeChanged,
                             journalMarkers = journalMarkers,
                             graphSmoothingMinutes = graphSmoothingMinutes,
                             collapseSmoothedData = collapseSmoothedData,
@@ -780,10 +862,7 @@ fun HistoryBrowseScreen(
 
                     itemsIndexed(
                         items = section.items,
-                        key = { index, item ->
-                            val journalKey = item.journalEntries.joinToString(separator = ",") { it.id.toString() }
-                            "${item.timestamp}-${item.point?.timestamp ?: "journal"}-$journalKey-$index"
-                        }
+                        key = { index, _ -> section.keys[index] }
                     ) { index, item ->
                         val readingPoint = item.point
                         if (readingPoint != null) {
@@ -791,9 +870,9 @@ fun HistoryBrowseScreen(
                                 point = readingPoint,
                                 unit = unit,
                                 viewMode = viewMode,
-                                index = index,
+                                index = 0,
                                 totalCount = section.items.size,
-                                history = section.items.mapNotNull(TimelineRowItem::point),
+                                history = item.trendHistory,
                                 deltaText = rowDeltas[readingPoint]?.text,
                                 deltaRateMgdlPerMinute = rowDeltas[readingPoint]?.rateMgdlPerMinute,
                                 sensorId = sensorId,
