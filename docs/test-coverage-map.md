@@ -5,9 +5,9 @@ simple name appears in a test source (import or usage). This is a rough proxy fo
 class-level test presence, not line coverage.
 
 - Source types: 1451
-- Referenced by tests: 549
-- Not referenced: 902
-- Test files: 226
+- Referenced by tests: 552
+- Not referenced: 899
+- Test files: 230
 
 ## Coverage by area (top package)
 
@@ -36,7 +36,7 @@ class-level test presence, not line coverage.
 | `tk.glucodata.drivers.anytime` | 24 | 12 | 36 |
 | `tk.glucodata.drivers.api` | 2 | 3 | 5 |
 | `tk.glucodata.drivers.icanhealth` | 16 | 16 | 32 |
-| `tk.glucodata.drivers.mq` | 5 | 39 | 44 |
+| `tk.glucodata.drivers.mq` | 8 | 36 | 44 |
 | `tk.glucodata.drivers.nightscout` | 14 | 5 | 19 |
 | `tk.glucodata.drivers.ottai` | 28 | 22 | 50 |
 | `tk.glucodata.drivers.sibionics` | 47 | 37 | 84 |
@@ -507,7 +507,6 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.mq.AccountState`  (Common/src/main/java/tk/glucodata/drivers/mq/MQRegistry.kt)
 - `tk.glucodata.drivers.mq.AckCandidate`  (Common/src/main/java/tk/glucodata/drivers/mq/MQBleManager.kt)
 - `tk.glucodata.drivers.mq.AgentInfo`  (Common/src/main/java/tk/glucodata/drivers/mq/MQCloudClient.kt)
-- `tk.glucodata.drivers.mq.MQAlgorithm`  (Common/src/main/java/tk/glucodata/drivers/mq/MQAlgorithm.kt)
 - `tk.glucodata.drivers.mq.MQAuthCredentials`  (Common/src/main/java/tk/glucodata/drivers/mq/MQBootstrapClient.kt)
 - `tk.glucodata.drivers.mq.MQBgRecord`  (Common/src/main/java/tk/glucodata/drivers/mq/MQParser.kt)
 - `tk.glucodata.drivers.mq.MQBleManager`  (Common/src/main/java/tk/glucodata/drivers/mq/MQBleManager.kt)
@@ -524,14 +523,12 @@ class-level test presence, not line coverage.
 - `tk.glucodata.drivers.mq.MQCloudPostResult`  (Common/src/main/java/tk/glucodata/drivers/mq/MQCloudClient.kt)
 - `tk.glucodata.drivers.mq.MQCloudSessionResult`  (Common/src/main/java/tk/glucodata/drivers/mq/MQCloudClient.kt)
 - `tk.glucodata.drivers.mq.MQCloudTokenStatus`  (Common/src/main/java/tk/glucodata/drivers/mq/MQCloudClient.kt)
-- `tk.glucodata.drivers.mq.MQCrc16`  (Common/src/main/java/tk/glucodata/drivers/mq/MQCrc16.kt)
 - `tk.glucodata.drivers.mq.MQCurrentSnapshot`  (Common/src/main/java/tk/glucodata/drivers/mq/MQDriver.kt)
 - `tk.glucodata.drivers.mq.MQDriver`  (Common/src/main/java/tk/glucodata/drivers/mq/MQDriver.kt)
 - `tk.glucodata.drivers.mq.MQFollowerManager`  (Common/src/main/java/tk/glucodata/drivers/mq/MQFollowerManager.kt)
 - `tk.glucodata.drivers.mq.MQFrame`  (Common/src/main/java/tk/glucodata/drivers/mq/MQParser.kt)
 - `tk.glucodata.drivers.mq.MQFriendLookupResult`  (Common/src/main/java/tk/glucodata/drivers/mq/MQCloudClient.kt)
 - `tk.glucodata.drivers.mq.MQIncomingFriendRequest`  (Common/src/main/java/tk/glucodata/drivers/mq/MQCloudClient.kt)
-- `tk.glucodata.drivers.mq.MQParser`  (Common/src/main/java/tk/glucodata/drivers/mq/MQParser.kt)
 - `tk.glucodata.drivers.mq.MQProfile`  (Common/src/main/java/tk/glucodata/drivers/mq/MQProfile.kt)
 - `tk.glucodata.drivers.mq.MQProfileResolver`  (Common/src/main/java/tk/glucodata/drivers/mq/MQProfile.kt)
 - `tk.glucodata.drivers.mq.MQRegistry`  (Common/src/main/java/tk/glucodata/drivers/mq/MQRegistry.kt)
@@ -1245,9 +1242,6 @@ class-level test presence, not line coverage.
 ### Common/src/main/java/tk/glucodata/drivers/icanhealth/ICanHealthReconnectReceiver.kt
 - `tk.glucodata.drivers.icanhealth.ICanHealthReconnectReceiver`
 
-### Common/src/main/java/tk/glucodata/drivers/mq/MQAlgorithm.kt
-- `tk.glucodata.drivers.mq.MQAlgorithm`
-
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQBleManager.kt
 - `tk.glucodata.drivers.mq.AckCandidate`
 - `tk.glucodata.drivers.mq.MQBleManager`
@@ -1281,9 +1275,6 @@ class-level test presence, not line coverage.
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQConstants.kt
 - `tk.glucodata.drivers.mq.MQVendorEndpoints`
 
-### Common/src/main/java/tk/glucodata/drivers/mq/MQCrc16.kt
-- `tk.glucodata.drivers.mq.MQCrc16`
-
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQDriver.kt
 - `tk.glucodata.drivers.mq.MQCurrentSnapshot`
 - `tk.glucodata.drivers.mq.MQDriver`
@@ -1297,7 +1288,6 @@ class-level test presence, not line coverage.
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQParser.kt
 - `tk.glucodata.drivers.mq.MQBgRecord`
 - `tk.glucodata.drivers.mq.MQFrame`
-- `tk.glucodata.drivers.mq.MQParser`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQProfile.kt
 - `tk.glucodata.drivers.mq.MQProfile`
@@ -3551,7 +3541,7 @@ package `tk.glucodata.drivers.icanhealth` — types `xx`: ICanHealthRegistry, Se
 functions: `addSensor()`, `configureCallback()`, `createRestoredCallback()`, `encodeRecord()`, `findRecord()`, `matchesId()`, `parseRecord()`, `persistedRecords()`, `prefs()`, `promoteSensorIdentity()`, `readRecords()`, `removeSensor()`, `resolveCanonicalSensorId()`, `resolvePersistedAuthUserId()`, `writeRecords()`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQAlgorithm.kt
-package `tk.glucodata.drivers.mq` — types ` x`: MQAlgorithm, Result
+package `tk.glucodata.drivers.mq` — types `xx`: MQAlgorithm, Result
 functions: `adjustSampleCurrent()`, `calculate()`, `calculateResult()`, `roundDown2()`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQBleManager.kt
@@ -3571,7 +3561,7 @@ package `tk.glucodata.drivers.mq` — types `x `: MQConstants, MQVendorEndpoints
 functions: `canonicalSensorId()`, `deriveFollowerSensorId()`, `deriveInitialSensorId()`, `isFollowerSensorId()`, `isLikelyPersistedSensorName()`, `isMqDevice()`, `isNativeShortAliasOf()`, `isProvisionalSensorId()`, `matchesCanonicalOrKnownNativeAlias()`, `normalizeVendorBaseUrl()`, `vendorEndpoints()`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQCrc16.kt
-package `tk.glucodata.drivers.mq` — types ` `: MQCrc16
+package `tk.glucodata.drivers.mq` — types `x`: MQCrc16
 functions: `compute()`, `stamp()`, `verify()`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQDriver.kt
@@ -3587,7 +3577,7 @@ package `tk.glucodata.drivers.mq` — types ` `: MQManagedSensorIdentityAdapter
 functions: `createManagedCallback()`, `hasNativeSensorBacking()`, `hasPersistedManagedRecord()`, `isExternallyManagedBleSensor()`, `matchesCallbackId()`, `persistedSensorIds()`, `removePersistedSensor()`, `resolveCallbackDataptr()`, `resolveCanonicalSensorId()`, `resolveNativeSensorName()`, `resolveStableStorageSensorId()`, `shouldUseNativeHistorySync()`, `usesNativeDirectStreamShell()`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQParser.kt
-package `tk.glucodata.drivers.mq` — types `   `: MQBgRecord, MQFrame, MQParser
+package `tk.glucodata.drivers.mq` — types `  x`: MQBgRecord, MQFrame, MQParser
 functions: `buildConfirm()`, `buildConfirmBgData()`, `buildConfirmReset()`, `buildConfirmWithInit()`, `buildConfirmWithoutInit()`, `parse()`, `parseBgRecords()`
 
 ### Common/src/main/java/tk/glucodata/drivers/mq/MQProfile.kt
