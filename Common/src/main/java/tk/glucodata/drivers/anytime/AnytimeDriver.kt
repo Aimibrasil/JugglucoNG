@@ -64,8 +64,9 @@ interface AnytimeDriver : ManagedBluetoothSensorDriver, ManagedSensorMaintenance
     fun supportsSelfTest(): Boolean = false
 
     /**
-     * Ask the transmitter for its own computed glucose (CT2 `0x09`). The answer is a
-     * display fallback only; used for diagnostics and when a live reading is unusable.
+     * Ask the transmitter for its own computed glucose (CT2 `0x09`). Diagnostic only:
+     * the observed CT-14 firmware answers with a constant frame, so it is not used as
+     * a reading source.
      */
     fun requestTransmitterGlucose(): Boolean = false
 

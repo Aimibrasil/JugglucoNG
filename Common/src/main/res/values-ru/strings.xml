@@ -2775,7 +2775,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="anytime_restart_title">Перезапустить датчик?</string>
     <string name="anytime_restart_warning">Завершить текущий сеанс передатчика и начать новый цикл сопряжения? Существующая история глюкозы останется в приложении.</string>
     <string name="anytime_history_action">История</string>
-    <string name="anytime_self_test_action">Ток</string>
     <string name="anytime_transmitter_glucose_action">Глюкоза (Tx)</string>
     <string name="nightscout_follow_interval_title">Проверять новые значения</string>
     <string name="nightscout_follow_interval_desc">Как часто подписчик опрашивает сервер. Это же определяет, насколько старым может быть значение, а значит и насколько поздно придёт тревога по отслеживаемому значению. У подписчика нет своего сенсора, который держал бы телефон активным, поэтому каждая проверка — это пробуждение.</string>
