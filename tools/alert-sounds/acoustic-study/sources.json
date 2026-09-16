@@ -58,5 +58,41 @@
     "source_path": "README.md",
     "sha256": "6f7214a188f106c917d6503748485413c3e47cf56bce69f82beb9d16aa0894a9",
     "bytes": 4365
+  },
+  "marimba_b2_med.wav": {
+    "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Marimba/Marimba_hit_Outrigger_B2_med_01.wav",
+    "source_path": "Idiophones/Struck Idiophones/Marimba/Marimba_hit_Outrigger_B2_med_01.wav",
+    "sha256": "4d0ffc47858d0c4545191eef3240d470c40df1c090841c0fb2ae2f47900794ee",
+    "bytes": 1495616
+  },
+  "marimba_c2_med.wav": {
+    "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Marimba/Marimba_hit_Outrigger_C2_med_01.wav",
+    "source_path": "Idiophones/Struck Idiophones/Marimba/Marimba_hit_Outrigger_C2_med_01.wav",
+    "sha256": "fd9c329513ed9d54c36174bbe45add471a80ffad411c686428bbf0bbc0121438",
+    "bytes": 1785050
+  },
+  "vibes_f2.wav": {
+    "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Vibraphone/Soft%20Mallets/Vibes_soft_F2_v2_rr1_Main.wav",
+    "source_path": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_F2_v2_rr1_Main.wav",
+    "sha256": "14c3f7a2492f6a87aecd6463611bbbbfe2094383bfa267a2df67f94766e00df5",
+    "bytes": 1569944
+  },
+  "vibes_a2.wav": {
+    "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Vibraphone/Soft%20Mallets/Vibes_soft_A2_v2_rr1_Main.wav",
+    "source_path": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_A2_v2_rr1_Main.wav",
+    "sha256": "683d2b5a9ece5e5bcf421a9ae62d74e5004b40493e1b5893f125bb96fd52cb64",
+    "bytes": 2420596
+  },
+  "vibes_attack.wav": {
+    "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Vibraphone/Hard%20Mallets/Vibes_hard_F4_v2_rr1_Main.wav",
+    "source_path": "Idiophones/Struck Idiophones/Vibraphone/Hard Mallets/Vibes_hard_F4_v2_rr1_Main.wav",
+    "sha256": "24e4a7a9d1e6dd221ab478fa57793e3575e3b5f666dc75a1ad5d58d05ac7f129",
+    "bytes": 1708460
+  },
+  "wood_crisp.wav": {
+    "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Woodblock/wood_click_f_rr1.wav",
+    "source_path": "Idiophones/Struck Idiophones/Woodblock/wood_click_f_rr1.wav",
+    "sha256": "86b690a393ad62d65dc6832948adb0cc164fe22f544a8065809f000c65d615fc",
+    "bytes": 497338
   }
 }
