@@ -368,7 +368,7 @@ internal fun AdvancedSectionHeader(expanded: Boolean, onToggle: () -> Unit, modi
                 .fillMaxWidth()
                 .heightIn(min = 40.dp)
                 .clickable(onClick = onToggle)
-                .padding(horizontal = 16.dp, vertical = if (expanded) 4.dp else 16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
