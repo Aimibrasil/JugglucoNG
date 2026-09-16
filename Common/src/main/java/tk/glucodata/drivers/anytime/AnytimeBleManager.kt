@@ -103,6 +103,12 @@ class AnytimeBleManager(
          * CT-14 reference sensor (~2.4s): discovering earlier re-races the exchange.
          */
         private const val MTU_CALLBACK_FALLBACK_MS = 4_000L
+        /**
+         * Same fallback for CT3-Ultrasonic, whose chips wedge if discoverServices()
+         * is issued before onMtuChanged completes. 3000ms is the value proven
+         * against a live CT3-Ultrasonic (FW V1300, streaming Iw/Ib/T telemetry).
+         */
+        private const val ULTRASONIC_MTU_CALLBACK_FALLBACK_MS = 3_000L
         private const val SERVICE_DISCOVERY_HARD_RECOVERY_DELAY_MS = 5_000L
         private const val SERVICE_DISCOVERY_RETRY_DELAY_MS = 1_500L
         private const val MAX_SERVICE_DISCOVERY_RETRIES = 2
@@ -2443,10 +2449,21 @@ class AnytimeBleManager(
                 // and the driver sits in DISCOVERING until the sensor drops the idle link and
                 // the cycle repeats. Same failure AiDexBleManager documents. Fall back only if
                 // the stack never delivers onMtuChanged.
+                // CT3-Ultrasonic chips additionally wedge if discoverServices is issued
+                // before onMtuChanged completes, so they keep their own proven 3000ms
+                // fallback. The discoverServicesOrRetry guards (serviceDiscoveryHandled /
+                // request-in-flight) make a late fallback a no-op when onMtuChanged
+                // already triggered discovery.
                 if (mtuStarted) {
+                    val isUltrasonic = familyEntry.family == AnytimeConstants.Family.CT3_ULTRASONIC
                     handler.postDelayed(
-                        { discoverServicesOrRetry(gatt, "mtu-callback-timeout") },
-                        MTU_CALLBACK_FALLBACK_MS,
+                        {
+                            discoverServicesOrRetry(
+                                gatt,
+                                if (isUltrasonic) "ultrasonic-mtu-fallback" else "mtu-callback-timeout",
+                            )
+                        },
+                        if (isUltrasonic) ULTRASONIC_MTU_CALLBACK_FALLBACK_MS else MTU_CALLBACK_FALLBACK_MS,
                     )
                 } else {
                     discoverServicesOrRetry(gatt, "connected-fallback")
