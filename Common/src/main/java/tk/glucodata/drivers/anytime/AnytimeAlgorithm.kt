@@ -592,9 +592,18 @@ object AnytimeAlgorithm {
         )
     }
 
-    /** Decode the QR string via the JNI when available; pure-Kotlin otherwise. */
+    /**
+     * Decode the QR string with the pure-Kotlin parser, falling back to the JNI
+     * `decodeCT` only when it cannot parse the code.
+     *
+     * Kotlin first because the in-tree patterns are what the CT2/CT4 reference
+     * paths trust, and the vendor decoder mis-reads some labels (a 15-day
+     * CT4 sticker comes back with `lifeTime = 6`). The fallback keeps any
+     * code shape the vendor accepts but our patterns do not.
+     */
     @JvmStatic
     fun decodeQr(qr: String): AnytimeQrCalibration? {
+        AnytimeQr.parse(qr)?.let { return it }
         if (isNativeAvailable) {
             runCatching {
                 val data: KRDecodeData? = AlgorithmTools.getInstance().decodeCT(qr.toCharArray())
@@ -625,7 +634,7 @@ object AnytimeAlgorithm {
                 Log.w(TAG, "native decodeCT failed: ${t.message}")
             }
         }
-        return AnytimeQr.parse(qr)
+        return null
     }
 
     private fun mapCurrentNative(record: AnytimeRawRecord, native: CurrentGlucose, rawMgdl: Float): Result {
