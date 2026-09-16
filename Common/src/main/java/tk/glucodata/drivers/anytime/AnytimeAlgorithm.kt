@@ -1,6 +1,6 @@
-// AnytimeAlgorithm.kt — Glucose computation: vendor JNI + Reference App model + linear fallback.
+// AnytimeAlgorithm.kt — Glucose computation: vendor JNI + Reference App model + native port + linear fallback.
 //
-// Three paths:
+// Four paths:
 //
 //  1. NATIVE: Loads `libalgorithm-jni.so` if it has been dropped into
 //     src/main/jniLibs/{abi}. Current official CT4/Yuwell builds export
@@ -8,7 +8,14 @@
 //     Older packaged builds export `algorithm(DataInput)`, so compute() tries
 //     the official path first and falls back when that symbol is unavailable.
 //
-//  2. MODEL: `AnytimeCalibrator`, the pure-Kotlin port of Reference App's MK4 chain
+//  2. NATIVE_PORT: `AnytimeNativeAlgorithm`, the pure-Kotlin port of the SHIPPED
+//     vendor `.so` CT3 kernel (`yqidui_PX3`). Used for the CT3 families when the
+//     `.so` is absent — before this, CT3 had no fallback of its own and dropped
+//     to LINEAR. Validated against a Unicorn oracle (AnytimeNativeCt3Tests);
+//     stateful and per-sensor, state persisted via AnytimeRegistry. Never used
+//     for CT2/CT4 (their reference models) and never when NATIVE is usable.
+//
+//  3. MODEL: `AnytimeCalibrator`, the pure-Kotlin port of Reference App's MK4 chain
 //     (see docs/MK4_FINAL_SUMMARY.md). Used for the live/current reading when
 //     native is unavailable — which is the normal case, since
 //     `libalgorithm-jni.so` is deliberately not packaged. Stateful and
@@ -18,7 +25,7 @@
 //     revisit older ids after newer ones), which would corrupt the model's
 //     continuity, so backfill still uses LINEAR.
 //
-//  3. LINEAR: Pure-Kotlin raw display lane. It is not a replacement for the
+//  4. LINEAR: Pure-Kotlin raw display lane. It is not a replacement for the
 //     vendor algorithm and stays separate from native output; Auto+Raw modes
 //     must never copy the auto value into the raw lane.
 //
@@ -59,7 +66,7 @@ object AnytimeAlgorithm {
         }
     }
 
-    enum class Source { NATIVE, MODEL, LINEAR }
+    enum class Source { NATIVE, NATIVE_PORT, MODEL, LINEAR }
 
     /** One [AnytimeCalibrator] per sensor session, keyed by the persistent sensor id (SerialNumber). */
     private val calibrators = java.util.concurrent.ConcurrentHashMap<String, AnytimeCalibrator>()
@@ -90,6 +97,93 @@ object AnytimeAlgorithm {
     @JvmStatic
     fun clearCalibratorState(persistentSensorId: String) {
         calibrators.remove(persistentSensorId)
+    }
+
+    // ---- CT3 native-port state (the vendored CT3 chain, pure Kotlin) ----
+
+    private class NativePort(var state: AnytimeNativeState = AnytimeNativeState()) {
+        /** The vendor `dynamic[0]`: the previous sample's glucose id. */
+        var previousGlucoseId: Int = -1
+    }
+
+    private val nativePorts = java.util.concurrent.ConcurrentHashMap<String, NativePort>()
+
+    private fun nativePortFor(persistentSensorId: String): NativePort =
+        nativePorts.getOrPut(persistentSensorId) { NativePort() }
+
+    /** Seed the pool from persisted state before the first live call. */
+    @JvmStatic
+    fun restoreNativePortState(persistentSensorId: String, encoded: String) {
+        if (persistentSensorId.isBlank()) return
+        AnytimeNativeState.decode(encoded)?.let { nativePorts[persistentSensorId] = NativePort(it) }
+    }
+
+    /** Read current continuity state for persistence; null when there is none. */
+    @JvmStatic
+    fun snapshotNativePortState(persistentSensorId: String): String? =
+        nativePorts[persistentSensorId]?.state?.encode()
+
+    @JvmStatic
+    fun clearNativePortState(persistentSensorId: String) {
+        nativePorts.remove(persistentSensorId)
+    }
+
+    /** CT3 families: the vendor kernel is the only source we port ourselves. */
+    private fun isCt3Family(family: AnytimeConstants.FamilyEntry): Boolean =
+        when (family.family) {
+            AnytimeConstants.Family.CT3,
+            AnytimeConstants.Family.CT3_PLUS,
+            AnytimeConstants.Family.CT3_YUWELL,
+            AnytimeConstants.Family.CT3_ULTRASONIC,
+            -> true
+            else -> false
+        }
+
+    /**
+     * Pure-Kotlin CT3 chain (`AnytimeNativeAlgorithm`), used when the vendor `.so`
+     * is absent. Stateful and per sensor; only advance from the live path.
+     */
+    private fun computeCt3NativePort(
+        record: AnytimeRawRecord,
+        calibration: AnytimeQrCalibration,
+        persistentSensorId: String,
+        lastReferenceBgMgdlTimes10: Int,
+        lastReferenceBgGlucoseId: Int,
+        rawMgdl: Float,
+    ): Result {
+        val port = nativePortFor(persistentSensorId)
+        val attachReference =
+            shouldAttachReferenceBg(record.glucoseId, lastReferenceBgGlucoseId, lastReferenceBgMgdlTimes10)
+        val input = AnytimeNativeInput().apply {
+            glucoseId = record.glucoseId
+            iw = record.iwNa
+            ib = record.ibNa
+            temperatureC = record.temperatureC
+            k0 = calibration.k
+            r = calibration.r
+            // Matches the JNI path: only the fingerstick fields are attached.
+            flags = if (attachReference) 0x80 else 0
+            newBgValue = if (attachReference) lastReferenceBgMgdlTimes10 / 10f else 0f
+        }
+        val out = AnytimeNativeAlgorithm.process(input, port.state, port.previousGlucoseId)
+        port.previousGlucoseId = record.glucoseId
+
+        val mmol = out.glucose.coerceAtLeast(AnytimeConstants.ALGO_MMOL_FLOOR.toFloat())
+        val mgdlTimes10 = (out.mgdl * 10)
+            .coerceIn(AnytimeConstants.ALGO_MGDL_MIN_TIMES10, AnytimeConstants.ALGO_MGDL_MAX_TIMES10)
+        return Result(
+            glucoseId = record.glucoseId,
+            mmol = mmol,
+            mgdlTimes10 = mgdlTimes10,
+            ibNa = record.ibNa,
+            iwNa = record.iwNa,
+            temperatureC = record.temperatureC,
+            trend = out.trend,
+            errorCode = out.errorCode,
+            warnCode = out.warn,
+            source = Source.NATIVE_PORT,
+            rawMgdl = rawMgdl,
+        )
     }
 
     /** Algorithm output. Mirrors the native `DataOutput` where the bundled JNI provides it. */
@@ -267,6 +361,28 @@ object AnytimeAlgorithm {
                 "native algorithm skipped: no factory/manual calibration " +
                         "(format=${qr.format} K=$k R=$r); using linear fallback"
             )
+        }
+        // CT3 has no reference model of its own: with the vendor blob absent, the
+        // pure-Kotlin native port is the only calibrated path, and LINEAR the last
+        // resort. MODEL (MK4) is CT4-only, so it is never used for CT3.
+        if (isCt3Family(family)) {
+            if (calibration != null && advanceModelFallback) {
+                runCatching {
+                    return computeCt3NativePort(
+                        record = record,
+                        calibration = calibration,
+                        persistentSensorId = persistentSensorId,
+                        lastReferenceBgMgdlTimes10 = lastReferenceBgMgdlTimes10,
+                        lastReferenceBgGlucoseId = lastReferenceBgGlucoseId,
+                        rawMgdl = linear.rawMgdl,
+                    )
+                }.onFailure { t ->
+                    if (logNativeFallbackWarnings) {
+                        Log.w(TAG, "CT3 native port failed: ${t.message}; using linear fallback")
+                    }
+                }
+            }
+            return linear
         }
         if (advanceModelFallback && k > 0f) {
             return computeModel(record, k, persistentSensorId, linear.rawMgdl)
