@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import tk.glucodata.R
 import tk.glucodata.alerts.AlertConfig
@@ -351,31 +352,42 @@ fun CommonAlertSettings(
 val LocalAlertsAdvancedOpen = compositionLocalOf<MutableState<Boolean>> { mutableStateOf(false) }
 
 /**
- * The "Advanced" row inside a card body: text on the body's own left edge, a
- * chevron that turns, nothing else - it is not a setting.
+ * The "Advanced" row inside a card body: a hairline above it so it reads as a
+ * section break rather than one more row, the label set like the card's own
+ * headline slider label, a chevron that turns, nothing else - it is not a
+ * setting. It is always the last thing in a card, so the row keeps its bottom
+ * tight and lets the card's own margin frame it; the touch target still grows
+ * to 48dp on its own.
  */
 @Composable
 internal fun AdvancedSectionHeader(expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val rotation by animateFloatAsState(targetValue = if (expanded) 180f else 0f, label = "advancedChevron")
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            stringResource(R.string.advanced),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
+    Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
         )
-        Icon(
-            Icons.Default.ExpandMore,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.rotate(rotation)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 40.dp)
+                .clickable(onClick = onToggle)
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                stringResource(R.string.advanced),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(rotation)
+            )
+        }
     }
 }
