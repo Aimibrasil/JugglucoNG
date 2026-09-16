@@ -205,7 +205,7 @@ fun CommonAlertSettings(
             )
         }
         AnimatedVisibility(visible = advancedExpanded) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(modifier = Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // === Intensity: soft to escalating ===
                 AnimatedVisibility(visible = config.soundEnabled || config.vibrationEnabled) {
                     Column(modifier = Modifier.padding(horizontal = sectionHorizontalPadding)) {
@@ -350,9 +350,10 @@ val LocalAlertsAdvancedOpen = compositionLocalOf<MutableState<Boolean>> { mutabl
  * The "Advanced" row inside a card body: a hairline above it so it reads as a
  * section break rather than one more row, the label set like the card's own
  * headline slider label, a chevron that turns, nothing else - it is not a
- * setting. It is always the last thing in a card, so the row keeps its bottom
- * tight and lets the card's own margin frame it; the touch target still grows
- * to 48dp on its own.
+ * setting. It is always the last thing in a card, so while collapsed it owns
+ * the card's bottom margin: the ripple runs to the card edge instead of
+ * stopping short of it. Hosts pad their top only; expanded content pads its
+ * own bottom.
  */
 @Composable
 internal fun AdvancedSectionHeader(expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
@@ -367,7 +368,7 @@ internal fun AdvancedSectionHeader(expanded: Boolean, onToggle: () -> Unit, modi
                 .fillMaxWidth()
                 .heightIn(min = 40.dp)
                 .clickable(onClick = onToggle)
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = if (expanded) 4.dp else 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
