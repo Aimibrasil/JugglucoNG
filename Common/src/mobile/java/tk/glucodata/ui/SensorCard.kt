@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package tk.glucodata.ui
 
@@ -2971,18 +2971,17 @@ fun SensorCard(
             if (sensor.isAnytime) {
                 val hasExportableCredentials = tk.glucodata.drivers.anytime.AnytimeRegistry
                     .exportCt5Credentials(context, sensor.serial) != null
-                Row(
+                FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     FilledTonalButton(
                         onClick = { showResetDialog = true },
                         enabled = sensor.isVendorConnected && sensor.supportsHardwareReset,
                         modifier = Modifier
-                            .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp),
@@ -3008,7 +3007,6 @@ fun SensorCard(
                         onClick = { showAnytimeHistoryDialog = true },
                         enabled = sensor.isVendorConnected,
                         modifier = Modifier
-                            .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp),
@@ -3034,7 +3032,6 @@ fun SensorCard(
                         onClick = { showAnytimeCredentialBackupDialog = true },
                         enabled = hasExportableCredentials,
                         modifier = Modifier
-                            .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp),
@@ -3061,7 +3058,6 @@ fun SensorCard(
                             onClick = { viewModel.requestAnytimeSelfTest(sensor.serial) },
                             enabled = sensor.isVendorConnected,
                             modifier = Modifier
-                                .weight(1f)
                                 .heightIn(min = 48.dp),
                             shape = RoundedCornerShape(12.dp),
                             contentPadding = PaddingValues(horizontal = 8.dp),
@@ -3089,7 +3085,6 @@ fun SensorCard(
                             onClick = { viewModel.requestAnytimeTransmitterGlucose(sensor.serial) },
                             enabled = sensor.isVendorConnected,
                             modifier = Modifier
-                                .weight(1f)
                                 .heightIn(min = 48.dp),
                             shape = RoundedCornerShape(12.dp),
                             contentPadding = PaddingValues(horizontal = 8.dp),
