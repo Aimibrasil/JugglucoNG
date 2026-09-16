@@ -80,6 +80,7 @@ data class SensorInfo(
     val supportsHardwareReset: Boolean = false,
     val supportsClearCalibration: Boolean = false,
     val supportsSelfTest: Boolean = false,
+    val supportsTransmitterGlucose: Boolean = false,
     val sensorDetailTelemetry: String = "",
     val detailedStatus: String = "",
     val isActive: Boolean = false,  // True if this is the primary data source
@@ -430,6 +431,7 @@ class SensorViewModel : ViewModel() {
             supportsHardwareReset = snapshot.supportsHardwareReset,
             supportsClearCalibration = snapshot.supportsClearCalibration,
             supportsSelfTest = snapshot.supportsSelfTest,
+            supportsTransmitterGlucose = snapshot.supportsTransmitterGlucose,
             sensorDetailTelemetry = snapshot.sensorDetailTelemetry,
             detailedStatus = handoffStatus ?: snapshot.subtitleStatus.ifBlank {
                 snapshot.detailedStatus.ifBlank { snapshot.connectionStatus }
@@ -1083,6 +1085,24 @@ class SensorViewModel : ViewModel() {
         return runCatching { driver.requestSelfTest() }
             .onFailure {
                 android.util.Log.e("SensorVM", "Anytime self-test request failed for $serial", it)
+            }
+            .getOrDefault(false)
+            .also {
+                UiRefreshBus.requestStatusRefresh()
+                refreshSensors()
+            }
+    }
+
+    /**
+     * CT2 diagnostic: ask the transmitter for its own computed glucose (`0x09`). The
+     * answer is logged to the connection log and, when valid, shown on the display as
+     * a fallback value (never written to history).
+     */
+    fun requestAnytimeTransmitterGlucose(serial: String): Boolean {
+        val driver = findGatt(serial) as? AnytimeDriver ?: return false
+        return runCatching { driver.requestTransmitterGlucose() }
+            .onFailure {
+                android.util.Log.e("SensorVM", "Anytime transmitter-glucose request failed for $serial", it)
             }
             .getOrDefault(false)
             .also {
