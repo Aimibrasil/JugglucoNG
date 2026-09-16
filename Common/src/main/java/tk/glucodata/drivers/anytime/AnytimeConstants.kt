@@ -371,10 +371,13 @@ object AnytimeConstants {
 
     /**
      * Response opcodes the CT-14 (CT2 protocol family) owns, including its unbind
-     * ack. Kept as an explicit set so this family is dispatched on its own and can
-     * never fall through to the generic CT3/CT2.5 handlers: 0x08 and 0x09 mean
-     * different things in the two namespaces, and 0x58 is CT2 unbind vs CT5 generic
-     * unbind.
+     * ack and the transmitter-computed glucose answer (`0x09`, the echo of our own
+     * request). Kept as an explicit set so this family is dispatched on its own and
+     * can never fall through to the generic CT3/CT2.5 handlers: `0x08` is a CT3
+     * response, `0x09` is a CT3 input-BG ack in one namespace and the CT2
+     * transmitter-glucose answer in the other, and `0x58` is CT2 unbind vs CT5
+     * generic unbind. The dispatch is family-gated, so a CT2 driver never runs the
+     * generic handler with these bytes.
      */
     @JvmStatic
     fun isCt14Opcode(opcode: Byte): Boolean = when (opcode) {
@@ -384,7 +387,8 @@ object AnytimeConstants {
         RX_CT2_CHECK,
         RX_CT2_PUSH_GLUCOSE,
         RX_CT2_PULL_RESPONSE,
-        RX_UNBIND_ACK_GENERIC -> true
+        RX_UNBIND_ACK_GENERIC,
+        TX_CT2_GLUCOSE_BY_TRANSMITTER -> true
         else -> false
     }
 

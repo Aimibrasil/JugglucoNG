@@ -234,6 +234,9 @@ class AnytimeBleManager(
         private const val TELEMETRY_PREFS = "anytime_ble_telemetry"
         private const val TELEMETRY_BATTERY_VOLTS_PREFIX = "battery_volts_"
 
+        /** CT2 battery is a percent in the record/check bytes, not volts. */
+        private const val TELEMETRY_BATTERY_PERCENT_PREFIX = "battery_percent_"
+
         /** Refresh check-frame telemetry after reconnect settles, then hourly. */
         private const val TELEMETRY_CHECK_INTERVAL_MS = 60L * 60L * 1000L
         private const val TELEMETRY_CHECK_RETRY_DELAY_MS = 60_000L
@@ -282,6 +285,10 @@ class AnytimeBleManager(
     @Volatile private var warmupStartedAtMs: Long = 0L
     @Volatile private var lastBatteryVolts: Float = 0f
     @Volatile private var lastCt2BatteryPercent: Int = -1
+
+    /** Live CT2 id the local model could not read; awaiting the transmitter's `0x09` answer. */
+    @Volatile private var pendingCt2TransmitterGlucoseId: Int = -1
+    @Volatile private var pendingCt2TransmitterSampleMs: Long = 0L
     @Volatile private var lastIwNa: Float = 0f
     @Volatile private var lastIbNa: Float = 0f
     @Volatile private var lastTemperatureC: Float = 0f
@@ -544,6 +551,7 @@ class AnytimeBleManager(
         freshOlderBackfillStarted = false
         pendingFreshOlderBackfillStartId = -1
         lastBatteryVolts = loadCachedBatteryVolts(context, id)
+        lastCt2BatteryPercent = loadCachedBatteryPercent(context, id)
     }
 
     private fun hasExistingNativeBacking(context: Context?, sensorId: String): Boolean {
@@ -581,6 +589,36 @@ class AnytimeBleManager(
             .edit()
             .putFloat(TELEMETRY_BATTERY_VOLTS_PREFIX + sensorId, volts)
             .apply()
+    }
+
+    private fun loadCachedBatteryPercent(context: Context?, sensorId: String): Int {
+        if (context == null) return -1
+        return context
+            .getSharedPreferences(TELEMETRY_PREFS, Context.MODE_PRIVATE)
+            .getInt(TELEMETRY_BATTERY_PERCENT_PREFIX + sensorId, -1)
+    }
+
+    private fun saveCachedBatteryPercent(context: Context?, sensorId: String?, percent: Int) {
+        if (context == null || sensorId.isNullOrBlank() || percent !in 0..100) return
+        context
+            .getSharedPreferences(TELEMETRY_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(TELEMETRY_BATTERY_PERCENT_PREFIX + sensorId, percent)
+            .apply()
+    }
+
+    /**
+     * Record a CT2 battery percent from either the live `0x44` push or the `0x43`
+     * self-test. Persisted so the card keeps showing it across restarts, between
+     * the sparse live pushes, and warns once when it drops below the CT2 floor.
+     */
+    private fun setCt2BatteryPercent(percent: Int) {
+        if (percent !in 0..100) return
+        lastCt2BatteryPercent = percent
+        saveCachedBatteryPercent(Applic.app, SerialNumber, percent)
+        if (percent < AnytimeConstants.BATTERY_LOW_PERCENT_CT2) {
+            Log.w(TAG, "CT2 low battery ($percent% < ${AnytimeConstants.BATTERY_LOW_PERCENT_CT2}%)")
+        }
     }
 
     private fun synthesiseQr(raw: String, k: Float, r: Float): AnytimeQrCalibration =
@@ -2808,16 +2846,63 @@ class AnytimeBleManager(
         lastIwNa = result.iwNa
         lastIbNa = result.ibNa
         lastTemperatureC = result.temperatureC
-        if (result.powerByte in 0..100) lastCt2BatteryPercent = result.powerByte
+        setCt2BatteryPercent(result.powerByte)
         Log.i(
             TAG,
             "CT2 self-test: iw=${result.iwNa} ib=${result.ibNa} T=${result.temperatureC} " +
                     "power=${result.powerByte} passed=${result.passed}",
         )
-        if (result.powerByte in 0 until AnytimeConstants.BATTERY_LOW_PERCENT_CT2) {
-            Log.w(TAG, "CT2 self-test: low battery (${result.powerByte}%)")
-        }
         UiRefreshBus.requestStatusRefresh()
+    }
+
+    /**
+     * Ask the transmitter for its own glucose for [id] (`0x09 idHi idLo`, SDK
+     * `getGlucoseByTransmitterRequest`). Used as the fallback when the local model
+     * produced no usable reading for a live id. Fire-and-forget: the answer is
+     * handled by [handleCt2TransmitterGlucose] if it arrives.
+     */
+    private fun requestCt2TransmitterGlucose(id: Int, sampleMs: Long) {
+        if (!isCt2() || id < 0 || sampleMs <= 0L) return
+        if (pendingCt2TransmitterGlucoseId == id) return
+        pendingCt2TransmitterGlucoseId = id
+        pendingCt2TransmitterSampleMs = sampleMs
+        writeFrame(
+            AnytimeFrames.Builders.ct2GlucoseByTransmitter(id),
+            "ct2-glucoseByTx($id)",
+            expectResponse = false,
+        )
+    }
+
+    /**
+     * CT2 `0x09` answer: the transmitter's own glucose for the id we asked about.
+     * Emitted to the display only, never into Room history — it is a fallback
+     * value, not a measured record.
+     */
+    private fun handleCt2TransmitterGlucose(data: ByteArray) {
+        val mmol = AnytimeFrames.parseCt2GlucoseByTransmitter(data)
+        if (mmol == null) {
+            Log.w(TAG, "CT2 transmitter glucose: bad frame ${data.joinToHex()}")
+            return
+        }
+        val id = pendingCt2TransmitterGlucoseId
+        val sampleMs = pendingCt2TransmitterSampleMs
+        if (id < 0 || sampleMs <= 0L) return
+        pendingCt2TransmitterGlucoseId = -1
+        val displayValue = if (Applic.unit == 1) mmol else mmol * MGDL_PER_MMOLL_DISPLAY
+        Log.i(TAG, "CT2 transmitter glucose id=$id mmol=$mmol (local reading was unusable)")
+        runCatching {
+            CurrentDisplaySource.resolveIncomingReading(
+                liveNumericValue = displayValue,
+                rate = 0f,
+                targetTimeMillis = sampleMs,
+                preferredSensorId = SerialNumber,
+                sensorGen = SENSOR_GEN,
+                source = "ct2-transmitter",
+            )?.primaryValue?.takeIf { it.isFinite() && it > 0f }?.let { value ->
+                markLocalReadingAccepted(sampleMs)
+                SuperGattCallback.processExternalCurrentReading(SerialNumber, value, 0f, sampleMs, SENSOR_GEN)
+            }
+        }.onFailure { Log.stack(TAG, "handleCt2TransmitterGlucose", it) }
     }
 
     override fun onCharacteristicWrite(
@@ -2941,6 +3026,7 @@ class AnytimeBleManager(
             AnytimeConstants.RX_CT2_PULL_RESPONSE -> handleCt2GlucoseFrame(data, historical = true)
             AnytimeConstants.RX_CT2_CHECK -> handleSelfTestResult(data)
             AnytimeConstants.RX_UNBIND_ACK_GENERIC -> handleUnbindAck(data)
+            AnytimeConstants.TX_CT2_GLUCOSE_BY_TRANSMITTER -> handleCt2TransmitterGlucose(data)
             else -> Unit
         }
         return true
@@ -3527,7 +3613,7 @@ class AnytimeBleManager(
             enterStreaming("CT2 raw glucose during handshake")
         }
         if (!historical) {
-            frame.batteryPercent?.takeIf { it in 0..100 }?.let { lastCt2BatteryPercent = it }
+            frame.batteryPercent?.let { setCt2BatteryPercent(it) }
         }
         processRawRecords(listOf(frame.record), push)
     }
@@ -4254,6 +4340,11 @@ class AnytimeBleManager(
                     )
                 )
             }
+            if (live && isCt2()) {
+                // The local model had no usable value for this live id; ask the
+                // transmitter for its own glucose as a display fallback.
+                requestCt2TransmitterGlucose(result.glucoseId, sampleMs)
+            }
             if (!skipHistoryImport) {
                 val importedRawOnly = storeRawOnlyInvalidReading(sampleMs, result, live = live, history = history)
                 if (live && importedRawOnly) {
@@ -4904,6 +4995,15 @@ class AnytimeBleManager(
 
     override fun pushReferenceBg(mgdl: Int): Boolean {
         if (mgdl <= 0) return false
+        // CT-14 (CT2) calibration is local only. CalibrationAccess applies the
+        // fingerstick through applyUserCalibration(); no input-BG frame is written
+        // to the CT2 transmitter, so neither the CT3 0x09
+        // nor the (unused) CT2 0x08 is sent. The 24h gate is an Anytime/CT3 rule
+        // and does not apply here either.
+        if (isCt2()) {
+            Log.i(TAG, "CT2/CT-14 calibration is local; no input-BG frame sent")
+            return true
+        }
         if (lastGlucoseId < 0) {
             Log.w(TAG, "pushReferenceBg($mgdl) rejected — waiting for first glucose id")
             setCalibrationStatus(
