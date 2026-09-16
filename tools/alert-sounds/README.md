@@ -13,13 +13,18 @@ this change does not add a collection picker to the legacy Wear settings.
 Each reel plays: low, high, urgent low, urgent high, falling, rising, signal, reminder, notice.
 There is a one-second gap between cues, in addition to each cue's release.
 
-- [Contour](contour-preview.wav): woody thumb-piano/marimba attacks, a lower resonant body, and offbeat accents.
-- [Porcelain](porcelain-preview.wav): struck glass and metal-like overtones, staggered chord voicings, and a short resonant shimmer.
-- [Halo](halo-preview.wav): FM pulses, short directional pitch pickups, syncopation, and rhythmic echoes.
+Start with the [alert-type comparison](alert-identities-preview.wav): all nine cue types
+from Halo in the order above. This isolates the differences between alert categories.
 
-Each collection has independently composed rhythms and voicings, with shared directional
-and urgency cues. Synthesis runs at 96 kHz and is low-pass filtered before conversion to
-48 kHz to control high-frequency artifacts from FM and saturation.
+Each category has its own synthesis instrument, envelope, and rhythmic silhouette. The
+collections are secondary material treatments of those identities:
+
+- [Contour](contour-preview.wav): a warmer register, rounded saturation, and dry reflections.
+- [Porcelain](porcelain-preview.wav): a brighter register, staggered voicings, and a reflective tail.
+- [Halo](halo-preview.wav): pulse modulation, compact phrases, and rhythmic echoes.
+
+Synthesis runs at 96 kHz and is low-pass filtered before conversion to 48 kHz to control
+high-frequency artifacts from FM and saturation.
 
 These are original modal/additive/FM synthesis compositions, with no recordings, sampled instruments,
 third-party loops, or generated speech. The loose connection to Juggluco is its short tonal
@@ -30,15 +35,15 @@ under the repository's GPL-3.0-or-later license.
 
 | Cue | Used for | Audible structure |
 | --- | --- | --- |
-| Low | Low glucose, custom low | Three descending notes |
-| High | High/persistent high, custom high | Ascending phrase with a higher final accent |
-| Urgent low | Very low | Two groups of three short descending notes |
-| Urgent high | Very high | Two groups of two short ascending notes |
-| Falling | Forecast low, falling fast | Short descending figure |
-| Rising | Forecast high, rising fast | Short ascending figure |
-| Signal | Signal loss, missed reading | Repeated pitch, pause, lower response |
-| Reminder | Amount, sensor expiry | Syncopated or staggered consonant phrase |
-| Notice | Value available | Short rising flourish or staggered chord |
+| Low | Low glucose, custom low | Two hollow falling wobbles with moving formants |
+| High | High/persistent high, custom high | Bright inharmonic chiming cascade |
+| Urgent low | Very low | Rough, weightier pulses in two groups of three |
+| Urgent high | Very high | Rapid metallic alternation in two groups of two |
+| Falling | Forecast low, falling fast | Liquid downward spring/zipper gesture |
+| Rising | Forecast high, rising fast | Airy accelerating upward whistle |
+| Signal | Signal loss, missed reading | Dry ticks, a pause, then a broken radio-like response |
+| Reminder | Amount, sensor expiry | Warm wooden plucked phrase |
+| Notice | Value available | Short airy sparkle |
 
 Urgency is conveyed by rhythm and a 2.5 dB increase in the synthesis RMS target, rather than
 an abrasive siren. Cues are 1.40–2.58 seconds long. They have explicit attacks/releases, short
@@ -79,5 +84,6 @@ Automated checks do not establish preference, real-world audibility, or clinical
 recognition. Before choosing these as defaults, audition on the target phone/watch speaker
 at everyday volume, with background noise and Bluetooth routing, including repeated alarms,
 preview switching, cancellation, and a saved selection after app restart/update. Compare
-low versus high and regular versus urgent cues without looking at the screen. The first audition led to a revision with more timbral and rhythmic variety. Physical-device
+low versus high and regular versus urgent cues without looking at the screen. Audition feedback led to separate sonic identities for the alert categories, with collection
+color secondary to recognition of low, high, signal, and other alert types. Physical-device
 and everyday listening acceptance of the revised audio is still outstanding.
