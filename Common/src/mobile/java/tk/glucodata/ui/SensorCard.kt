@@ -1853,50 +1853,32 @@ fun SensorCard(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (sensor.isCloneSource) {
-                            CloneSourceMark(
-                                transport = cloneTransport,
-                                showLabel = true,
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                iconSize = 18.dp,
-                                textStyle = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.weight(1f),
-                            )
-                        } else {
-                            SensorModelBadge(
-                                badge = badge,
-                                vendor = sensor.vendor,
-                                color = sensorTint,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            SensorIdentityControl(
-                                name = displayName,
-                                selected = sensor.isSelectedForDisplay,
-                                selectable = canToggleEnabled,
-                                color = sensorTint,
-                                onToggle = { viewModel.toggleDisplaySelection(sensor.serial) },
-                                onPickColor = { showColorSheet = true },
-                                modifier = Modifier.weight(1f),
-                            )
+                        // A Clone record is identified the way every other card is: the
+                        // model tile and the name, with the display check inside the name
+                        // control. Two cards that both read "Clone" told the user nothing;
+                        // the route they arrive by belongs on the status line, not in the
+                        // title.
+                        SensorModelBadge(
+                            badge = badge,
+                            vendor = sensor.vendor,
+                            color = sensorTint,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        SensorIdentityControl(
+                            name = displayName,
+                            selected = sensor.isSelectedForDisplay,
+                            selectable = canToggleEnabled,
+                            color = sensorTint,
+                            onToggle = { viewModel.toggleDisplaySelection(sensor.serial) },
+                            onPickColor = { showColorSheet = true },
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (!sensor.isCloneSource) {
                             Spacer(modifier = Modifier.width(8.dp))
                         }
 
                         if (sensor.isCloneSource) {
-                            val selectedDescription = stringResource(R.string.sensor_display_selected)
-                            val selectDescription = stringResource(R.string.sensor_display_select)
-                            IconButton(
-                                onClick = { viewModel.setMain(sensor.serial) },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-                            ) {
-                                Icon(
-                                    imageVector = if (sensor.isSelectedForDisplay) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                                    contentDescription = if (sensor.isSelectedForDisplay) selectedDescription else selectDescription,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                )
-                            }
+                            // Nothing to pause on a sensor another phone is wearing.
                         } else if (isHandedOff) {
                             IconButton(
                                 onClick = { viewModel.returnSensorToPhone(sensor.serial) },
@@ -1984,6 +1966,14 @@ fun SensorCard(
                                 SensorCurrentValueChip(
                                     snapshot = snapshot,
                                     accentColor = sensorTint
+                                )
+                            }
+                            if (sensor.isCloneSource) {
+                                CloneSourceMark(
+                                    transport = cloneTransport,
+                                    showLabel = false,
+                                    tint = if (cloneHasRecentData) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                                    iconSize = 18.dp,
                                 )
                             }
                             sensorStatusText?.let { status ->
@@ -2124,7 +2114,11 @@ fun SensorCard(
                             // off after the one-hour card window.
                             DataRow(stringResource(R.string.last_ble_status), sensor.connectionStatus)
                         }
-                        DataRow(stringResource(R.string.sensor_address), sensor.deviceAddress)
+                        // A mirrored sensor may never have resolved an address on this phone;
+                        // a row saying "Unknown" is a row saying nothing.
+                        if (!(sensor.isCloneSource && sensor.deviceAddress.equals("Unknown", ignoreCase = true))) {
+                            DataRow(stringResource(R.string.sensor_address), sensor.deviceAddress)
+                        }
                     
                         // FIX: Use Long timestamp directly to avoid String Parsing Locale bugs in formatSensorTime
                         // User reported "100% Fill / Red Color" bug in English Locale, likely due to startMs being 0 or parse fail.
