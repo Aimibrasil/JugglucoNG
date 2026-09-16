@@ -52,46 +52,107 @@ SCORES = {
     },
 }
 
+# Category identity comes before collection style: sustained LOW, chiming HIGH,
+# continuous trend gestures, broken SIGNAL, and a plucked REMINDER phrase.
+for style, score in SCORES.items():
+    score['low'] = [(0, 76, .42, 1), (.66, 69, .48, 1)]
+    if style == 'porcelain':
+        score['low'] = [(0, 78, .39, .9), (.61, 71, .51, 1)]
+    elif style == 'halo':
+        score['low'] = [(0, 76, .35, 1), (.56, 67, .47, 1)]
+    score['falling'] = [(0, 81, .32, 1), (.46, 72, .17, .7)]
+    score['rising'] = [(0, 69, .48, 1), (.61, 81, .13, .65)]
+
 
 def voice(style, midi, duration, cue, seed):
+    """Each alert owns an instrument. Collections color it without erasing its identity."""
     t = np.arange(round(SYNTH_RATE * (duration + .68))) / SYNTH_RATE
-    f = 440 * 2 ** ((midi - 69) / 12)
-    if style == 'contour':
-        # Wooden thumb-piano/marimba hybrid: lower body and a dry, pitched knock.
-        f *= .75
-        tone = np.zeros_like(t)
-        for ratio, level, decay in ((1,1,.31),(2,.32,.12),(3.96,.24,.052),(6.15,.07,.023)):
-            tone += level * np.sin(2*np.pi*f*ratio*t) * np.exp(-t/(decay+duration*.28))
-        rng = np.random.default_rng(seed)
-        noise = np.convolve(rng.normal(size=len(t)), np.ones(13)/13, mode='same')
-        tone += .15 * noise * np.exp(-t/.009)
-        tone += .20 * np.sin(2*np.pi*f*.5*t) * np.exp(-t/.12)
-        tone *= (1-np.exp(-t/.0025))
-        tone = np.tanh(1.25*tone)/1.25
-    elif style == 'porcelain':
-        # Struck glass modes: audible inharmonic overtones, rapidly darkening attack,
-        # and a quiet detuned resonant pair rather than a plain sine-wave chime.
-        tone = np.zeros_like(t)
-        for ratio, level, decay in ((1,1,.38),(2.71,.42,.12),(4.08,.19,.055),(5.43,.075,.025)):
-            tone += level*np.sin(2*np.pi*f*ratio*t)*np.exp(-t/(decay+duration*.5))
-        tone += .12*np.sin(2*np.pi*f*1.004*t)*np.exp(-t/.36)
-        tone *= (1-np.exp(-t/.0018))
-    else:
-        # FM pulse with an opening/closing harmonic envelope and a short pitch pickup.
-        # Direction remains audible even before the second note of a trend cue.
-        direction = -1 if cue in ('low','urgent_low','falling') else 1
-        semitones = direction * (-1.5*np.exp(-t/.035))
-        freq = f * 2**(semitones/12)
+    color = {'contour': .85, 'porcelain': 1.08, 'halo': 1.0}[style]
+    f = 440 * 2 ** ((midi - 69) / 12) * color
+    rng = np.random.default_rng(seed)
+    noise = rng.normal(size=len(t))
+    attack = 1-np.exp(-t/.004)
+    release = np.exp(-np.maximum(0,t-duration)/.045)
+
+    if cue == 'low':
+        # Hollow, falling "woaw": moving formants and a gentle pitch droop.
+        # Deliberately unrelated to HIGH's struck, bright, inharmonic sound.
+        freq = f*.59*(1+.24*np.exp(-t/.07))
         phase = 2*np.pi*np.cumsum(freq)/SYNTH_RATE
-        index = 1.7*np.exp(-t/.062)+.16
-        tone = np.sin(phase + index*np.sin(2*phase))
-        tone += .19*np.sin(phase*.5) + .12*np.sin(phase*1.005)
-        attack = 1-np.exp(-t/.004)
-        gate = np.exp(-np.maximum(0,t-duration)/.035)
-        pulse = .84+.16*np.cos(2*np.pi*7*t)
-        tone *= attack*gate*pulse
-    # Every voice terminates smoothly before the next loop. No stereo phase tricks.
-    tone *= np.minimum(1, np.maximum(0, (duration+.68-t)/.16))**2
+        formant = 1.6+3.1*np.exp(-t/.075)
+        tone = np.zeros_like(t)
+        for h in (1,2,3,4,5,6,7):
+            weight = .16/h + .60*np.exp(-((h-formant)/1.15)**2)
+            tone += weight*np.sin(h*phase)
+        tone *= attack*release*(.76+.24*np.cos(2*np.pi*6*t))
+    elif cue == 'high':
+        # Bright chiming burst, with an attack that breaks into a little shimmer.
+        tone = np.zeros_like(t)
+        for ratio,level,decay in ((1,1,.30),(2.756,.43,.12),(4.07,.20,.06),(5.43,.08,.025)):
+            tone += level*np.sin(2*np.pi*f*ratio*t)*np.exp(-t/(decay+duration*.4))
+        tone += .15*np.sin(2*np.pi*f*1.006*t)*np.exp(-t/.25)
+        tone *= 1-np.exp(-t/.0018)
+    elif cue == 'urgent_low':
+        # Chestier, rough-edged alarm pulses: a new warning texture, not faster LOW.
+        phase = 2*np.pi*f*.58*t
+        tone = sum(np.sin(h*phase)/h for h in (1,2,3,5,7))
+        tone += .22*np.sin(phase+1.3*np.sin(phase*.503))
+        tone = np.tanh(tone*1.3)/1.3
+        tone *= attack*release*(.85+.15*np.cos(2*np.pi*19*t))
+    elif cue == 'urgent_high':
+        # A metallic, rapidly alternating alarm bell, different from both HIGH and
+        # URGENT LOW even when the listener hears only the start of the sound.
+        phase = 2*np.pi*f*t
+        switch = .5+.5*np.tanh(3*np.sin(2*np.pi*13*t))
+        tone = switch*np.sin(phase)+(1-switch)*.85*np.sin(phase*1.498)
+        tone += .22*np.sin(phase*2.76)*np.exp(-t/.1)
+        tone *= attack*release
+    elif cue == 'falling':
+        # Liquid spring/zipper descending through more than an octave.
+        freq = f*(.43+1.0*np.exp(-t/.095))
+        phase = 2*np.pi*np.cumsum(freq)/SYNTH_RATE
+        tone = np.sin(phase+2.8*np.exp(-t/.075)*np.sin(phase*1.5))
+        tone += .18*np.sin(phase*2)
+        tone *= attack*np.exp(-t/.14)*release
+    elif cue == 'rising':
+        # Airy accelerating whistle, a distinct texture from the falling spring.
+        freq = f*(.55+.8*np.minimum(t/max(duration,.1),1)**.65)
+        phase = 2*np.pi*np.cumsum(freq)/SYNTH_RATE
+        air = np.convolve(noise,np.ones(9)/9,mode='same')
+        tone = np.sin(phase)+.19*np.sin(phase*2)+.10*air
+        tone *= attack*release*(.72+.28*np.cos(2*np.pi*(8*t+12*t*t)))
+    elif cue == 'signal':
+        # Two dry ticks, a gap, then a broken radio-like response. No pitched melody.
+        if duration < .2:
+            tone = (np.sin(2*np.pi*1320*t)+.6*np.sin(2*np.pi*2137*t))
+            tone *= (1-np.exp(-t/.001))*np.exp(-t/.018)
+        else:
+            filtered = np.convolve(noise,np.ones(23)/23,mode='same')
+            phase = 2*np.pi*310*color*t
+            tone = .65*np.sin(phase+.7*np.sin(phase*1.41))+.6*filtered
+            stutter = (.5+.5*np.cos(2*np.pi*14*t))**3
+            tone *= attack*release*stutter
+    elif cue == 'reminder':
+        # Warm plucked phrase with a wooden knock and resonant lower body.
+        f *= .78
+        tone = np.zeros_like(t)
+        for ratio,level,decay in ((1,1,.24),(2,.27,.10),(3.97,.24,.045),(6.15,.055,.025)):
+            tone += level*np.sin(2*np.pi*f*ratio*t)*np.exp(-t/(decay+duration*.25))
+        tone += .12*np.convolve(noise,np.ones(13)/13,mode='same')*np.exp(-t/.008)
+        tone *= 1-np.exp(-t/.002)
+    else:
+        # A brief airy sparkle, rather than another bell phrase.
+        phase = 2*np.pi*f*1.6*t
+        tone = np.sin(phase+.5*np.sin(phase*2.01))*np.exp(-t/.105)
+        tone += .17*np.convolve(noise,np.ones(7)/7,mode='same')*np.exp(-t/.07)
+        tone *= (1-np.exp(-t/.008))*(.7+.3*np.cos(2*np.pi*24*t))
+
+    # Collection-level material treatment is secondary to the alert's instrument.
+    if style == 'contour':
+        tone = np.tanh(tone*1.15)/1.15
+    elif style == 'halo' and cue in ('low','reminder','notice'):
+        tone *= .85+.15*np.cos(2*np.pi*23*t)
+    tone *= np.minimum(1,np.maximum(0,(duration+.68-t)/.16))**2
     return tone
 
 
@@ -166,6 +227,17 @@ def main():
             assert dest.read_bytes()==data, str(dest)
         else:
             dest.write_bytes(data)
+    # One family, consecutive alert identities: useful for judging category
+    # recognition without confusing it with differences between collections.
+    identity_reel = []
+    for cue in CUES:
+        identity_reel.extend((render('halo',cue),np.zeros(RATE,dtype='<i2')))
+    identity_path = ROOT/'tools/alert-sounds/alert-identities-preview.wav'
+    identity_data = wav(np.concatenate(identity_reel))
+    if args.check:
+        assert identity_path.read_bytes()==identity_data
+    else:
+        identity_path.write_bytes(identity_data)
     assert len({s['sha256'] for s in stats.values()})==27
     report = json.dumps(stats,indent=2)+'\n'
     dest = ROOT/'tools/alert-sounds/measurements.json'
@@ -173,7 +245,7 @@ def main():
         assert dest.read_text()==report
     else:
         dest.write_text(report)
-    print(f'{"Verified" if args.check else "Rendered"} {len(stats)} mono 48 kHz PCM sounds and 3 preview reels')
+    print(f'{"Verified" if args.check else "Rendered"} {len(stats)} mono 48 kHz PCM sounds and 4 preview reels')
 
 
 if __name__=='__main__':
