@@ -3,6 +3,7 @@ package tk.glucodata.data
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import tk.glucodata.GlucoseReadingSource
 
 /**
  * Room entity for storing glucose readings independently from C++ sensor data.
@@ -27,18 +28,10 @@ data class HistoryReading(
     val value: Float,             // Calibrated/auto glucose value (mg/dL)
     val rawValue: Float,          // Raw sensor value (mg/dL)
     val rate: Float?,             // Rate of change (nullable - may not always be available)
-    /**
-     * Compatibility with Clone-branch test builds (v20–v30), which recorded how a
-     * row reached the phone ("sensor", "nightscout", "api", "mq_follower", …).
-     * Main does not set this — new rows default to "sensor" — but the column must
-     * exist so a database written by those builds still opens after an update.
-     */
-    val source: String = "sensor",
-    /**
-     * First time this logical row reached Room; preserved across overlap rewrites.
-     * Same compatibility story as [source]: kept, never consulted on main.
-     */
-    val firstStoredAt: Long = 0L,
+    /** How the row reached this phone: sensor, nightscout, api, mq_follower, clone... */
+    val source: String = GlucoseReadingSource.SENSOR,
+    /** First time this logical row reached Room; preserved across overlap rewrites. */
+    val firstStoredAt: Long = System.currentTimeMillis(),
 )
 
 /** A reading's identity without its values — what the timestamp index is built from. */

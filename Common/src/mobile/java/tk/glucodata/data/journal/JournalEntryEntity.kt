@@ -33,17 +33,10 @@ data class JournalEntryEntity(
     val proteinGrams: Float? = null,
     val fatGrams: Float? = null,
     val source: String,
-    /**
-     * Compatibility with Clone-branch test builds (v20–v30): authoritative origin
-     * on the sending device. Main does not set this; the column exists only so a
-     * database written by those builds still opens after an update.
-     */
+    /** Authoritative origin on the sending device; [source] remains the ingress transport. */
     val originSource: String? = null,
     val sourceRecordId: String?,
-    /**
-     * Same compatibility story as [originSource]: stable identity across Clone
-     * replication and backup restore. Main does not set it.
-     */
+    /** Stable across Clone replication, backup restore, and local row-id reuse. */
     val recoveryId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,

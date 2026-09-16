@@ -64,7 +64,7 @@ class HistoryDatabaseSafetyTests {
     fun insulinCurveSnapshotMigrationIsRegisteredAndAdditive() {
         val source = historyDatabaseSource()
 
-        assertTrue(source.contains("version = 31"))
+        assertTrue(source.contains("version = 32"))
         assertTrue(source.contains("Migration(18, 19)"))
         assertTrue(source.contains("MIGRATION_18_19"))
         assertTrue(source.contains("ALTER TABLE journal_entries ADD COLUMN insulinCurveJsonSnapshot TEXT"))
@@ -99,5 +99,28 @@ class HistoryDatabaseSafetyTests {
         assertTrue(source.contains("ADD COLUMN recoveryId TEXT"))
         assertFalse(source.contains("DROP TABLE IF EXISTS history_readings"))
         assertFalse(source.contains("DROP TABLE journal_insulin_presets"))
+    }
+
+    @Test
+    fun cloneTablesBecomeOwnedAtV32ByGuardedCreationOnly() {
+        val source = historyDatabaseSource()
+
+        // Three histories reach v31 -- main, a Clone build, a test build -- and
+        // Room validates owned tables on open, so v32 must guarantee them on all.
+        assertTrue(source.contains("Migration(31, 32)"))
+        assertTrue(source.contains("MIGRATION_31_32"))
+        assertTrue(source.contains("CloneJournalTombstoneEntity::class"))
+        assertTrue(source.contains("CloneJournalRecoveryTombstoneEntity::class"))
+        assertTrue(source.contains("CloneRecoveryImportEntity::class"))
+        assertTrue(source.contains("CREATE TABLE IF NOT EXISTS clone_journal_tombstones"))
+        assertTrue(source.contains("CREATE TABLE IF NOT EXISTS clone_journal_recovery_tombstones"))
+        assertTrue(source.contains("CREATE TABLE IF NOT EXISTS clone_recovery_imports"))
+        assertTrue(source.contains("index_clone_journal_recovery_tombstones_recoveryId"))
+        // The identities the Clone code keys on, filled only where empty.
+        assertTrue(source.contains("SET recoveryId = lower(hex(randomblob(16)))"))
+        assertTrue(source.contains("WHERE recoveryId IS NULL"))
+        // Nothing here may drop a table a user's data lives in.
+        assertFalse(source.contains("DROP TABLE clone_journal_tombstones"))
+        assertFalse(source.contains("DROP TABLE journal_entries"))
     }
 }

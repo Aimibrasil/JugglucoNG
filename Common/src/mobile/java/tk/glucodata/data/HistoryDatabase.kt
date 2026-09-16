@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import tk.glucodata.data.journal.CloneJournalRecoveryTombstoneEntity
+import tk.glucodata.data.journal.CloneJournalTombstoneEntity
 import tk.glucodata.data.journal.JournalDao
 import tk.glucodata.data.journal.JournalEntryEntity
 import tk.glucodata.data.journal.JournalFoodEntity
@@ -53,6 +55,12 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
  *         owned tables instead of the identity hash, ignores the Clone-only
  *         tables left in place, and writes the new hash. Compatibility columns
  *         are kept, never read.
+ *   v32 — the Clone tables become owned: journal tombstones, recovery
+ *         tombstones and import receipts, created only where absent, with the
+ *         identity backfills the Clone code relies on. Every earlier history
+ *         (main v19, a Clone build at v20–v23, a test build at v24–v31) arrives
+ *         here through the steps above, so this is the one place the tables
+ *         are guaranteed rather than assumed.
  */
 @Database(
     entities = [
@@ -63,9 +71,12 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
         JournalEntryEntity::class,
         JournalFoodEntity::class,
         JournalInsulinPresetEntity::class,
-        JournalPendingDeleteEntity::class
+        JournalPendingDeleteEntity::class,
+        CloneJournalTombstoneEntity::class,
+        CloneJournalRecoveryTombstoneEntity::class,
+        CloneRecoveryImportEntity::class
     ],
-    version = 31,
+    version = 32,
     exportSchema = false
 )
 abstract class HistoryDatabase : RoomDatabase() {
@@ -684,6 +695,79 @@ abstract class HistoryDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v31 → v32: own the Clone tables.
+         *
+         * A phone can reach 31 from three histories -- main, which never had these
+         * tables; a Clone build, which created them at v20–v23; a test build, which
+         * bridged past them -- and Room validates owned tables on open, so they
+         * must exist in exactly the entity's shape on every one of those paths.
+         * Everything here is guarded and additive: tables and indexes only where
+         * absent, backfills only where null. Runs the v30 ensures first so a main
+         * history also picks up the columns the Clone code reads.
+         */
+        private val MIGRATION_31_32 = object : Migration(31, 32) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureV30Compatibility(db)
+                ensureCloneSchema(db)
+            }
+        }
+
+        /**
+         * The Clone-owned tables and the identity backfills, idempotently. Kept
+         * separate from [ensureV30Compatibility] because that one is also what a
+         * Clone-less build runs, and it must never start creating tables it does
+         * not own.
+         */
+        private fun ensureCloneSchema(db: SupportSQLiteDatabase) {
+            // Journal rows carry where their content came from and a stable
+            // identity that survives backup restore and row-id reuse. The columns
+            // are ensured above; a Clone history backfilled them at v20/v21 and a
+            // main history has them empty.
+            db.execSQL(
+                "UPDATE journal_entries SET originSource = source " +
+                    "WHERE originSource IS NULL " +
+                    "AND source IN ('manual', 'health_connect', 'meter', 'pen')"
+            )
+            db.execSQL(
+                "UPDATE journal_entries SET recoveryId = lower(hex(randomblob(16))) " +
+                    "WHERE recoveryId IS NULL"
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS clone_journal_tombstones (
+                    entryId INTEGER PRIMARY KEY NOT NULL,
+                    deletedAt INTEGER NOT NULL,
+                    recoveryId TEXT
+                )
+                """.trimIndent()
+            )
+            // A Clone build that stopped at v20 created this table before the
+            // column existed.
+            if (!hasColumn(db, "clone_journal_tombstones", "recoveryId")) {
+                db.execSQL("ALTER TABLE clone_journal_tombstones ADD COLUMN recoveryId TEXT")
+            }
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS clone_journal_recovery_tombstones (
+                    stableBaseId TEXT NOT NULL,
+                    recoveryId TEXT,
+                    deletedAt INTEGER NOT NULL,
+                    PRIMARY KEY(stableBaseId)
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                    "index_clone_journal_recovery_tombstones_recoveryId " +
+                    "ON clone_journal_recovery_tombstones (recoveryId)"
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS clone_recovery_imports " +
+                    "(jobId TEXT NOT NULL, sha256 TEXT NOT NULL, PRIMARY KEY(jobId))"
+            )
+        }
+
         fun getInstance(context: Context): HistoryDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -720,7 +804,8 @@ abstract class HistoryDatabase : RoomDatabase() {
                     bridgeCloneToV30(27),
                     bridgeCloneToV30(28),
                     bridgeCloneToV30(29),
-                    MIGRATION_30_31
+                    MIGRATION_30_31,
+                    MIGRATION_31_32
                 )
                 .build().also { INSTANCE = it }
             }
