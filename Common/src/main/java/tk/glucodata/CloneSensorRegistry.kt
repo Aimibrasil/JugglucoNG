@@ -316,52 +316,39 @@ object CloneSensorRegistry {
         runCatching { SensorBluetooth.updateDevices() }
     }
 
+    /**
+     * A stream update for [sensorId] has just arrived over Clone.
+     *
+     * This used to treat that sensor as the sender's one true sensor and retire
+     * every other Clone record -- flag removed, native record finished -- on the
+     * theory that a receiver mirrors a single sensor. A sender with two sensors
+     * updates them in turn, so each update retired the other one; the loser came
+     * back on the next roster rebuild as a plain local record the receiver then
+     * tried to dial. Nothing in a stream update says which sensor the sender
+     * calls primary, so nothing here retires anything any more. What is kept: a
+     * receiver that was already following Clone and has no Clone sensor selected
+     * adopts this one, so the first sensor to arrive becomes the one shown.
+     * Once the user has a Clone sensor selected, their choice stands.
+     */
     @JvmStatic
-    fun reconcilePrimaryCloneSensor(primarySensorId: String?) {
-        val primaryAliases = candidateKeys(primarySensorId)
-        if (primaryAliases.isEmpty()) return
+    fun reconcilePrimaryCloneSensor(sensorId: String?) {
+        val aliases = candidateKeys(sensorId)
+        if (sensorId == null || aliases.isEmpty()) return
         val currentEntries = whileReceptionEnabled {
             CloneSensorKeyCodec.decode(prefs()?.getString(KEY_SENSOR_IDS, null))
         } ?: return
-        val retained = currentEntries.filterKeys { storedId ->
-            candidateKeys(storedId).any { it in primaryAliases }
-        }
-        if (retained.isEmpty()) return
+        val isClone = currentEntries.keys.any { storedId -> candidateKeys(storedId).any { it in aliases } }
+        if (!isClone) return
+
+        runCatching { SensorBluetooth.blockLocalCloneConnection(sensorId) }
 
         val receiverPrimary = SensorIdentity.resolveMainSensor()
-        val receiverWasFollowingClone = currentEntries.keys.any { sensorId ->
-            candidateKeys(sensorId).any { it in candidateKeys(receiverPrimary) }
+        val primaryIsClone = currentEntries.keys.any { storedId ->
+            candidateKeys(storedId).any { it in candidateKeys(receiverPrimary) }
         }
-        val retired = currentEntries.keys.filterNot(retained::containsKey)
-        val committed = whileReceptionEnabled {
-            val preferences = prefs()
-            val currentConnections = CloneSensorConnectionCodec.decode(
-                preferences?.getString(KEY_SENSOR_CONNECTIONS, null)
-            )
-            val retainedConnections = currentConnections.filterKeys(retained::containsKey)
-            preferences?.edit()
-                ?.putString(KEY_SENSOR_IDS, CloneSensorKeyCodec.encode(retained))
-                ?.putString(
-                    KEY_SENSOR_CONNECTIONS,
-                    CloneSensorConnectionCodec.encode(retainedConnections),
-                )
-                ?.apply()
-            true
-        } ?: false
-        if (!committed) return
-        retired.forEach { sensorId ->
-            runCatching {
-                val sensorPointer = Natives.str2sensorptr(sensorId)
-                if (sensorPointer != 0L) Natives.finishfromSensorptr(sensorPointer)
-            }
-            runCatching { SensorBluetooth.retireCloneSensor(sensorId) }
-        }
-        val primary = primarySensorId?.takeIf { transportForSensor(it) != null } ?: return
-        runCatching { SensorBluetooth.blockLocalCloneConnection(primary) }
-        if (receiverWasFollowingClone && !SensorIdentity.matches(receiverPrimary, primary)) {
-            runCatching { SensorBluetooth.setCurrentSensorSelection(primary) }
-            runCatching { MultiSensorSelection.moveToFront(primary) }
-        }
+        if (primaryIsClone) return
+        runCatching { SensorBluetooth.setCurrentSensorSelection(sensorId) }
+        runCatching { MultiSensorSelection.moveToFront(sensorId) }
     }
 
     @JvmStatic

@@ -142,4 +142,26 @@ class ManagedSensorCloneOwnershipTests {
             assertTrue("$path must ask mirroredOverClone before it dials", gateAt in 0 until dialAt)
         }
     }
+
+    /**
+     * Every stream update over Clone announces its sensor to the registry. That
+     * announcement used to retire every other Clone record on the receiver, so a
+     * sender with two sensors had them retire each other in turn, and the loser
+     * came back as a local Libre 2 the receiver tried to dial. A stream update
+     * says nothing about which sensor the sender calls primary; it must retire
+     * nothing.
+     */
+    @Test
+    fun aStreamUpdateNeverRetiresTheOtherCloneSensors() {
+        val registry = flattened("Common/src/main/java/tk/glucodata/CloneSensorRegistry.kt")
+        val reconcile = registry.substring(
+            registry.indexOf("fun reconcilePrimaryCloneSensor"),
+            registry.indexOf("fun transportForSensor"),
+        )
+        assertFalse("reconcile must not finish native records", reconcile.contains("finishfromSensorptr"))
+        assertFalse("reconcile must not retire callbacks", reconcile.contains("retireCloneSensor"))
+        assertFalse("reconcile must not rewrite the registry", reconcile.contains("putString(KEY_SENSOR_IDS"))
+        // The one thing it still does: adopt the first Clone sensor when none is selected.
+        assertTrue(reconcile.contains("if (primaryIsClone) return"))
+    }
 }
