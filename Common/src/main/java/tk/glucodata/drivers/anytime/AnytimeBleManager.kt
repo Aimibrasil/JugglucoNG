@@ -2872,9 +2872,11 @@ class AnytimeBleManager(
 
     /**
      * Ask the transmitter for its own glucose for [id] (`0x09 idHi idLo`, SDK
-     * `getGlucoseByTransmitterRequest`). Used as the fallback when the local model
-     * produced no usable reading for a live id. Fire-and-forget: the answer is
-     * handled by [handleCt2TransmitterGlucose] if it arrives.
+     * `getGlucoseByTransmitterRequest`). Diagnostic only, driven by the card's
+     * "Tx glucose" action: on the observed CT-14 firmware the answer is a constant
+     * `09 00 00 03 36` regardless of id, so it is not a usable reading source and
+     * nothing requests it automatically. Fire-and-forget: the answer is handled by
+     * [handleCt2TransmitterGlucose] if it arrives.
      */
     private fun requestCt2TransmitterGlucose(id: Int, sampleMs: Long) {
         if (!isCt2() || id < 0 || sampleMs <= 0L) return
@@ -2889,9 +2891,10 @@ class AnytimeBleManager(
     }
 
     /**
-     * CT2 `0x09` answer: the transmitter's own glucose for the id we asked about.
-     * Emitted to the display only, never into Room history — it is a fallback
-     * value, not a measured record.
+     * CT2 `0x09` answer. One observed CT-14 firmware replies to any id with the
+     * constant `09 00 00 03 36`, which does not fit the SDK's `bArr[1] = GluMM×10`
+     * layout and is rejected here; a transmitter that ever returns a usable value is
+     * shown on the display only, never in Room history.
      */
     private fun handleCt2TransmitterGlucose(data: ByteArray) {
         val mmol = AnytimeFrames.parseCt2GlucoseByTransmitter(data)
@@ -4354,11 +4357,6 @@ class AnytimeBleManager(
                         result.temperatureC,
                     )
                 )
-            }
-            if (live && isCt2()) {
-                // The local model had no usable value for this live id; ask the
-                // transmitter for its own glucose as a display fallback.
-                requestCt2TransmitterGlucose(result.glucoseId, sampleMs)
             }
             if (!skipHistoryImport) {
                 val importedRawOnly = storeRawOnlyInvalidReading(sampleMs, result, live = live, history = history)

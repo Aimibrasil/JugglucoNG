@@ -1077,26 +1077,9 @@ class SensorViewModel : ViewModel() {
     }
 
     /**
-     * CT2 self-test: asks the transmitter to measure the electrode current now. The
-     * result lands in the driver telemetry (Iw/Ib/T) on the next status refresh.
-     */
-    fun requestAnytimeSelfTest(serial: String): Boolean {
-        val driver = findGatt(serial) as? AnytimeDriver ?: return false
-        return runCatching { driver.requestSelfTest() }
-            .onFailure {
-                android.util.Log.e("SensorVM", "Anytime self-test request failed for $serial", it)
-            }
-            .getOrDefault(false)
-            .also {
-                UiRefreshBus.requestStatusRefresh()
-                refreshSensors()
-            }
-    }
-
-    /**
      * CT2 diagnostic: ask the transmitter for its own computed glucose (`0x09`). The
-     * answer is logged to the connection log and, when valid, shown on the display as
-     * a fallback value (never written to history).
+     * raw answer is logged to the connection log; a usable value (none seen on the
+     * tested firmware) would be shown on the display only, never written to history.
      */
     fun requestAnytimeTransmitterGlucose(serial: String): Boolean {
         val driver = findGatt(serial) as? AnytimeDriver ?: return false

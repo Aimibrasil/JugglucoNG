@@ -1225,6 +1225,11 @@ object AnytimeFrames {
      * reader checks only the opcode, so no checksum is required here either.
      * Returns mmol/L, or null when the frame is not an answer or the value is
      * outside the physiological window.
+     *
+     * The observed CT-14 firmware answers every id with the constant
+     * `09 00 00 03 36` (byte 1 = 0), which this returns null for. Confirmed on two
+     * ids 4310/4319; do not "fix" the offset without a fresh capture that varies
+     * with the id.
      */
     @JvmStatic
     fun parseCt2GlucoseByTransmitter(bytes: ByteArray): Float? {
