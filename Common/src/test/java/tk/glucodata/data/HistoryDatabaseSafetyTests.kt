@@ -64,7 +64,7 @@ class HistoryDatabaseSafetyTests {
     fun insulinCurveSnapshotMigrationIsRegisteredAndAdditive() {
         val source = historyDatabaseSource()
 
-        assertTrue(source.contains("version = 19"))
+        assertTrue(source.contains("version = 30"))
         assertTrue(source.contains("Migration(18, 19)"))
         assertTrue(source.contains("MIGRATION_18_19"))
         assertTrue(source.contains("ALTER TABLE journal_entries ADD COLUMN insulinCurveJsonSnapshot TEXT"))
@@ -72,6 +72,26 @@ class HistoryDatabaseSafetyTests {
         // Existing doses freeze the curve they were recorded under; the backfill
         // must read the preset row, never invent a shape.
         assertTrue(source.contains("SET insulinCurveJsonSnapshot = ("))
+        assertFalse(source.contains("DROP TABLE journal_insulin_presets"))
+    }
+
+    @Test
+    fun cloneTestBuildBridgeIsRegisteredAndAdditive() {
+        val source = historyDatabaseSource()
+
+        // Phones that ran Clone-branch test builds report v20–v30; this build must
+        // open them as an upgrade, never a downgrade.
+        assertTrue(source.contains("Migration(19, 30)"))
+        assertTrue(source.contains("MIGRATION_19_30"))
+        assertTrue(source.contains("bridgeCloneToV30(20)"))
+        assertTrue(source.contains("bridgeCloneToV30(29)"))
+        // Compatibility columns are kept, never read; the bridge must not drop
+        // user data tables.
+        assertTrue(source.contains("ADD COLUMN source TEXT NOT NULL DEFAULT 'sensor'"))
+        assertTrue(source.contains("ADD COLUMN firstStoredAt INTEGER NOT NULL DEFAULT 0"))
+        assertTrue(source.contains("ADD COLUMN originSource TEXT"))
+        assertTrue(source.contains("ADD COLUMN recoveryId TEXT"))
+        assertFalse(source.contains("DROP TABLE IF EXISTS history_readings"))
         assertFalse(source.contains("DROP TABLE journal_insulin_presets"))
     }
 }

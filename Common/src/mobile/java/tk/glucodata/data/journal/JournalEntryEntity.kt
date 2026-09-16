@@ -12,7 +12,8 @@ import androidx.room.ColumnInfo
         Index(value = ["entryType"]),
         Index(value = ["insulinPresetId"]),
         Index(value = ["foodId"]),
-        Index(value = ["sourceRecordId"], unique = true)
+        Index(value = ["sourceRecordId"], unique = true),
+        Index(value = ["recoveryId"], unique = true)
     ]
 )
 data class JournalEntryEntity(
@@ -32,7 +33,18 @@ data class JournalEntryEntity(
     val proteinGrams: Float? = null,
     val fatGrams: Float? = null,
     val source: String,
+    /**
+     * Compatibility with Clone-branch test builds (v20–v30): authoritative origin
+     * on the sending device. Main does not set this; the column exists only so a
+     * database written by those builds still opens after an update.
+     */
+    val originSource: String? = null,
     val sourceRecordId: String?,
+    /**
+     * Same compatibility story as [originSource]: stable identity across Clone
+     * replication and backup restore. Main does not set it.
+     */
+    val recoveryId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val nsUploadedAt: Long? = null,

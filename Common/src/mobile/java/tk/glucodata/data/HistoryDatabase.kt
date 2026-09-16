@@ -38,6 +38,14 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
  *   v17 — per-journal-entry LibreView delivery timestamp
  *   v18 — recorded main value keyed by the minute, written only on presentation
  *   v19 — versioned insulin curve evidence and immutable per-dose curve snapshots
+ *   v20–v29 — Clone-branch test builds only (never on main): provenance/recovery
+ *         columns and interim cleanups of the minute-keyed display table.
+ *         Main never shipped these versions.
+ *   v30 — forward bridge so a phone that ran a Clone test build (v20–v30) can
+ *         install this build without a downgrade. Same owned schema as v19 plus
+ *         four compatibility columns the Clone builds wrote (history source /
+ *         first-arrival, journal origin / recovery id). Those columns are kept,
+ *         never read; Clone-only tables are left in place and ignored.
  */
 @Database(
     entities = [
@@ -50,7 +58,7 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
         JournalInsulinPresetEntity::class,
         JournalPendingDeleteEntity::class
     ],
-    version = 19,
+    version = 30,
     exportSchema = false
 )
 abstract class HistoryDatabase : RoomDatabase() {
@@ -524,6 +532,137 @@ abstract class HistoryDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Shared compatibility ensures for v30: idempotent, additive, never drops
+         * user data except rebuilding a stale reading_display (see below).
+         */
+        private fun ensureV30Compatibility(db: SupportSQLiteDatabase) {
+            if (!hasColumn(db, "history_readings", "source")) {
+                db.execSQL(
+                    "ALTER TABLE history_readings ADD COLUMN source TEXT NOT NULL DEFAULT 'sensor'"
+                )
+            }
+            if (!hasColumn(db, "history_readings", "firstStoredAt")) {
+                db.execSQL(
+                    "ALTER TABLE history_readings ADD COLUMN firstStoredAt INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+            db.execSQL(
+                "UPDATE history_readings SET firstStoredAt = id WHERE firstStoredAt <= 0"
+            )
+            if (!hasColumn(db, "journal_entries", "originSource")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN originSource TEXT")
+            }
+            if (!hasColumn(db, "journal_entries", "recoveryId")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN recoveryId TEXT")
+            }
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS index_journal_entries_recoveryId " +
+                    "ON journal_entries (recoveryId)"
+            )
+            // Insulin curve columns: both histories have them at the top end, but an
+            // early Clone v19 reached 19 with a different meaning of it. Guarded, so
+            // safe for either history.
+            if (!hasColumn(db, "journal_insulin_presets", "curveProfileId")) {
+                db.execSQL("ALTER TABLE journal_insulin_presets ADD COLUMN curveProfileId TEXT")
+            }
+            if (!hasColumn(db, "journal_insulin_presets", "curveModelVersion")) {
+                db.execSQL(
+                    "ALTER TABLE journal_insulin_presets " +
+                        "ADD COLUMN curveModelVersion INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+            if (!hasColumn(db, "journal_insulin_presets", "curveEvidence")) {
+                db.execSQL(
+                    "ALTER TABLE journal_insulin_presets " +
+                        "ADD COLUMN curveEvidence TEXT NOT NULL DEFAULT 'unverified'"
+                )
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveJsonSnapshot")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinCurveJsonSnapshot TEXT")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveProfileId")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinCurveProfileId TEXT")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveModelVersion")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinCurveModelVersion INTEGER")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveEvidence")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinCurveEvidence TEXT")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinBodyWeightKg")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinBodyWeightKg REAL")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveWasApproximated")) {
+                db.execSQL(
+                    "ALTER TABLE journal_entries " +
+                        "ADD COLUMN insulinCurveWasApproximated INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+            // reading_display: rebuild only when the minute-keyed schema is absent.
+            // Main v19 and Clone v30 already have index_reading_display_sensorSerial;
+            // early Clone histories (v19–v22) do not, and their old per-sensor rows
+            // cannot be carried over (same reason as MIGRATION_17_18).
+            if (!hasIndex(db, "index_reading_display_sensorSerial")) {
+                db.execSQL("DROP TABLE IF EXISTS reading_display")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS reading_display (
+                        timestamp INTEGER NOT NULL,
+                        sensorSerial TEXT NOT NULL,
+                        displayMgdl REAL NOT NULL,
+                        viewMode INTEGER NOT NULL,
+                        calibrationFingerprint INTEGER NOT NULL,
+                        recordedAt INTEGER NOT NULL,
+                        PRIMARY KEY(timestamp)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_reading_display_sensorSerial " +
+                        "ON reading_display (sensorSerial)"
+                )
+            }
+        }
+
+        private fun hasIndex(db: SupportSQLiteDatabase, indexName: String): Boolean {
+            val cursor = db.query(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?",
+                arrayOf(indexName)
+            )
+            try {
+                return cursor.count > 0
+            } finally {
+                cursor.close()
+            }
+        }
+
+        /**
+         * v19 → v30: forward bridge for test updates.
+         *
+         * A phone that ran a Clone-branch test build reports v20–v30; this build
+         * reports v30, so installing it over one of those is an upgrade, never a
+         * downgrade. A phone on main v19 takes this step; a phone already on
+         * Clone v30 needs no migration (same version, compatible schema).
+         */
+        private val MIGRATION_19_30 = object : Migration(19, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureV30Compatibility(db)
+            }
+        }
+
+        /**
+         * v20–v29 all lived on the Clone branch only and differ from v30 solely in
+         * which compatibility columns or display cleanups they had already applied.
+         * Each bridge runs the same idempotent ensures, so any Clone test build can
+         * move forward without a downgrade.
+         */
+        private fun bridgeCloneToV30(from: Int) = object : Migration(from, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureV30Compatibility(db)
+            }
+        }
+
         fun getInstance(context: Context): HistoryDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -548,7 +687,18 @@ abstract class HistoryDatabase : RoomDatabase() {
                     MIGRATION_15_16,
                     MIGRATION_16_17,
                     MIGRATION_17_18,
-                    MIGRATION_18_19
+                    MIGRATION_18_19,
+                    MIGRATION_19_30,
+                    bridgeCloneToV30(20),
+                    bridgeCloneToV30(21),
+                    bridgeCloneToV30(22),
+                    bridgeCloneToV30(23),
+                    bridgeCloneToV30(24),
+                    bridgeCloneToV30(25),
+                    bridgeCloneToV30(26),
+                    bridgeCloneToV30(27),
+                    bridgeCloneToV30(28),
+                    bridgeCloneToV30(29)
                 )
                 .build().also { INSTANCE = it }
             }

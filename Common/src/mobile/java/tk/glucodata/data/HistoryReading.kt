@@ -26,7 +26,19 @@ data class HistoryReading(
     val sensorSerial: String,     // Sensor short name (e.g. "X-ABCDEF123456", "GS1Sb-XXX")
     val value: Float,             // Calibrated/auto glucose value (mg/dL)
     val rawValue: Float,          // Raw sensor value (mg/dL)
-    val rate: Float?              // Rate of change (nullable - may not always be available)
+    val rate: Float?,             // Rate of change (nullable - may not always be available)
+    /**
+     * Compatibility with Clone-branch test builds (v20–v30), which recorded how a
+     * row reached the phone ("sensor", "nightscout", "api", "mq_follower", …).
+     * Main does not set this — new rows default to "sensor" — but the column must
+     * exist so a database written by those builds still opens after an update.
+     */
+    val source: String = "sensor",
+    /**
+     * First time this logical row reached Room; preserved across overlap rewrites.
+     * Same compatibility story as [source]: kept, never consulted on main.
+     */
+    val firstStoredAt: Long = 0L,
 )
 
 /** A reading's identity without its values — what the timestamp index is built from. */
