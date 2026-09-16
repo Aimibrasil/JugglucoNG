@@ -585,6 +585,22 @@ object AnytimeFrames {
             )
         }
 
+        /**
+         * CT2 transmitter-computed glucose request: `{0x09, idHi, idLo, sum}`
+         * (SDK `getGlucoseByTransmitterRequest`). The transmitter answers with the
+         * same opcode and its own `GluMM` in byte 1. Used as the fallback value when
+         * the local model produces no usable reading.
+         */
+        @JvmStatic
+        fun ct2GlucoseByTransmitter(id: Int): ByteArray {
+            val v = id and 0xFFFF
+            return withSum(
+                AnytimeConstants.TX_CT2_GLUCOSE_BY_TRANSMITTER.toInt() and 0xFF,
+                (v ushr 8) and 0xFF,
+                v and 0xFF,
+            )
+        }
+
         private fun withSum(vararg values: Int): ByteArray {
             val frame = ByteArray(values.size + 1)
             for (i in values.indices) {
@@ -1201,6 +1217,20 @@ object AnytimeFrames {
             powerByte = power,
             passed = !tempFail && !powerFail,
         )
+    }
+
+    /**
+     * Parse the CT2 transmitter-computed glucose response (opcode `0x09`, SDK
+     * `ProtocolTools.GlucoseByTransmitter`): byte 1 is `GluMM × 10`. The SDK's own
+     * reader checks only the opcode, so no checksum is required here either.
+     * Returns mmol/L, or null when the frame is not an answer or the value is
+     * outside the physiological window.
+     */
+    @JvmStatic
+    fun parseCt2GlucoseByTransmitter(bytes: ByteArray): Float? {
+        if (bytes.size < 2 || bytes[0] != AnytimeConstants.TX_CT2_GLUCOSE_BY_TRANSMITTER) return null
+        val mmol = (bytes[1].toInt() and 0xFF) / 10f
+        return mmol.takeIf { it in 1f..40f }
     }
 
     /** Extract version string from 0x20 formal-version response (best-effort). */    @JvmStatic
