@@ -64,7 +64,7 @@ class HistoryDatabaseSafetyTests {
     fun insulinCurveSnapshotMigrationIsRegisteredAndAdditive() {
         val source = historyDatabaseSource()
 
-        assertTrue(source.contains("version = 30"))
+        assertTrue(source.contains("version = 31"))
         assertTrue(source.contains("Migration(18, 19)"))
         assertTrue(source.contains("MIGRATION_18_19"))
         assertTrue(source.contains("ALTER TABLE journal_entries ADD COLUMN insulinCurveJsonSnapshot TEXT"))
@@ -85,6 +85,12 @@ class HistoryDatabaseSafetyTests {
         assertTrue(source.contains("MIGRATION_19_30"))
         assertTrue(source.contains("bridgeCloneToV30(20)"))
         assertTrue(source.contains("bridgeCloneToV30(29)"))
+        // v30 alone is not enough: at equal versions Room compares the
+        // whole-schema identity hash, which covers Clone-only tables this build
+        // does not own. The 30→31 step forces the migration path, where Room
+        // validates the owned tables and rewrites the hash.
+        assertTrue(source.contains("Migration(30, 31)"))
+        assertTrue(source.contains("MIGRATION_30_31"))
         // Compatibility columns are kept, never read; the bridge must not drop
         // user data tables.
         assertTrue(source.contains("ADD COLUMN source TEXT NOT NULL DEFAULT 'sensor'"))

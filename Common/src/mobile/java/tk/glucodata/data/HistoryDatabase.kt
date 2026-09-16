@@ -41,11 +41,18 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
  *   v20–v29 — Clone-branch test builds only (never on main): provenance/recovery
  *         columns and interim cleanups of the minute-keyed display table.
  *         Main never shipped these versions.
- *   v30 — forward bridge so a phone that ran a Clone test build (v20–v30) can
- *         install this build without a downgrade. Same owned schema as v19 plus
- *         four compatibility columns the Clone builds wrote (history source /
- *         first-arrival, journal origin / recovery id). Those columns are kept,
- *         never read; Clone-only tables are left in place and ignored.
+ *   v30 — test-branch stepping stone (never shipped): same owned schema as v19
+ *         plus four compatibility columns the Clone builds wrote (history source /
+ *         first-arrival, journal origin / recovery id). Not sufficient on its own:
+ *         at equal versions Room compares the whole-schema identity hash, which
+ *         covers the Clone-only tables this build does not own — so a Clone v30
+ *         database still fails to open. Kept only so every history has a
+ *         migration path forward to v31.
+ *   v31 — opens Clone test-build databases (v20–v30). The 30→31 step runs the
+ *         same idempotent ensures; with versions differing Room validates the
+ *         owned tables instead of the identity hash, ignores the Clone-only
+ *         tables left in place, and writes the new hash. Compatibility columns
+ *         are kept, never read.
  */
 @Database(
     entities = [
@@ -58,7 +65,7 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
         JournalInsulinPresetEntity::class,
         JournalPendingDeleteEntity::class
     ],
-    version = 30,
+    version = 31,
     exportSchema = false
 )
 abstract class HistoryDatabase : RoomDatabase() {
@@ -638,12 +645,9 @@ abstract class HistoryDatabase : RoomDatabase() {
         }
 
         /**
-         * v19 → v30: forward bridge for test updates.
-         *
-         * A phone that ran a Clone-branch test build reports v20–v30; this build
-         * reports v30, so installing it over one of those is an upgrade, never a
-         * downgrade. A phone on main v19 takes this step; a phone already on
-         * Clone v30 needs no migration (same version, compatible schema).
+         * v19 → v30: stepping stone on the way to v31 (see below). A phone on
+         * main v19 takes this step, then 30→31; a phone on a Clone build takes
+         * its own bridge to 30, then 30→31.
          */
         private val MIGRATION_19_30 = object : Migration(19, 30) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -658,6 +662,23 @@ abstract class HistoryDatabase : RoomDatabase() {
          * move forward without a downgrade.
          */
         private fun bridgeCloneToV30(from: Int) = object : Migration(from, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureV30Compatibility(db)
+            }
+        }
+
+        /**
+         * v30 → v31: the step that actually opens Clone databases.
+         *
+         * Same-version opens compare the whole-schema identity hash, which covers
+         * the Clone-only tables this build does not own — that is the
+         * "cannot verify the data integrity" failure. With versions differing,
+         * Room instead runs this migration and validates the owned tables, which
+         * do match; the Clone-only tables are left in place and ignored, and Room
+         * writes the new identity hash. Idempotent, additive, drops nothing but
+         * a stale reading_display (same rule as the ensures).
+         */
+        private val MIGRATION_30_31 = object : Migration(30, 31) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 ensureV30Compatibility(db)
             }
@@ -698,7 +719,8 @@ abstract class HistoryDatabase : RoomDatabase() {
                     bridgeCloneToV30(26),
                     bridgeCloneToV30(27),
                     bridgeCloneToV30(28),
-                    bridgeCloneToV30(29)
+                    bridgeCloneToV30(29),
+                    MIGRATION_30_31
                 )
                 .build().also { INSTANCE = it }
             }
