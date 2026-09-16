@@ -72,6 +72,8 @@ data class ManagedSensorUiSnapshot(
     val supportsClearCalibration: Boolean = false,
     /** Vendor has an on-demand self-test that measures the raw electrode current. */
     val supportsSelfTest: Boolean = false,
+    /** Vendor can hand back its own computed glucose on demand (CT2 `0x09`). */
+    val supportsTransmitterGlucose: Boolean = false,
     val sensorDetailTelemetry: String = "",
     val isVendorPaired: Boolean = false,
     val vendorCalibrations: List<ManagedSensorCalibrationRecord> = emptyList(),

@@ -2837,6 +2837,17 @@ class AnytimeBleManager(
 
     override fun supportsSelfTest(): Boolean = AnytimeConstants.supportsSelfTest(familyEntry.family)
 
+    override fun supportsTransmitterGlucose(): Boolean = isCt2() && lastGlucoseId >= 0
+
+    /** Manual diagnostic: fetch the transmitter's own glucose for the current id. */
+    override fun requestTransmitterGlucose(): Boolean {
+        if (!isCt2() || lastGlucoseId < 0) return false
+        if (phase != Phase.STREAMING && phase != Phase.HANDSHAKING) return false
+        pendingCt2TransmitterGlucoseId = -1
+        requestCt2TransmitterGlucose(lastGlucoseId, System.currentTimeMillis())
+        return true
+    }
+
     private fun handleSelfTestResult(data: ByteArray) {
         val result = AnytimeFrames.parseCt2CheckResponse(data)
         if (result == null) {
@@ -2889,7 +2900,7 @@ class AnytimeBleManager(
         if (id < 0 || sampleMs <= 0L) return
         pendingCt2TransmitterGlucoseId = -1
         val displayValue = if (Applic.unit == 1) mmol else mmol * MGDL_PER_MMOLL_DISPLAY
-        Log.i(TAG, "CT2 transmitter glucose id=$id mmol=$mmol (local reading was unusable)")
+        Log.i(TAG, "CT2 transmitter glucose id=$id mmol=$mmol frame=${data.joinToHex()}")
         runCatching {
             CurrentDisplaySource.resolveIncomingReading(
                 liveNumericValue = displayValue,
