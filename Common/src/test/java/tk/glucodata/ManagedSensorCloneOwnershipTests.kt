@@ -101,4 +101,45 @@ class ManagedSensorCloneOwnershipTests {
             )
         }
     }
+
+    /**
+     * The Sibionics registry retires a SIBI: native shell that has no Kotlin record,
+     * on the theory that only an old build's leftover looks like that. A sensor
+     * mirrored over Clone looks exactly like that too -- its record is on the phone
+     * wearing it -- and the receiver finished every mirrored Sibionics within seconds.
+     */
+    @Test
+    fun sibionicsOrphanReconciliationSparesCloneRecords() {
+        val registry = flattened("Common/src/main/java/tk/glucodata/drivers/sibionics/SibionicsRegistry.kt")
+        val reconcile = registry.substring(registry.indexOf("internal fun reconcileOrphanedNativeMirrors"))
+        val finish = reconcile.indexOf("finishNativeMirror(nativeId, fullNativeName)")
+        val guard = reconcile.indexOf("CloneSensorRegistry.isCloneSensor(nativeId)")
+
+        assertTrue("reconcile must consult the Clone registry", guard >= 0)
+        assertTrue("and it must do so before it finishes anything", guard < finish)
+    }
+
+    /**
+     * The periodic check was gated, but the restore-all sweep and the single-sensor
+     * dial went straight to connectDevice, and on the receiving phone that put a
+     * mirrored Sibionics into a Libre scan. One gate, asked on every path.
+     */
+    @Test
+    fun everyLocalDialPathAsksWhetherTheSensorIsMirrored() {
+        val bt = flattened("Common/src/main/java/tk/glucodata/SensorBluetooth.java")
+        // checkandconnect dials through connectToActiveDevice; the other two go
+        // straight to the callback.
+        val dials = mapOf(
+            "checkandconnect" to "connectToActiveDevice(cb, delay)",
+            "connectToAllActiveDevices" to "cb.connectDevice(",
+            "connectToActiveDevice" to "cb.connectDevice(",
+        )
+        for ((path, dial) in dials) {
+            val body = bt.substring(bt.indexOf("boolean $path("))
+            val gateAt = body.indexOf("mirroredOverClone(cb")
+            val dialAt = body.indexOf(dial)
+            assertTrue("$path must dial somewhere", dialAt > 0)
+            assertTrue("$path must ask mirroredOverClone before it dials", gateAt in 0 until dialAt)
+        }
+    }
 }

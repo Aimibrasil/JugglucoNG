@@ -136,10 +136,14 @@ public class SensorBluetooth {
             return false;
         }
         boolean scan = false;
-        for (var cb : gattcallbacks)
+        for (var cb : gattcallbacks) {
+            if (mirroredOverClone(cb, "connectToAllActiveDevices")) {
+                continue;
+            }
             if (!cb.connectDevice(delayMillis)) {
                 scan = true;
             }
+        }
         if (scan) {
             return scanStarter(delayMillis);
         }
@@ -151,6 +155,9 @@ public class SensorBluetooth {
             Log.i(LOG_ID, "connectToActiveDevice(" + cb.SerialNumber + "," + delayMillis + ")");
         }
         ;
+        if (mirroredOverClone(cb, "connectToActiveDevice")) {
+            return false;
+        }
         if (!cb.connectDevice(delayMillis) && !mScanning) {
             return scanStarter(delayMillis);
         }
@@ -1646,6 +1653,27 @@ public class SensorBluetooth {
         return one.updateDevicers();
     }
 
+    /**
+     * A sensor whose readings are arriving over Clone belongs to the sending
+     * device. Dialling it here puts two phones on one transmitter, and the
+     * loser of that race is whichever one was actually wearing it. The claim
+     * lasts only while the mirror keeps delivering, so unplugging the sender
+     * still lets this device pick the sensor up, and turning Clone off hands
+     * it back immediately. Every path that dials a callback asks this, not only
+     * the periodic check: the restore-all sweep went straight to connectDevice
+     * and put a mirrored Sibionics into a Libre scan on the receiving phone.
+     */
+    private static boolean mirroredOverClone(SuperGattCallback cb, String where) {
+        if (CloneSensorRegistry.isReceptionEnabled()
+                && CloneSensorRegistry.isMirrorDelivering(cb.SerialNumber)) {
+            if (doLog) {
+                Log.i(LOG_ID, where + " skipped: mirrored over Clone " + cb.SerialNumber);
+            }
+            return true;
+        }
+        return false;
+    }
+
     boolean checkandconnect(SuperGattCallback cb, long delay) {
         if (doLog) {
             Log.i(LOG_ID, "checkandconnect(" + cb.SerialNumber + "," + delay + ")");
@@ -1657,17 +1685,7 @@ public class SensorBluetooth {
             }
             return false;
         }
-        // A sensor whose readings are arriving over Clone belongs to the sending
-        // device. Dialling it here puts two phones on one transmitter, and the
-        // loser of that race is whichever one was actually wearing it. The claim
-        // lasts only while the mirror keeps delivering, so unplugging the sender
-        // still lets this device pick the sensor up, and turning Clone off hands
-        // it back immediately.
-        if (CloneSensorRegistry.isReceptionEnabled()
-                && CloneSensorRegistry.isMirrorDelivering(cb.SerialNumber)) {
-            if (doLog) {
-                Log.i(LOG_ID, "checkandconnect skipped: mirrored over Clone " + cb.SerialNumber);
-            }
+        if (mirroredOverClone(cb, "checkandconnect")) {
             return false;
         }
         BluetoothAdapter adapter = mBluetoothAdapter;
