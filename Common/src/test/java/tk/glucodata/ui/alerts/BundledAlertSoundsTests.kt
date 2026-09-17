@@ -28,7 +28,14 @@ class BundledAlertSoundsTests {
             val selected = BundledAlertSounds.uri(packageName, style, AlertType.LOW.id)
             expected.forEach { (type, cue) ->
                 val uri = BundledAlertSounds.forAlert(selected, packageName, type.id)!!
-                assertEquals("android.resource://$packageName/raw/alert_${style.lowercase(Locale.ROOT)}_$cue", uri)
+                if (style == "Juggluco") {
+                    val originals = mapOf("low" to "siren", "high" to "classic", "notice" to "ghost",
+                        "reminder" to "nudge", "signal" to "elves", "urgent_low" to "verylow",
+                        "urgent_high" to "veryhigh", "falling" to "lowsoon", "rising" to "highsoon")
+                    assertEquals("android.resource://$packageName/raw/${originals.getValue(cue)}", uri)
+                } else {
+                    assertEquals("android.resource://$packageName/raw/alert_${style.lowercase(Locale.ROOT)}_$cue", uri)
+                }
                 assertEquals(style, BundledAlertSounds.styleFor(uri, packageName))
             }
         }
@@ -100,7 +107,7 @@ class BundledAlertSoundsTests {
         val references = listOf(File("../tools/alert-sounds/original-reference.json"),
             File("tools/alert-sounds/original-reference.json")).first { it.isFile }
         val original = JSONObject(references.readText())
-        listOf("timber", "ember", "juggluco").forEach { style ->
+        listOf("timber", "ember").forEach { style ->
             original.keys().forEach { cue ->
                 val bytes = File(raw, "alert_${style}_${cue}.wav").readBytes()
                 val pcm = java.nio.ByteBuffer.wrap(bytes, 44, bytes.size-44)
@@ -110,18 +117,36 @@ class BundledAlertSoundsTests {
                 assertEquals(0, pcm.get(pcm.limit()-1).toInt())
                 var peak = 0
                 while (pcm.hasRemaining()) peak = maxOf(peak, kotlin.math.abs(pcm.get().toInt()))
-                assertTrue("$style $cue headroom", peak in 1..29490)
+                assertTrue("$style $cue headroom", peak in 1..23200)
             }
         }
     }
 
     @Test
+    fun jugglucoUsesUnmodifiedOriginalRecordings() {
+        val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
+        val referenceFile = listOf(File("../tools/alert-sounds/original-reference.json"),
+            File("tools/alert-sounds/original-reference.json")).first { it.isFile }
+        val refs = JSONObject(referenceFile.readText())
+        AlertType.entries.forEach { type ->
+            val ref = refs.getJSONObject(BundledAlertSounds.cueFor(type.id))
+            val file = File(raw, ref.getString("source"))
+            val uri = BundledAlertSounds.uri(packageName, "Juggluco", type.id)
+            assertEquals(file.nameWithoutExtension, uri.substringAfterLast('/'))
+            val hash = MessageDigest.getInstance("SHA-256").digest(file.readBytes())
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            assertEquals(ref.getString("sha256"), hash)
+        }
+        assertNull(BundledAlertSounds.styleFor("android.resource://$packageName/raw/alert_juggluco_low", packageName))
+    }
+
+    @Test
     fun everyNamedUriHasARealPcmWaveResource() {
         val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
-        val names = BundledAlertSounds.styles.flatMap { style ->
+        val names = BundledAlertSounds.styles.filterNot { it == "Juggluco" }.flatMap { style ->
             AlertType.entries.map { BundledAlertSounds.uri(packageName, style, it.id).substringAfterLast('/') }
         }.toSet()
-        assertEquals(54, names.size)
+        assertEquals(45, names.size)
         names.forEach { name ->
             val bytes = File(raw, "$name.wav").readBytes()
             assertEquals("RIFF", String(bytes, 0, 4, Charsets.US_ASCII))

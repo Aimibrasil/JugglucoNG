@@ -1,4 +1,4 @@
-"""Shared duration references and conservative soft-knee peak control (48 kHz)."""
+"""Duration references and linear, headroom-limited acoustic gain (48 kHz)."""
 import json
 from pathlib import Path
 import numpy as np
@@ -8,23 +8,18 @@ REFERENCES = json.loads((Path(__file__).parent/'original-reference.json').read_t
 def master(out, cue):
     assert len(out) == REFERENCES[cue]['frames']
     out = out - np.mean(out)
-    # Bring quiet references up to a usable family floor; retain louder original
-    # category targets. Electrical active RMS is not perceptual loudness (LUFS).
-    target = max(REFERENCES[cue]['active_rms_dbfs'], -15.0)
-    if cue.startswith('urgent'):
-        target = max(target, -13.0)
-    amplitude = 10**(target/20)
-    for _ in range(12):
-        active = out[np.abs(out) > .01*np.max(np.abs(out))]
-        out *= amplitude / np.sqrt(np.mean(active**2))
-        # Unity slope below the knee, smooth bounded transients above it.
-        magnitude = np.abs(out)
-        excess = np.maximum(0, magnitude-.65)
-        out = np.sign(out)*np.where(magnitude <= .65, magnitude, .65+.24*np.tanh(excess/.24))
+    # Midway between the quiet audition and the rejected loud master. ONE gain: no
+    # waveshaping, saturation, compression, or iterative loudness normalization.
+    # If a recorded strike reaches the peak ceiling first, accept lower RMS.
+    target = -15.25 if cue.startswith('urgent') else -17.5
+    active = out[np.abs(out) > .01*np.max(np.abs(out))]
+    gain = min(10**(target/20)/np.sqrt(np.mean(active**2)),
+               10**(-3/20)/np.max(np.abs(out)))
+    out *= gain
     out[:240] *= np.sin(np.linspace(0,np.pi/2,240))**2
     out[-240:] *= np.cos(np.linspace(0,np.pi/2,240))**2
     out[0] = out[-1] = 0
-    assert np.max(np.abs(out)) < .90 and abs(np.mean(out)) < .002
+    assert np.max(np.abs(out)) < .709 and abs(np.mean(out)) < .002
     return np.rint(out*32767).astype('<i2')
 
 def metrics(pcm, data):
