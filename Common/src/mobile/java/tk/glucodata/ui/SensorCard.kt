@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package tk.glucodata.ui
 
@@ -2990,18 +2990,17 @@ fun SensorCard(
             if (sensor.isAnytime) {
                 val hasExportableCredentials = tk.glucodata.drivers.anytime.AnytimeRegistry
                     .exportCt5Credentials(context, sensor.serial) != null
-                Row(
+                FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     FilledTonalButton(
                         onClick = { showResetDialog = true },
                         enabled = sensor.isVendorConnected && sensor.supportsHardwareReset,
                         modifier = Modifier
-                            .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp),
@@ -3027,7 +3026,6 @@ fun SensorCard(
                         onClick = { showAnytimeHistoryDialog = true },
                         enabled = sensor.isVendorConnected,
                         modifier = Modifier
-                            .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp),
@@ -3053,7 +3051,6 @@ fun SensorCard(
                         onClick = { showAnytimeCredentialBackupDialog = true },
                         enabled = hasExportableCredentials,
                         modifier = Modifier
-                            .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp),
@@ -3074,34 +3071,6 @@ fun SensorCard(
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
-                    }
-                    if (sensor.supportsSelfTest) {
-                        FilledTonalButton(
-                            onClick = { viewModel.requestAnytimeSelfTest(sensor.serial) },
-                            enabled = sensor.isVendorConnected,
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                            ),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.anytime_self_test_action),
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            )
-                        }
                     }
                 }
             }

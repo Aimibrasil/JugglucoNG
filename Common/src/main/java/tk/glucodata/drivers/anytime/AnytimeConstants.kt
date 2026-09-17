@@ -220,7 +220,14 @@ object AnytimeConstants {
     /** Fingerstick reference BG (mg/dL big-endian). Body: {0x08, mgdlHi, mgdlLo, sum}. */
     const val TX_CT2_INPUT_BG_MG: Byte = 0x08
 
-    /** Glucose computed by the transmitter. Body: {0x09, idHi, idLo}. */
+    /**
+     * Glucose computed by the transmitter. Body: `{0x09, idHi, idLo}`.
+     *
+     * Not used: on the tested CT-14 firmware the answer is the constant
+     * `09 00 00 03 36` for any id (captures at ids 4310 and 4319), which does not
+     * fit the SDK's `GluMM = bArr[1]/10` layout and is not a reading source. Kept
+     * as protocol documentation; re-test before using it.
+     */
     const val TX_CT2_GLUCOSE_BY_TRANSMITTER: Byte = 0x09
 
     /** Handshake ACK — fixed frame {0x48, 0x55, 0xAA, sum}. */

@@ -79,7 +79,6 @@ data class SensorInfo(
     val supportsManualCalibration: Boolean = false,
     val supportsHardwareReset: Boolean = false,
     val supportsClearCalibration: Boolean = false,
-    val supportsSelfTest: Boolean = false,
     val sensorDetailTelemetry: String = "",
     val detailedStatus: String = "",
     val isActive: Boolean = false,  // True if this is the primary data source
@@ -437,7 +436,6 @@ class SensorViewModel : ViewModel() {
             supportsManualCalibration = snapshot.supportsManualCalibration,
             supportsHardwareReset = snapshot.supportsHardwareReset,
             supportsClearCalibration = snapshot.supportsClearCalibration,
-            supportsSelfTest = snapshot.supportsSelfTest,
             sensorDetailTelemetry = snapshot.sensorDetailTelemetry,
             detailedStatus = handoffStatus ?: snapshot.subtitleStatus.ifBlank {
                 snapshot.detailedStatus.ifBlank { snapshot.connectionStatus }
@@ -1085,23 +1083,6 @@ class SensorViewModel : ViewModel() {
         return runCatching { driver.requestHistoryBackfill() }
             .onFailure {
                 android.util.Log.e("SensorVM", "Anytime history request failed for $serial", it)
-            }
-            .getOrDefault(false)
-            .also {
-                UiRefreshBus.requestStatusRefresh()
-                refreshSensors()
-            }
-    }
-
-    /**
-     * CT2 self-test: asks the transmitter to measure the electrode current now. The
-     * result lands in the driver telemetry (Iw/Ib/T) on the next status refresh.
-     */
-    fun requestAnytimeSelfTest(serial: String): Boolean {
-        val driver = findGatt(serial) as? AnytimeDriver ?: return false
-        return runCatching { driver.requestSelfTest() }
-            .onFailure {
-                android.util.Log.e("SensorVM", "Anytime self-test request failed for $serial", it)
             }
             .getOrDefault(false)
             .also {
