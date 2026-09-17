@@ -78,7 +78,7 @@ class BundledAlertSoundsTests {
         val names = BundledAlertSounds.styles.flatMap { style ->
             AlertType.entries.map { BundledAlertSounds.uri(packageName, style, it.id).substringAfterLast('/') }
         }.toSet()
-        assertEquals(27, names.size)
+        assertEquals(45, names.size)
         names.forEach { name ->
             val bytes = File(raw, "$name.wav").readBytes()
             assertEquals("RIFF", String(bytes, 0, 4, Charsets.US_ASCII))
