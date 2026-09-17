@@ -23,6 +23,7 @@ class AlertSoundDefaultsTests {
     @Test fun explicitSelectionsAreNeverMigrated() {
         listOf("SYSTEM_DEFAULT", "content://media/external/audio/media/42",
             "android.resource://example.app/raw/siren",
+            "android.resource://example.app/raw/alert_juggluco_low",
             "android.resource://example.app/raw/alert_halo_low").forEach {
             assertEquals(it, AlertSoundDefaults.resolve(it, "example.app", 0))
         }

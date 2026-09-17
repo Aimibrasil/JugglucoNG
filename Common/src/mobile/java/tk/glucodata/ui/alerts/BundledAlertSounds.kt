@@ -5,10 +5,13 @@ import java.util.Locale
 /** Named resource URIs survive resource-ID reassignment between app updates. */
 internal object BundledAlertSounds {
     // Collection names are proper names, identical in every locale.
-    val styles = listOf("Contour", "Porcelain", "Halo", "Timber", "Ember", "Juggluco")
+    // Order is the picker order: Juggluco sits directly below System Default.
+    val styles = listOf("Juggluco", "Contour", "Porcelain", "Halo", "Timber", "Ember")
     private val cues = setOf("low", "high", "urgent_low", "urgent_high", "falling", "rising", "signal", "reminder", "notice")
 
-    private val originals = mapOf(
+    // Legacy low-bitrate MP3/OGG originals. Saved selections still resolve to
+    // Juggluco; new selections use the remastered alert_juggluco_* WAVs below.
+    private val legacyOriginals = mapOf(
         "low" to "siren", "high" to "classic", "notice" to "ghost",
         "reminder" to "nudge", "signal" to "elves", "urgent_low" to "verylow",
         "urgent_high" to "veryhigh", "falling" to "lowsoon", "rising" to "highsoon"
@@ -18,21 +21,18 @@ internal object BundledAlertSounds {
 
     fun uri(packageName: String, style: String, alertTypeId: Int): String {
         require(style in styles)
-        if (style == "Juggluco") {
-            return "android.resource://$packageName/raw/${originals.getValue(cueFor(alertTypeId))}"
-        }
         return "android.resource://$packageName/raw/alert_${style.lowercase(Locale.ROOT)}_${cueFor(alertTypeId)}"
     }
 
     fun styleFor(uri: String?, packageName: String): String? {
         val rawPrefix = "android.resource://$packageName/raw/"
-        if (uri != null && uri.startsWith(rawPrefix) && uri.removePrefix(rawPrefix) in originals.values) {
+        if (uri != null && uri.startsWith(rawPrefix) && uri.removePrefix(rawPrefix) in legacyOriginals.values) {
             return "Juggluco"
         }
         val prefix = rawPrefix + "alert_"
         if (uri == null || !uri.startsWith(prefix)) return null
         val name = uri.removePrefix(prefix)
-        return styles.filterNot { it == "Juggluco" }.firstOrNull { style ->
+        return styles.firstOrNull { style ->
             val stylePrefix = style.lowercase(Locale.ROOT) + "_"
             name.startsWith(stylePrefix) && name.removePrefix(stylePrefix) in cues
         }
