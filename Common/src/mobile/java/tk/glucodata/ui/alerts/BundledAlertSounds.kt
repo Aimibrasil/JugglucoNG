@@ -6,7 +6,7 @@ import tk.glucodata.alerts.AlertType
 /** Named resource URIs survive resource-ID reassignment between app updates. */
 internal object BundledAlertSounds {
     // Collection names are proper names, identical in every locale.
-    val styles = listOf("Contour", "Porcelain", "Halo")
+    val styles = listOf("Contour", "Porcelain", "Halo", "Timber", "Ember")
     private val cues = setOf("low", "high", "urgent_low", "urgent_high", "falling", "rising", "signal", "reminder", "notice")
 
     fun cueFor(alertTypeId: Int): String = when (AlertType.fromId(alertTypeId)) {
