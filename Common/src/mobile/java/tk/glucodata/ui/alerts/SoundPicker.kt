@@ -44,12 +44,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import tk.glucodata.Applic
-import tk.glucodata.Natives
 import tk.glucodata.R
 
 /**
  * Special marker values for sound selection:
- * - null/empty: App Default Sound (uses Natives.readring)
+ * - null/empty: App Default Sound (Ember)
  * - SYSTEM_DEFAULT_SOUND: System's default notification sound
  * - Any other URI: Custom sound
  */
@@ -114,9 +113,11 @@ fun SoundPicker(
     var playingUri by remember { mutableStateOf<String?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     
-    // App default sound URI for preview
-    val appDefaultUri = remember(alertTypeId) { try { Natives.readring(alertTypeId) } catch (e: Exception) { null } }
-    
+    // Preview what choosing App Default will save, not the previous native selection.
+    val appDefaultUri = remember(alertTypeId, context.packageName) {
+        tk.glucodata.alerts.AlertSoundDefaults.uri(context.packageName, alertTypeId)
+    }
+
     // File picker launcher
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()

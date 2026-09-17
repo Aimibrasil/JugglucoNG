@@ -142,9 +142,9 @@ public class Notify {
     }
 
     @SuppressLint("NewApi")
-    Ringtone setring(String uristr, int res) {
+    Ringtone setring(String uristr, String fallbackUri) {
         if (uristr == null || uristr.length() == 0) {
-            uristr = "android.resource://" + Applic.app.getPackageName() + "/" + res;
+            uristr = fallbackUri;
         }
         Uri uri = Uri.parse(uristr);
         Ringtone ring = RingtoneManager.getRingtone(Applic.app, uri);
@@ -156,7 +156,7 @@ public class Notify {
                 ;
             }
             ;
-            uristr = "android.resource://" + Applic.app.getPackageName() + "/" + res;
+            uristr = fallbackUri;
             uri = Uri.parse(uristr);
             ring = RingtoneManager.getRingtone(Applic.app, uri);
         }
@@ -290,10 +290,6 @@ public class Notify {
         }
     }
 
-    private static String defaultAlertSoundUri(int res) {
-        return "android.resource://" + Applic.app.getPackageName() + "/" + res;
-    }
-
     private static String resolveSoundTitle(Uri uri, Ringtone ringtone) {
         if (ringtone != null) {
             try {
@@ -370,9 +366,9 @@ public class Notify {
         }
     }
 
-    private static String normalizeAlertSoundUri(String uristr, String fallbackUri) {
+    private static String normalizeAlertSoundUri(String uristr, int kind) {
         if (uristr == null || uristr.length() == 0) {
-            return fallbackUri;
+            return tk.glucodata.alerts.AlertSoundDefaults.resolve(uristr, Applic.app.getPackageName(), kind);
         }
         if ("SYSTEM_DEFAULT".equals(uristr)) {
             final Uri systemDefault = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -391,9 +387,8 @@ public class Notify {
     }
 
     private AlertSoundHandle buildAlertSoundHandle(String uristr, int kind, boolean useAlarmStream) {
-        final int fallbackRes = defaults[Math.max(0, Math.min(kind, defaults.length - 1))];
-        final String fallbackUri = defaultAlertSoundUri(fallbackRes);
-        final String requestedUriString = normalizeAlertSoundUri(uristr, fallbackUri);
+        final String fallbackUri = tk.glucodata.alerts.AlertSoundDefaults.uri(Applic.app.getPackageName(), kind);
+        final String requestedUriString = normalizeAlertSoundUri(uristr, kind);
         final Uri requestedUri = Uri.parse(requestedUriString);
 
         final AlertSoundHandle mediaHandle = buildMediaPlayerHandle(requestedUri, useAlarmStream);
@@ -439,12 +434,6 @@ public class Notify {
             default -> R.string.nothing;
         });
     }
-
-    // 0 1 2 3 4 5 6 7 8
-    // low high avail amount loss very low very high pre low pre high
-    static final private int[] defaults = { R.raw.siren, R.raw.classic, R.raw.ghost, R.raw.nudge, R.raw.elves,
-            R.raw.verylow, R.raw.veryhigh, R.raw.lowsoon, R.raw.highsoon, R.raw.classic, R.raw.classic,
-            R.raw.classic };
 
     // static AudioAttributes notification_audio=(android.os.Build.VERSION.SDK_INT
     // >= 21)?new
@@ -520,8 +509,12 @@ public class Notify {
         }
     }
 
+    private static String readSavedNativeSound(int kind) {
+        return tk.glucodata.alerts.AlertSoundDefaults.hasNativeSlot(kind) ? Natives.readring(kind) : null;
+    }
+
     public static Ringtone getring(int kind) {
-        return mkrings(Natives.readring(kind), kind);
+        return mkrings(readSavedNativeSound(kind), kind);
     }
 
     Ringtone mkring(String uristr, int kind) {
@@ -537,7 +530,8 @@ public class Notify {
             ;
         }
         ;
-        var ring = setring(uristr, defaults[kind]);
+        final String fallbackUri = tk.glucodata.alerts.AlertSoundDefaults.uri(Applic.app.getPackageName(), kind);
+        var ring = setring(normalizeAlertSoundUri(uristr, kind), fallbackUri);
         if (android.os.Build.VERSION.SDK_INT >= 21) {
             try {
                 boolean useAlarmStream = (!AlertType.Companion.isLegacyOnlyId(kind) && disturb);
@@ -2257,7 +2251,7 @@ public class Notify {
         }
 
         if (ringUri == null || ringUri.isEmpty()) {
-            ringUri = Natives.readring(kind);
+            ringUri = readSavedNativeSound(kind);
         }
 
         // Read settings from Prefs (AlertRepository) to support new Alert Types that
@@ -2429,7 +2423,7 @@ public class Notify {
                 if (sound || flash || vibrate) {
                     String actualUri;
                     if (soundUri == null || soundUri.isEmpty()) {
-                        actualUri = Natives.readring(kind);
+                        actualUri = readSavedNativeSound(kind);
                     } else {
                         actualUri = soundUri;
                     }

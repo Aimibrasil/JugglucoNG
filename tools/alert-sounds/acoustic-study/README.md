@@ -43,3 +43,7 @@ peaks, DC offset and zero endpoints, and compares `measurements.json`. Exact byt
 depend on the macOS sample-rate converter and NumPy versions. No physical-device
 recognition or listening acceptance is claimed. These original studies contain no urgent-alarm designs; the complete collections
 are documented in the parent listening guide.
+
+Production update: these short audition WAVs remain unchanged. The selectable Timber and Ember
+collections now use longer arrangements and louder mastering; they are no longer byte-identical
+to these study copies. Ember is the default for unset sounds; explicit choices remain saved.

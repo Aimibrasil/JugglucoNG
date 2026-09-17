@@ -95,12 +95,33 @@ class BundledAlertSoundsTests {
     }
 
     @Test
+    fun extendedCollectionsMatchOriginalDurationsAndHaveHeadroom() {
+        val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
+        val references = listOf(File("../tools/alert-sounds/original-reference.json"),
+            File("tools/alert-sounds/original-reference.json")).first { it.isFile }
+        val original = JSONObject(references.readText())
+        listOf("timber", "ember", "juggluco").forEach { style ->
+            original.keys().forEach { cue ->
+                val bytes = File(raw, "alert_${style}_${cue}.wav").readBytes()
+                val pcm = java.nio.ByteBuffer.wrap(bytes, 44, bytes.size-44)
+                    .order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+                assertEquals("$style $cue duration", original.getJSONObject(cue).getInt("frames"), pcm.remaining())
+                assertEquals(0, pcm.get(0).toInt())
+                assertEquals(0, pcm.get(pcm.limit()-1).toInt())
+                var peak = 0
+                while (pcm.hasRemaining()) peak = maxOf(peak, kotlin.math.abs(pcm.get().toInt()))
+                assertTrue("$style $cue headroom", peak in 1..29490)
+            }
+        }
+    }
+
+    @Test
     fun everyNamedUriHasARealPcmWaveResource() {
         val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
         val names = BundledAlertSounds.styles.flatMap { style ->
             AlertType.entries.map { BundledAlertSounds.uri(packageName, style, it.id).substringAfterLast('/') }
         }.toSet()
-        assertEquals(45, names.size)
+        assertEquals(54, names.size)
         names.forEach { name ->
             val bytes = File(raw, "$name.wav").readBytes()
             assertEquals("RIFF", String(bytes, 0, 4, Charsets.US_ASCII))

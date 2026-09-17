@@ -16,10 +16,10 @@ STUDY = HERE / 'acoustic-study'
 sys.path.insert(0, str(STUDY))
 from render_study import RATE, read_sample, encode, SCORES as SOFT
 from render_body_crisp import SCORES as BODY_CRISP
+from mastering import REFERENCES, master, metrics as measure
 
 CUES = ('low', 'high', 'urgent_low', 'urgent_high', 'falling', 'rising', 'signal', 'reminder', 'notice')
-# Preserve the already-auditioned four Timber and two Ember cues exactly, then
-# complete their alert vocabulary. Entries: onset, recording, level, decay seconds.
+# Develop the auditioned Timber and Ember phrases into full-length arrangements. Entries: onset, recording, level, decay seconds.
 SCORES = {
     'timber': {
         **SOFT,
@@ -52,26 +52,30 @@ SCORES = {
 
 def render(style, cue, samples):
     score = SCORES[style][cue]
-    quiet_tail = .25 if style == 'timber' else .20
-    out = np.zeros(round((max(t+d for t,_,_,d in score)+quiet_tail)*RATE))
-    for onset, name, strength, duration in score:
-        x = samples[name][:round(duration*RATE)].copy()
-        if style == 'timber':
-            release = min(round(.45*RATE),len(x))
-        else:
-            release = min(round(min(.28,duration*.5)*RATE),len(x))
-        x[-release:] *= np.cos(np.linspace(0,np.pi/2,release))**2
-        at = round(onset*RATE)
-        out[at:at+len(x)] += strength*x
-    active = out[np.abs(out)>.01*np.max(np.abs(out))]
-    target = -17.5 if cue.startswith('urgent') else -20
-    out *= min(10**(target/20)/np.sqrt(np.mean(active**2)),10**(-3/20)/np.max(np.abs(out)))
-    out[:96] *= np.linspace(0,1,96)**2
-    out[-96:] *= np.linspace(1,0,96)**2
-    assert np.max(np.abs(out)) < .709 and abs(np.mean(out)) < .001
-    pcm = np.rint(out*32767).astype('<i2')
-    assert pcm[0] == pcm[-1] == 0
-    return pcm
+    length = REFERENCES[cue]['frames'] / RATE
+    phrase = max(t+d for t,_,_,d in score)
+    # Returns of the same recognizable motif, with breathing room, changing
+    # strike strength, and a longer final acoustic release. Never stretch PCM.
+    count = max(2, round(length / (phrase + .60)))
+    final_tail = min(1.05, length*.18)
+    last_start = max(0, length - phrase - final_tail)
+    starts = np.linspace(0, last_start, count)
+    out = np.zeros(REFERENCES[cue]['frames'])
+    for index, start in enumerate(starts):
+        for onset, name, strength, duration in score:
+            final = index == len(starts)-1
+            duration += final_tail if final else .12
+            at = round((start+onset)*RATE)
+            x = samples[name][:min(round(duration*RATE),len(out)-at)].copy()
+            release = min(round((.65 if final else .30)*RATE),len(x))
+            x[-release:] *= np.cos(np.linspace(0,np.pi/2,release))**2
+            # Subtle alternation keeps the returning phrase from sounding stamped.
+            accent = (1.0, .87, .95)[index % 3]
+            out[at:at+len(x)] += strength*accent*x
+    # Continuous, gentle ending even when a short source has already decayed.
+    release = min(round(.60*RATE),len(out))
+    out[-release:] *= np.cos(np.linspace(0,np.pi/2,release))**2
+    return master(out, cue)
 
 
 def save_or_check(path, data, check):
@@ -98,25 +102,14 @@ def main():
         for cue in CUES:
             pcm = render(style,cue,samples)
             data = encode(pcm)
-            # Keep both branches of the earlier A/B as finished selectable options.
-            if style == 'timber' and cue in SOFT:
-                assert data == (STUDY/f'{cue}.wav').read_bytes(), (style,cue)
-            if style == 'ember' and cue in BODY_CRISP:
-                assert data == (STUDY/'body-crisp'/f'{cue}.wav').read_bytes(), (style,cue)
             name = f'alert_{style}_{cue}.wav'
             save_or_check(ROOT/'Common/src/main/res/raw'/name,data,args.check)
-            normalized = pcm.astype(float)/32768
-            metrics[name] = {
-                'seconds':round(len(pcm)/RATE,3),
-                'peak_dbfs':round(20*np.log10(np.max(np.abs(normalized))),2),
-                'rms_dbfs':round(20*np.log10(np.sqrt(np.mean(normalized**2))),2),
-                'sha256':hashlib.sha256(data).hexdigest(),
-            }
+            metrics[name] = measure(pcm, data)
             reel.extend((pcm,np.zeros(RATE,dtype='<i2')))
         save_or_check(HERE/f'{style}-preview.wav',encode(np.concatenate(reel)),args.check)
     assert len({value['sha256'] for value in metrics.values()}) == 18
     save_or_check(HERE/'acoustic-measurements.json',(json.dumps(metrics,indent=2)+'\n').encode(),args.check)
-    print(('Verified' if args.check else 'Rendered')+' 18 acoustic cues and 2 reels; all six auditioned cues preserved exactly')
+    print(('Verified' if args.check else 'Rendered')+' 18 acoustic cues and 2 reels; original-length phrases with natural releases')
 
 
 if __name__ == '__main__':
