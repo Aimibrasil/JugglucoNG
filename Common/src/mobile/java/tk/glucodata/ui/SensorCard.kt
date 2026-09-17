@@ -3053,33 +3053,6 @@ fun SensorCard(
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                     }
-                    if (sensor.supportsTransmitterGlucose) {
-                        FilledTonalButton(
-                            onClick = { viewModel.requestAnytimeTransmitterGlucose(sensor.serial) },
-                            enabled = sensor.isVendorConnected,
-                            modifier = Modifier
-                                .heightIn(min = 48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.anytime_transmitter_glucose_action),
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
                 }
             }
 

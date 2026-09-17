@@ -33,6 +33,7 @@ class AnytimeFamilyDispatchTests {
         val foreign = listOf(
             AnytimeConstants.RX_PUSH_GLUCOSE,        // 0x07 (shared value)
             AnytimeConstants.RX_PULL_GLUCOSE,        // 0x08 — collides with CT2 input-BG
+            AnytimeConstants.RX_INPUT_BG_ACK,        // 0x09 — collides with CT2 glucoseByTx
             AnytimeConstants.RX_CHECK,               // 0x05
             AnytimeConstants.RX_INIT,                // 0x06
             AnytimeConstants.RX_UNBIND_ACK,          // 0x0A
@@ -47,18 +48,12 @@ class AnytimeFamilyDispatchTests {
     }
 
     @Test
-    fun collidingBytesAreDisjointBetweenTheTwoNamespaces() {
-        // 0x08 is a CT3 pull response and a CT2 command the driver never sends, so it
-        // stays out of the CT-14 set. 0x09 is the CT3 input-BG ack but the CT2
-        // transmitter-glucose answer, which the CT-14 fallback path does use. The
-        // family-gated dispatch (`isCt2()` routes away from the generic when) is what
-        // keeps a CT2 session from ever running the CT3 handler with this byte.
+    fun theCollidingOpcodesAreNotCt14Handled() {
+        // 0x08/0x09 are CT2 *commands* the driver never sends, but the same bytes are
+        // CT3 pull response / input-BG ack. Keeping them out of the CT-14 set is what
+        // stops a CT-14 session from misparsing them as CT3 frames.
         assertFalse(AnytimeConstants.isCt14Opcode(0x08.toByte()))
-        assertTrue(AnytimeConstants.isCt14Opcode(0x09.toByte()))
-        assertEquals(
-            AnytimeConstants.RX_INPUT_BG_ACK,
-            AnytimeConstants.TX_CT2_GLUCOSE_BY_TRANSMITTER,
-        )
+        assertFalse(AnytimeConstants.isCt14Opcode(0x09.toByte()))
     }
 
     @Test
