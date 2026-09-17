@@ -202,7 +202,7 @@ fun GlobalAlertSettingsCard(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f))
 
                     Column(
-                        modifier = Modifier.padding(vertical = 16.dp),
+                        modifier = Modifier.padding(top = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Button(

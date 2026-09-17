@@ -736,7 +736,7 @@ fun CustomAlertCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                        .padding(vertical = 16.dp)
+                        .padding(top = 16.dp)
                 ) {
                     // Map to AlertConfig for shared UI component
                     val genericConfig = AlertConfig(
@@ -1134,7 +1134,7 @@ private fun AlertSettingsExpanded(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .padding(vertical = 16.dp)
+            .padding(top = 16.dp)
     ) {
         CommonAlertSettings(
             config = config,
