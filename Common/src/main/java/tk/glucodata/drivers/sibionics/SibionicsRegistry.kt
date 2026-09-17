@@ -469,6 +469,15 @@ object SibionicsRegistry {
                 ) {
                     return@forEach
                 }
+                // A SIBI: shell with no Kotlin record is not necessarily an orphan: a
+                // sensor mirrored over Clone is exactly that -- the record lives on the
+                // phone wearing it -- and finishing it here retired every mirrored
+                // Sibionics seconds after it arrived.
+                if (tk.glucodata.CloneSensorRegistry.isCloneSensor(nativeId) ||
+                    tk.glucodata.CloneSensorRegistry.isCloneSensor(fullNativeName)
+                ) {
+                    return@forEach
+                }
 
                 // Older builds could delete the Kotlin record while leaving this
                 // direct-stream shell active. Retire it before shared BLE restore

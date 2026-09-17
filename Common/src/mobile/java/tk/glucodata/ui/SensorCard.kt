@@ -85,6 +85,7 @@ import tk.glucodata.SensorVisuals
 import tk.glucodata.SensorBadge
 import tk.glucodata.sensorBadge
 import tk.glucodata.UiRefreshBus
+import tk.glucodata.data.HistoryRepository
 import tk.glucodata.drivers.ManagedSensorCalibrationSource
 import tk.glucodata.drivers.anytime.AnytimeCalibrationPolicy
 import tk.glucodata.drivers.sibionics.SibionicsSensitivity
@@ -1701,19 +1702,68 @@ fun SensorCard(
 
     val isLocallyStreaming = sensor.streaming
     val isHandedOff = sensor.handoffUiState != SensorHandoffUiState.NONE
-    // A watch-owned sensor is operational even though this phone's local BLE
-    // callback is deliberately paused. Rendering that as Disabled made a
-    // healthy forwarded stream look like a sensor failure.
-    val isStreaming = isLocallyStreaming || isHandedOff
     val refreshRevision by UiRefreshBus.revision.collectAsState(initial = 0L)
-    val currentSnapshot = remember(refreshRevision, sensor.serial, sensor.viewMode) {
-        CurrentDisplaySource.resolveCurrent(
+    val latestPersistedReading by remember(sensor.serial) {
+        HistoryRepository().getLatestReadingFlowForSensor(sensor.serial)
+    }.collectAsState(initial = null)
+    val currentSnapshot = remember(
+        refreshRevision,
+        sensor.serial,
+        sensor.viewMode,
+        latestPersistedReading,
+    ) {
+        val freshSnapshot = CurrentDisplaySource.resolveCurrent(
             maxAgeMillis = Notify.glucosetimeout,
             preferredSensorId = sensor.serial
         )?.takeIf { snapshot ->
             abs(System.currentTimeMillis() - snapshot.timeMillis) <= Notify.glucosetimeout &&
                 snapshot.primaryStr.isNotBlank()
         }
+        val persistedSnapshot = latestPersistedReading?.let { point ->
+            val value = point.value.takeIf { it.isFinite() && it > 0.1f }
+                ?: point.rawValue.takeIf { it.isFinite() && it > 0.1f }
+                ?: return@let null
+            CurrentDisplaySource.resolveIncomingReading(
+                liveNumericValue = value,
+                rate = point.rate ?: Float.NaN,
+                targetTimeMillis = point.timestamp,
+                preferredSensorId = sensor.serial,
+                source = "sensor-card-history",
+            )?.takeIf { it.primaryStr.isNotBlank() }
+        }
+        listOfNotNull(freshSnapshot, persistedSnapshot).maxByOrNull { it.timeMillis }
+    }
+    var cloneHealthNowMillis by remember(sensor.serial) {
+        mutableStateOf(System.currentTimeMillis())
+    }
+    LaunchedEffect(sensor.serial, sensor.isCloneSource) {
+        while (sensor.isCloneSource) {
+            cloneHealthNowMillis = System.currentTimeMillis()
+            delay(1_000L)
+        }
+    }
+    val cloneHasRecentData = !sensor.isCloneSource || currentSnapshot?.let { snapshot ->
+        abs(cloneHealthNowMillis - snapshot.timeMillis) <= Notify.glucosetimeout
+    } == true
+    val reportedCloneTransport = if (sensor.isCloneSource) {
+        tk.glucodata.CloneSensorRegistry.liveTransportForSensor(sensor.serial)
+    } else {
+        null
+    }
+    val cloneHealth = tk.glucodata.CloneSensorHealthPolicy.resolve(
+        hasRecentData = cloneHasRecentData,
+        transport = reportedCloneTransport,
+    )
+    val cloneTransport = tk.glucodata.CloneTransportPresentation.sensorTransport(
+        cloneHealth.liveTransport,
+    )
+    // A watch-owned sensor is operational even though this phone's local BLE
+    // callback is deliberately paused. A Clone record, however, is only
+    // healthy while readings are actually arriving; transport connectivity by
+    // itself must not make a silent Clone look enabled.
+    val isStreaming = when {
+        sensor.isCloneSource -> cloneHealth.isReceiving
+        else -> isLocallyStreaming || isHandedOff
     }
     // Visual Feedback: Darken card when disconnected/paused
     val containerColor = if (isStreaming) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -1803,6 +1853,11 @@ fun SensorCard(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // A Clone record is identified the way every other card is: the
+                        // model tile and the name, with the display check inside the name
+                        // control. Two cards that both read "Clone" told the user nothing;
+                        // the route they arrive by belongs on the status line, not in the
+                        // title.
                         SensorModelBadge(
                             badge = badge,
                             vendor = sensor.vendor,
@@ -1818,9 +1873,13 @@ fun SensorCard(
                             onPickColor = { showColorSheet = true },
                             modifier = Modifier.weight(1f),
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        if (!sensor.isCloneSource) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
 
-                        if (isHandedOff) {
+                        if (sensor.isCloneSource) {
+                            // Nothing to pause on a sensor another phone is wearing.
+                        } else if (isHandedOff) {
                             IconButton(
                                 onClick = { viewModel.returnSensorToPhone(sensor.serial) },
                                 modifier = Modifier
@@ -1882,7 +1941,16 @@ fun SensorCard(
                     // trivia, so the paused label takes the slot instead of sitting in the header
                     // repeating what the play button already says.
                     val sensorStatusText = when {
+                        sensor.isCloneSource && !cloneHasRecentData -> stringResource(R.string.nodata)
                         !isStreaming -> pausedText
+                        // statusTextRes only knows connected from reconnecting, and
+                        // it reads the ICE generation, which is unknown often enough
+                        // that a Clone showing a reading from thirty seconds ago still
+                        // claimed to be reconnecting. What the line is for is whether
+                        // readings are arriving, and the stale check above already
+                        // answers that; the route itself has its own row.
+                        sensor.isCloneSource ->
+                            stringResource(R.string.clone_transport_connected)
                         sensor.detailedStatus.isNotEmpty() -> sensor.detailedStatus
                         sensor.connectionStatus.isNotEmpty() -> sensor.connectionStatus
                         else -> null
@@ -1900,11 +1968,21 @@ fun SensorCard(
                                     accentColor = sensorTint
                                 )
                             }
+                            if (sensor.isCloneSource) {
+                                CloneSourceMark(
+                                    transport = cloneTransport,
+                                    showLabel = false,
+                                    tint = if (cloneHasRecentData) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                                    iconSize = 18.dp,
+                                )
+                            }
                             sensorStatusText?.let { status ->
                                 Text(
                                     text = status,
                                     style = MaterialTheme.typography.titleSmall,
-                                    color = if (isStreaming) {
+                                    color = if (sensor.isCloneSource && !cloneHasRecentData) {
+                                        MaterialTheme.colorScheme.error
+                                    } else if (isStreaming) {
                                         MaterialTheme.colorScheme.onSurface
                                     } else {
                                         MaterialTheme.colorScheme.onSurfaceVariant
@@ -2008,7 +2086,10 @@ fun SensorCard(
                             sensor.connectionStatusAtMs,
                             bleErrorNow,
                         )
-                        if (errorEventAt != null &&
+                        // A Clone record's link health is the mirror's, not this radio's;
+                        // a BLE error here would be the sending phone's to show.
+                        if (!sensor.isCloneSource &&
+                            errorEventAt != null &&
                             sensor.connectionStatus.isNotEmpty() &&
                             !sensor.connectionStatus.equals(connectedStatus, ignoreCase = true)
                         ) {
@@ -2023,7 +2104,8 @@ fun SensorCard(
                                     ),
                                 ),
                             )
-                        } else if (sensor.connectionStatusAtMs <= 0L &&
+                        } else if (!sensor.isCloneSource &&
+                            sensor.connectionStatusAtMs <= 0L &&
                             sensor.connectionStatus.isNotEmpty() &&
                             !sensor.connectionStatus.equals(connectedStatus, ignoreCase = true)
                         ) {
@@ -2032,7 +2114,11 @@ fun SensorCard(
                             // off after the one-hour card window.
                             DataRow(stringResource(R.string.last_ble_status), sensor.connectionStatus)
                         }
-                        DataRow(stringResource(R.string.sensor_address), sensor.deviceAddress)
+                        // A mirrored sensor may never have resolved an address on this phone;
+                        // a row saying "Unknown" is a row saying nothing.
+                        if (!(sensor.isCloneSource && sensor.deviceAddress.equals("Unknown", ignoreCase = true))) {
+                            DataRow(stringResource(R.string.sensor_address), sensor.deviceAddress)
+                        }
                     
                         // FIX: Use Long timestamp directly to avoid String Parsing Locale bugs in formatSensorTime
                         // User reported "100% Fill / Red Color" bug in English Locale, likely due to startMs being 0 or parse fail.
@@ -3014,101 +3100,106 @@ fun SensorCard(
                 }
             }
 
-            // Edit 63b: All sensors get the same 2-button row: Reconnect | Disconnect.
-            // AiDex-specific behavior is handled in the dialogs (terminate dialog routes
-            // AiDex through disconnectSensor instead of terminateSensor).
-            // Edit 65c: Keep the old full-width 50/50 row when both labels fit, then let
-            // Disconnect keep priority only on genuinely tight localized layouts.
-            val reconnectLabel = stringResource(R.string.reconnect)
-            val disconnectLabel = stringResource(R.string.disconnect)
-            val layoutDirection = LocalLayoutDirection.current
-            val density = LocalDensity.current
-            val textMeasurer = rememberTextMeasurer()
-            val buttonTextStyle = MaterialTheme.typography.labelLarge
-            val buttonChromeWidth = 16.dp +
-                8.dp +
-                ButtonDefaults.ContentPadding.calculateLeftPadding(layoutDirection) +
-                ButtonDefaults.ContentPadding.calculateRightPadding(layoutDirection)
-            val reconnectPreferredWidth = with(density) {
-                textMeasurer.measure(
-                    text = reconnectLabel,
-                    style = buttonTextStyle,
-                    maxLines = 1
-                ).size.width.toDp() + buttonChromeWidth
-            }
-            val disconnectPreferredWidth = with(density) {
-                textMeasurer.measure(
-                    text = disconnectLabel,
-                    style = buttonTextStyle,
-                    maxLines = 1
-                ).size.width.toDp() + buttonChromeWidth
-            }
+            // Reconnect and Disconnect drive this device's own radio, which a Clone
+            // record does not have: the sensor is on the sending phone. Offering them
+            // here only invites two phones onto one transmitter.
+            if (!sensor.isCloneSource) {
+                // Edit 63b: All sensors get the same 2-button row: Reconnect | Disconnect.
+                // AiDex-specific behavior is handled in the dialogs (terminate dialog routes
+                // AiDex through disconnectSensor instead of terminateSensor).
+                // Edit 65c: Keep the old full-width 50/50 row when both labels fit, then let
+                // Disconnect keep priority only on genuinely tight localized layouts.
+                val reconnectLabel = stringResource(R.string.reconnect)
+                val disconnectLabel = stringResource(R.string.disconnect)
+                val layoutDirection = LocalLayoutDirection.current
+                val density = LocalDensity.current
+                val textMeasurer = rememberTextMeasurer()
+                val buttonTextStyle = MaterialTheme.typography.labelLarge
+                val buttonChromeWidth = 16.dp +
+                    8.dp +
+                    ButtonDefaults.ContentPadding.calculateLeftPadding(layoutDirection) +
+                    ButtonDefaults.ContentPadding.calculateRightPadding(layoutDirection)
+                val reconnectPreferredWidth = with(density) {
+                    textMeasurer.measure(
+                        text = reconnectLabel,
+                        style = buttonTextStyle,
+                        maxLines = 1
+                    ).size.width.toDp() + buttonChromeWidth
+                }
+                val disconnectPreferredWidth = with(density) {
+                    textMeasurer.measure(
+                        text = disconnectLabel,
+                        style = buttonTextStyle,
+                        maxLines = 1
+                    ).size.width.toDp() + buttonChromeWidth
+                }
 
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val buttonSpacing = 8.dp
-                val equalButtonWidth = (maxWidth - buttonSpacing) / 2
-                val prioritizeDisconnect =
-                    reconnectPreferredWidth > equalButtonWidth ||
-                    disconnectPreferredWidth > equalButtonWidth
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val buttonSpacing = 8.dp
+                    val equalButtonWidth = (maxWidth - buttonSpacing) / 2
+                    val prioritizeDisconnect =
+                        reconnectPreferredWidth > equalButtonWidth ||
+                        disconnectPreferredWidth > equalButtonWidth
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
-                ) {
-                    // Reconnect always stays flexible so it can either match the old 50/50
-                    // layout or yield first when Disconnect needs more room.
-                    FilledTonalButton(
-                        onClick = { showReconnectDialog = true },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(
-                            topStart = 12.dp,
-                            bottomStart = 12.dp,
-                            topEnd = 4.dp,
-                            bottomEnd = 4.dp
-                        ),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.BluetoothConnected,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            reconnectLabel,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                    }
+                        // Reconnect always stays flexible so it can either match the old 50/50
+                        // layout or yield first when Disconnect needs more room.
+                        FilledTonalButton(
+                            onClick = { showReconnectDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(
+                                topStart = 12.dp,
+                                bottomStart = 12.dp,
+                                topEnd = 4.dp,
+                                bottomEnd = 4.dp
+                            ),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BluetoothConnected,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                reconnectLabel,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
 
-                    FilledTonalButton(
-                        onClick = { showTerminateDialog = true },
-                        modifier = if (prioritizeDisconnect) Modifier else Modifier.weight(1f),
-                        shape = RoundedCornerShape(
-                            topStart = 4.dp,
-                            bottomStart = 4.dp,
-                            topEnd = 12.dp,
-                            bottomEnd = 12.dp
-                        ),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteForever,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            disconnectLabel,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
+                        FilledTonalButton(
+                            onClick = { showTerminateDialog = true },
+                            modifier = if (prioritizeDisconnect) Modifier else Modifier.weight(1f),
+                            shape = RoundedCornerShape(
+                                topStart = 4.dp,
+                                bottomStart = 4.dp,
+                                topEnd = 12.dp,
+                                bottomEnd = 12.dp
+                            ),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteForever,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                disconnectLabel,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }

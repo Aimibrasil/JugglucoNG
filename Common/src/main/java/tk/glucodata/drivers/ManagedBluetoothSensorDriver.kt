@@ -32,15 +32,28 @@ enum class ManagedSensorCalibrationSource {
     ANYTIME,
 }
 
-enum class ManagedSensorUiFamily {
-    GENERIC,
-    MQ,
-    AIDEX,
-    ICAN,
-    ANYTIME,
-    OTTAI,
-    SIBIONICS,
-    NIGHTSCOUT,
+enum class ManagedSensorUiFamily(
+    /**
+     * What the native info block stores for this family (three bits, 0 = unknown).
+     * Fixed here rather than taken from ordinal(), because the value is on disk
+     * and travels to other phones over Clone: reordering the enum must not
+     * relabel anyone's sensor.
+     */
+    val nativeCode: Int,
+) {
+    GENERIC(0),
+    MQ(1),
+    AIDEX(2),
+    ICAN(3),
+    ANYTIME(4),
+    OTTAI(5),
+    SIBIONICS(6),
+    NIGHTSCOUT(7);
+
+    companion object {
+        fun fromNativeCode(code: Int): ManagedSensorUiFamily =
+            entries.firstOrNull { it.nativeCode == code } ?: GENERIC
+    }
 }
 
 data class ManagedSensorUiSnapshot(

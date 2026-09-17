@@ -10,6 +10,7 @@ import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 import tk.glucodata.Applic
+import tk.glucodata.GlucoseReadingSource
 import tk.glucodata.Log
 import tk.glucodata.R
 import tk.glucodata.SensorIdentity
@@ -253,6 +254,7 @@ class ApiGlucoseSourceManager(
             readings = readings,
             logLabel = "API source",
             mirrorToNative = true,
+            source = GlucoseReadingSource.API,
         )
         if (tailMs > 0L) {
             lastImportedHistoryTailMs = tailMs
@@ -282,6 +284,7 @@ class ApiGlucoseSourceManager(
             sensorGen = SENSOR_GEN,
             logLabel = "API source",
             mirrorToNative = true,
+            source = GlucoseReadingSource.API,
         )
     }
 

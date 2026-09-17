@@ -150,7 +150,15 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
         return current != null && locallyConnectedGatt == current;
     }
 
-    /** Mark a live reading accepted by this local BLE callback. */
+    /**
+     * Mark a live reading accepted by this local BLE callback.
+     *
+     * Every ownership claim this device can make hangs off this one point: the
+     * watch handoff, the sensor-ownership runtime, and Clone. Clone belongs here
+     * rather than at the Libre callback alone, because a managed driver holding
+     * a sensor over its own connection owns it just as completely, and a serial
+     * left flagged as a Clone stops looking like the local sensor it is.
+     */
     protected final void markLocalReadingAccepted(long sampleTimeMs) {
         WearSensorClaim.onLocalReadingAccepted(SerialNumber, sampleTimeMs);
         SensorOwnershipRuntime.noteLocalReading(SerialNumber, sampleTimeMs);
@@ -162,6 +170,13 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
         // sensors the slot stayed 0 and both checks read every session as if no reading
         // had ever arrived.
         charcha[0] = sampleTimeMs;
+        // A reading imported over Clone is published through this same callback,
+        // so accepting one is not proof this device read the sensor. Only a GATT
+        // this process actually connected is, and without that check a mirrored
+        // sensor cleared its own Clone flag on every import.
+        if (hasLocallyConnectedGatt()) {
+            CloneSensorRegistry.markLocalSensor(SerialNumber);
+        }
     }
 
     public void disconnect() {
@@ -1266,10 +1281,12 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
                 ;
             }
             ;
-            if (stop || SensorOwnershipRuntime.blocksLocalConnection(SerialNumber)
+            if (stop || CloneSensorRegistry.isCloneSensor(SerialNumber)
+                    || SensorOwnershipRuntime.blocksLocalConnection(SerialNumber)
                     || (dataptr == 0L && !allowConnectWithoutDataptr())) {
                 if (doLog) {
                     Log.i(LOG_ID, SerialNumber + " getConnectDevice: cancelled (stop=" + stop
+                            + ", clone=" + CloneSensorRegistry.isCloneSensor(SerialNumber)
                             + ", ownershipReleased=" + SensorOwnershipRuntime.blocksLocalConnection(SerialNumber)
                             + ", dataptr=" + dataptr + ")");
                 }
@@ -1374,7 +1391,8 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
             Log.i(LOG_ID, "connectDevice(" + delayMillis + ") " + SerialNumber);
         }
         ;
-        if (stop || SensorOwnershipRuntime.blocksLocalConnection(SerialNumber)
+        if (stop || CloneSensorRegistry.isCloneSensor(SerialNumber)
+                || SensorOwnershipRuntime.blocksLocalConnection(SerialNumber)
                 || (dataptr == 0L && !allowConnectWithoutDataptr())) {
             return false;
         }

@@ -64,7 +64,7 @@ class HistoryDatabaseSafetyTests {
     fun insulinCurveSnapshotMigrationIsRegisteredAndAdditive() {
         val source = historyDatabaseSource()
 
-        assertTrue(source.contains("version = 19"))
+        assertTrue(source.contains("version = 32"))
         assertTrue(source.contains("Migration(18, 19)"))
         assertTrue(source.contains("MIGRATION_18_19"))
         assertTrue(source.contains("ALTER TABLE journal_entries ADD COLUMN insulinCurveJsonSnapshot TEXT"))
@@ -73,5 +73,54 @@ class HistoryDatabaseSafetyTests {
         // must read the preset row, never invent a shape.
         assertTrue(source.contains("SET insulinCurveJsonSnapshot = ("))
         assertFalse(source.contains("DROP TABLE journal_insulin_presets"))
+    }
+
+    @Test
+    fun cloneTestBuildBridgeIsRegisteredAndAdditive() {
+        val source = historyDatabaseSource()
+
+        // Phones that ran Clone-branch test builds report v20–v30; this build must
+        // open them as an upgrade, never a downgrade.
+        assertTrue(source.contains("Migration(19, 30)"))
+        assertTrue(source.contains("MIGRATION_19_30"))
+        assertTrue(source.contains("bridgeCloneToV30(20)"))
+        assertTrue(source.contains("bridgeCloneToV30(29)"))
+        // v30 alone is not enough: at equal versions Room compares the
+        // whole-schema identity hash, which covers Clone-only tables this build
+        // does not own. The 30→31 step forces the migration path, where Room
+        // validates the owned tables and rewrites the hash.
+        assertTrue(source.contains("Migration(30, 31)"))
+        assertTrue(source.contains("MIGRATION_30_31"))
+        // Compatibility columns are kept, never read; the bridge must not drop
+        // user data tables.
+        assertTrue(source.contains("ADD COLUMN source TEXT NOT NULL DEFAULT 'sensor'"))
+        assertTrue(source.contains("ADD COLUMN firstStoredAt INTEGER NOT NULL DEFAULT 0"))
+        assertTrue(source.contains("ADD COLUMN originSource TEXT"))
+        assertTrue(source.contains("ADD COLUMN recoveryId TEXT"))
+        assertFalse(source.contains("DROP TABLE IF EXISTS history_readings"))
+        assertFalse(source.contains("DROP TABLE journal_insulin_presets"))
+    }
+
+    @Test
+    fun cloneTablesBecomeOwnedAtV32ByGuardedCreationOnly() {
+        val source = historyDatabaseSource()
+
+        // Three histories reach v31 -- main, a Clone build, a test build -- and
+        // Room validates owned tables on open, so v32 must guarantee them on all.
+        assertTrue(source.contains("Migration(31, 32)"))
+        assertTrue(source.contains("MIGRATION_31_32"))
+        assertTrue(source.contains("CloneJournalTombstoneEntity::class"))
+        assertTrue(source.contains("CloneJournalRecoveryTombstoneEntity::class"))
+        assertTrue(source.contains("CloneRecoveryImportEntity::class"))
+        assertTrue(source.contains("CREATE TABLE IF NOT EXISTS clone_journal_tombstones"))
+        assertTrue(source.contains("CREATE TABLE IF NOT EXISTS clone_journal_recovery_tombstones"))
+        assertTrue(source.contains("CREATE TABLE IF NOT EXISTS clone_recovery_imports"))
+        assertTrue(source.contains("index_clone_journal_recovery_tombstones_recoveryId"))
+        // The identities the Clone code keys on, filled only where empty.
+        assertTrue(source.contains("SET recoveryId = lower(hex(randomblob(16)))"))
+        assertTrue(source.contains("WHERE recoveryId IS NULL"))
+        // Nothing here may drop a table a user's data lives in.
+        assertFalse(source.contains("DROP TABLE clone_journal_tombstones"))
+        assertFalse(source.contains("DROP TABLE journal_entries"))
     }
 }

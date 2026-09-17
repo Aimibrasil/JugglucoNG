@@ -296,7 +296,14 @@ public:
     int8_t streamingIsEnabled;
     int8_t patchState;
     uint16_t autoResetDays : 8;
-    uint16_t reserved4 : 3;
+    // Which managed driver family owns this shell: Ottai, Anytime, MQ, iCan...
+    // The native ladder cannot tell those apart -- anything not flagged
+    // Sibionics, Dexcom, Accu-Chek or AiDex is Libre 2 by elimination -- and a
+    // phone receiving the sensor over Clone has no driver record to ask. The
+    // family travels in info.dat with everything else. 0 is unknown, which is
+    // what every shell written before this field existed reads as. Codes are
+    // ManagedSensorUiFamily.nativeCode on the Kotlin side.
+    uint16_t managedFamily : 3;
     uint16_t aidex : 1;
     uint16_t useCustomCalibration : 1;
     uint16_t autoResetAlgorithm : 1;

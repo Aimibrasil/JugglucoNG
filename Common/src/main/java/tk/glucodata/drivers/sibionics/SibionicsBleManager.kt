@@ -1926,6 +1926,7 @@ class SibionicsBleManager(
                 else -> 1L
             }.coerceAtLeast(1L)
             Natives.ensureSensorShell(name, startSec)
+            Natives.setSensorManagedFamily(name, ManagedSensorUiFamily.SIBIONICS.nativeCode)
             if (!Natives.hasSensorStreamCapacity(name, NATIVE_STREAM_CAPACITY_MINUTES)) {
                 Log.e(SibionicsConstants.TAG, "native stream capacity unavailable for $name")
                 return@runCatching false

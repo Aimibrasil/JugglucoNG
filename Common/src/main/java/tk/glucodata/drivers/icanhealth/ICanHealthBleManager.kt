@@ -44,6 +44,7 @@ import tk.glucodata.SensorBluetooth
 import tk.glucodata.SensorIdentity
 import tk.glucodata.SuperGattCallback
 import tk.glucodata.UiRefreshBus
+import tk.glucodata.drivers.ManagedSensorUiFamily
 
 @SuppressLint("MissingPermission")
 class ICanHealthBleManager(
@@ -1993,6 +1994,7 @@ class ICanHealthBleManager(
             )
             if (stored) {
                 NightscoutUploadWake.afterLiveNativeWrite("ican", sampleTimeMs)
+                markLocalReadingAccepted(sampleTimeMs)
             }
             applyNativeSensorMetadata()
             val sensorPtr = resolveNativeSensorPtr(SerialNumber)
@@ -3655,6 +3657,8 @@ class ICanHealthBleManager(
         if (days <= 0) {
             runCatching { Natives.ensureSensorShell(name, startSec) }
                 .onFailure { Log.stack(TAG, "ensureNativeDataptr(ensureSensorShell)", it) }
+            runCatching { Natives.setSensorManagedFamily(name, ManagedSensorUiFamily.ICAN.nativeCode) }
+                .onFailure { Log.stack(TAG, "ensureNativeDataptr(setSensorManagedFamily)", it) }
             return
         }
         val key = "$name:$days"
@@ -3664,6 +3668,7 @@ class ICanHealthBleManager(
             if (Natives.ensureSensorShellWithCapacity(name, startSec, minimumRecords) == 0L) {
                 Natives.ensureSensorShell(name, startSec)
             }
+            Natives.setSensorManagedFamily(name, ManagedSensorUiFamily.ICAN.nativeCode)
             if (alreadyDeclared) {
                 return@runCatching
             }
