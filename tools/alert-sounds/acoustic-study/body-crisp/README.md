@@ -9,7 +9,11 @@ hard-mallet strike. There are no bass oscillators, synthetic sweeps, distortion,
 shifts, or added reverberation. Both designs target -20 dBFS active RMS; this is electrical
 level matching, not a claim of equal perceived loudness.
 
-These comparison copies remain outside Android resources. A is preserved in Timber and B
-is preserved in Ember as selectable collections. Sources and CC0 terms are in the parent folder. Reproduce with `render_body_crisp.py`; append `--check` to verify
+These comparison copies remain outside Android resources. A forms the basis of Timber and B
+forms the basis of Ember, with longer, louder production arrangements. Sources and CC0 terms are in the parent folder. Reproduce with `render_body_crisp.py`; append `--check` to verify
 source hashes, exact output, headroom, DC offset and zero endpoints. Python/NumPy and
-macOS afconvert are required. Adding the collections does not migrate existing alarm choices.
+macOS afconvert are required. Explicit alarm sound choices are retained; unset app defaults now use Ember.
+
+Production update: these short audition WAVs remain unchanged. The selectable Timber and Ember
+collections now use longer arrangements and louder mastering; they are no longer byte-identical
+to these study copies. Ember is the default for unset sounds; explicit choices remain saved.
