@@ -2900,8 +2900,8 @@
     <string name="clone_local_short_desc">Połącz ponownie w sieci lokalnej</string>
     <string name="clone_stun_short">TURN dla STUN</string>
     <string name="clone_stun_needs_server">Najpierw skonfiguruj serwer TURN</string>
-    <string name="clone_stun_short_desc">Używaj przekaźnika także do zestawiania połączeń bezpośrednich</string>
-    <string name="clone_switches_apply">Zapisywane automatycznie. Obowiązuje przy następnym połączeniu.</string>
+    <string name="clone_stun_short_desc">Pytaj o swój adres publiczny własny serwer TURN zamiast publicznego serwera STUN</string>
+    <string name="clone_apply">Zastosuj</string>
     <string name="clone_server_edit_hint">Zmiany serwera ponownie połączą Clone. Używaj tych samych ustawień na obu urządzeniach.</string>
     <string name="clone_use_default_server">Użyj serwera aplikacji</string>
     <string name="clone_custom_server">Własny serwer</string>

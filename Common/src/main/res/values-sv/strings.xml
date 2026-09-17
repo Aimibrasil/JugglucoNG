@@ -2860,8 +2860,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="clone_local_short_desc">Återanslut via det lokala nätverket</string>
     <string name="clone_stun_short">TURN för STUN</string>
     <string name="clone_stun_needs_server">Konfigurera en TURN-server först</string>
-    <string name="clone_stun_short_desc">Använd reläet även för att upprätta direktanslutningar</string>
-    <string name="clone_switches_apply">Sparas automatiskt. Används vid nästa anslutningsförsök.</string>
+    <string name="clone_stun_short_desc">Fråga din TURN-server om din publika adress i stället för en publik STUN-server</string>
+    <string name="clone_apply">Verkställ</string>
     <string name="clone_server_edit_hint">Serverändringar återansluter Clone. Använd samma inställningar på båda enheterna.</string>
     <string name="clone_use_default_server">Använd appens server</string>
     <string name="clone_custom_server">Egen server</string>

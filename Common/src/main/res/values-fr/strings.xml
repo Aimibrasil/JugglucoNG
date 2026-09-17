@@ -2866,8 +2866,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="clone_local_short_desc">Reconnecter sur le réseau local</string>
     <string name="clone_stun_short">TURN pour STUN</string>
     <string name="clone_stun_needs_server">Configurez d’abord un serveur TURN</string>
-    <string name="clone_stun_short_desc">Utiliser aussi le relais pour établir une connexion directe</string>
-    <string name="clone_switches_apply">Enregistré automatiquement. Appliqué à la prochaine connexion.</string>
+    <string name="clone_stun_short_desc">Demander votre adresse publique à votre serveur TURN plutôt qu’à un serveur STUN public</string>
+    <string name="clone_apply">Appliquer</string>
     <string name="clone_server_edit_hint">Modifier le serveur reconnecte Clone. Utilisez les mêmes paramètres sur les deux appareils.</string>
     <string name="clone_use_default_server">Utiliser le serveur par défaut</string>
     <string name="clone_custom_server">Serveur personnalisé</string>

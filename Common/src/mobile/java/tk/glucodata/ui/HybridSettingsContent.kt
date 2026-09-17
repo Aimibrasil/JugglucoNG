@@ -18,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -35,17 +34,109 @@ internal data class TurnEndpoint(
     val password: String,
 )
 
-/** Presentation only: rendering or opening an editor never touches native networking. */
+/**
+ * Everything the screen edits, as the user typed it. Nothing here reaches native or the
+ * store until [HybridSettingsContent]'s Apply, so a field half-typed or a switch flipped
+ * and flipped back costs no reconnection. The port fields stay strings on purpose: a
+ * draft has to be able to hold "" while the user is typing.
+ */
+internal data class HybridDraft(
+    val customTurn: Boolean,
+    val turnHost: String,
+    val turnPort: String,
+    val turnUser: String,
+    val turnPassword: String,
+    val customRendezvous: Boolean,
+    val rendezvousHost: String,
+    val rendezvousPort: String,
+    val verifyRendezvousCertificate: Boolean,
+    val useLocalDiscovery: Boolean,
+    val useTurnForStun: Boolean,
+    val preferIPv4: Boolean,
+) {
+    val turnPortValue: Int? get() = turnPort.toIntOrNull()?.takeIf { it in 1..65535 }
+    val rendezvousPortValue: Int? get() = rendezvousPort.toIntOrNull()?.takeIf { it in 1..65535 }
+
+    val turnHostValid: Boolean get() = TurnServerInputPolicy.fitsNativeBuffer(turnHost.trim(), TurnServerInputPolicy.HOST_BYTES)
+    val turnUserValid: Boolean get() = TurnServerInputPolicy.fitsNativeBuffer(turnUser, TurnServerInputPolicy.USERNAME_BYTES)
+    val turnPasswordValid: Boolean get() = TurnServerInputPolicy.fitsNativeBuffer(turnPassword, TurnServerInputPolicy.PASSWORD_BYTES)
+    val rendezvousHostValid: Boolean
+        get() = rendezvousHost.isNotBlank() && rendezvousHost.trim().length <= CloneIceNetworkConfig.MAX_HOST_LENGTH
+
+    /** The TURN endpoint this draft describes, or null for the app's own. */
+    val turnEndpoint: TurnEndpoint?
+        get() = if (customTurn && turnHost.isNotBlank()) {
+            turnPortValue?.let { TurnEndpoint(turnHost.trim(), it, turnUser, turnPassword) }
+        } else {
+            null
+        }
+
+    /** The network config this draft describes, over [base] for what the screen does not edit. */
+    fun toConfig(base: CloneIceNetworkConfig): CloneIceNetworkConfig = base.copy(
+        rendezvousHost = if (customRendezvous) rendezvousHost.trim() else "",
+        rendezvousPort = if (customRendezvous) rendezvousPortValue ?: CloneIceNetworkConfig.DEFAULT_RENDEZVOUS_PORT else CloneIceNetworkConfig.DEFAULT_RENDEZVOUS_PORT,
+        verifyRendezvousCertificate = if (customRendezvous) verifyRendezvousCertificate else true,
+        useLocalDiscovery = useLocalDiscovery,
+        useTurnForStun = useTurnForStun && turnEndpoint != null,
+        preferIPv4 = preferIPv4,
+    )
+
+    /** Whether this draft names a different TURN server than [saved]. */
+    fun turnChanged(saved: HybridDraft): Boolean = turnEndpoint != saved.turnEndpoint
+
+    /** Whether this draft names a different rendezvous server, or verifies it differently. */
+    fun rendezvousChanged(saved: HybridDraft): Boolean {
+        val mine = toConfig(CloneIceNetworkConfig())
+        val theirs = saved.toConfig(CloneIceNetworkConfig())
+        return mine.rendezvousHost != theirs.rendezvousHost ||
+            mine.rendezvousPort != theirs.rendezvousPort ||
+            mine.verifyRendezvousCertificate != theirs.verifyRendezvousCertificate
+    }
+
+    /** The switches, which never cost a connection and are saved as they are flipped. */
+    fun switchesChanged(saved: HybridDraft): Boolean =
+        useLocalDiscovery != saved.useLocalDiscovery ||
+            useTurnForStun != saved.useTurnForStun ||
+            preferIPv4 != saved.preferIPv4
+
+    val turnValid: Boolean
+        get() = !customTurn || (turnHost.isNotBlank() && turnHostValid && turnPortValue != null && turnUserValid && turnPasswordValid)
+    val rendezvousValid: Boolean
+        get() = !customRendezvous || (rendezvousHostValid && rendezvousPortValue != null)
+
+    companion object {
+        fun of(config: CloneIceNetworkConfig, turn: TurnEndpoint?): HybridDraft = HybridDraft(
+            customTurn = turn != null,
+            turnHost = turn?.host.orEmpty(),
+            turnPort = (turn?.port ?: 3478).toString(),
+            turnUser = turn?.username.orEmpty(),
+            turnPassword = turn?.password.orEmpty(),
+            customRendezvous = config.rendezvousHost.isNotEmpty(),
+            rendezvousHost = config.rendezvousHost,
+            rendezvousPort = config.rendezvousPort.toString(),
+            verifyRendezvousCertificate = config.verifyRendezvousCertificate,
+            useLocalDiscovery = config.useLocalDiscovery,
+            useTurnForStun = config.useTurnForStun,
+            preferIPv4 = config.preferIPv4,
+        )
+    }
+}
+
+/**
+ * Presentation only: nothing here touches native networking. The screen edits a [draft]
+ * that the owner saves on its own; the one thing a user has to ask for is rebuilding a
+ * live connection through a server they just changed, and that is the only time a
+ * button appears -- inside the server it belongs to.
+ */
 @Composable
 internal fun HybridSettingsContent(
-    config: CloneIceNetworkConfig,
-    turn: TurnEndpoint?,
+    draft: HybridDraft,
+    saved: HybridDraft,
+    liveConnection: Boolean,
+    onDraftChange: (HybridDraft) -> Unit,
+    onApplyTurn: () -> Unit,
+    onApplyRendezvous: () -> Unit,
     onBack: () -> Unit,
-    onLocalDiscovery: (Boolean) -> Unit,
-    onTurnForStun: (Boolean) -> Unit,
-    onPreferIPv4: (Boolean) -> Unit,
-    onSaveTurn: (TurnEndpoint?) -> Boolean,
-    onSaveRendezvous: (String, Int, Boolean) -> Boolean,
 ) {
     var showHelp by rememberSaveable { mutableStateOf(false) }
     val accent = MaterialTheme.colorScheme.tertiary
@@ -72,9 +163,23 @@ internal fun HybridSettingsContent(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             SectionLabel(stringResource(R.string.clone_servers), topPadding = 8.dp)
-            TurnServerSetting(endpoint = turn, onCommit = onSaveTurn, accent = accent)
+            TurnServerSetting(
+                draft = draft,
+                saved = saved,
+                onDraftChange = onDraftChange,
+                showApply = liveConnection && draft.turnValid && draft.turnChanged(saved),
+                onApply = onApplyTurn,
+                accent = accent,
+            )
             Spacer(Modifier.height(2.dp))
-            RendezvousServerSetting(config = config, onCommit = onSaveRendezvous, accent = accent)
+            RendezvousServerSetting(
+                draft = draft,
+                saved = saved,
+                onDraftChange = onDraftChange,
+                showApply = liveConnection && draft.rendezvousValid && draft.rendezvousChanged(saved),
+                onApply = onApplyRendezvous,
+                accent = accent,
+            )
 
             SectionLabel(stringResource(R.string.clone_connection_options))
             SettingsSwitchItem(
@@ -82,19 +187,20 @@ internal fun HybridSettingsContent(
                 subtitle = stringResource(R.string.clone_local_short_desc),
                 icon = Icons.Default.Lan,
                 iconTint = accent,
-                checked = config.useLocalDiscovery,
-                onCheckedChange = onLocalDiscovery,
+                checked = draft.useLocalDiscovery,
+                onCheckedChange = { onDraftChange(draft.copy(useLocalDiscovery = it)) },
                 position = CardPosition.TOP,
             )
             Spacer(Modifier.height(2.dp))
+            val turnAvailable = draft.turnEndpoint != null
             SettingsSwitchItem(
                 title = stringResource(R.string.clone_stun_short),
-                subtitle = stringResource(if (turn == null) R.string.clone_stun_needs_server else R.string.clone_stun_short_desc),
+                subtitle = stringResource(if (turnAvailable) R.string.clone_stun_short_desc else R.string.clone_stun_needs_server),
                 icon = Icons.Default.Hub,
                 iconTint = accent,
-                checked = config.useTurnForStun,
-                enabled = turn != null,
-                onCheckedChange = onTurnForStun,
+                checked = draft.useTurnForStun && turnAvailable,
+                enabled = turnAvailable,
+                onCheckedChange = { onDraftChange(draft.copy(useTurnForStun = it)) },
                 position = CardPosition.MIDDLE,
             )
             Spacer(Modifier.height(2.dp))
@@ -103,15 +209,9 @@ internal fun HybridSettingsContent(
                 subtitle = stringResource(R.string.clone_prefer_ipv4_summary),
                 icon = Icons.Default.SettingsEthernet,
                 iconTint = accent,
-                checked = config.preferIPv4,
-                onCheckedChange = onPreferIPv4,
+                checked = draft.preferIPv4,
+                onCheckedChange = { onDraftChange(draft.copy(preferIPv4 = it)) },
                 position = CardPosition.BOTTOM,
-            )
-            Text(
-                stringResource(R.string.clone_switches_apply),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
             )
         }
     }
@@ -132,65 +232,74 @@ internal fun HybridSettingsContent(
 }
 
 /**
- * Both servers are the same choice -- use your own instead of the app's -- so
- * they are the same control. Verify sits outside the card as a row of its own:
- * it is a separate decision about the server you just named, not one of its
- * fields.
+ * The one action on this screen. It exists only while pressing it does something the
+ * screen would not do on its own: the server above was changed, and a Clone route is up
+ * that would otherwise keep using the old one until it next reconnected.
+ */
+@Composable
+private fun ApplyRow(visible: Boolean, onApply: () -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Button(onClick = onApply) {
+                Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.clone_apply))
+            }
+        }
+    }
+}
+
+/**
+ * Both servers are the same choice -- use your own instead of the app's -- so they are
+ * the same control. Verify sits outside the card as a row of its own: it is a separate
+ * decision about the server you just named, not one of its fields.
  */
 @Composable
 private fun ColumnScope.RendezvousServerSetting(
-    config: CloneIceNetworkConfig,
-    onCommit: (String, Int, Boolean) -> Boolean,
+    draft: HybridDraft,
+    saved: HybridDraft,
+    onDraftChange: (HybridDraft) -> Unit,
+    showApply: Boolean,
+    onApply: () -> Unit,
     accent: androidx.compose.ui.graphics.Color,
 ) {
-    var custom by rememberSaveable { mutableStateOf(config.rendezvousHost.isNotEmpty()) }
-    var host by rememberSaveable { mutableStateOf(config.rendezvousHost) }
-    var port by rememberSaveable { mutableStateOf(config.rendezvousPort.toString()) }
-    var verify by rememberSaveable { mutableStateOf(config.verifyRendezvousCertificate) }
-    val validPort = port.toIntOrNull()?.takeIf { it in 1..65535 }
-    val validHost = host.isNotBlank() && host.trim().length <= CloneIceNetworkConfig.MAX_HOST_LENGTH
-
-    fun commit() {
-        if (!custom) {
-            onCommit("", CloneIceNetworkConfig.DEFAULT_RENDEZVOUS_PORT, true)
-        } else if (validHost && validPort != null) {
-            onCommit(host.trim(), validPort, verify)
-        }
-    }
-
     DisclosingSwitchCard(
         title = stringResource(R.string.use_custom_rendezvous_server),
-        subtitle = formatNetworkEndpoint(config.rendezvousHost, config.rendezvousPort)
+        subtitle = formatNetworkEndpoint(saved.toConfig(CloneIceNetworkConfig()).rendezvousHost, saved.rendezvousPortValue ?: CloneIceNetworkConfig.DEFAULT_RENDEZVOUS_PORT)
             ?: stringResource(R.string.clone_server_default),
         icon = Icons.Default.Dns,
         iconTint = accent,
-        checked = custom,
-        onCheckedChange = { custom = it; commit() },
-        position = if (custom) CardPosition.MIDDLE else CardPosition.BOTTOM,
+        checked = draft.customRendezvous,
+        onCheckedChange = { onDraftChange(draft.copy(customRendezvous = it)) },
+        position = if (draft.customRendezvous) CardPosition.MIDDLE else CardPosition.BOTTOM,
     ) {
-        CommittingTextField(
-            value = host,
-            onValueChange = { host = it },
+        DraftTextField(
+            value = draft.rendezvousHost,
+            onValueChange = { onDraftChange(draft.copy(rendezvousHost = it)) },
             label = stringResource(R.string.hostname),
-            isError = host.isNotEmpty() && !validHost,
-            onCommit = ::commit,
+            isError = draft.rendezvousHost.isNotEmpty() && !draft.rendezvousHostValid,
         )
-        CommittingTextField(
-            value = port,
-            onValueChange = { port = it },
+        DraftTextField(
+            value = draft.rendezvousPort,
+            onValueChange = { onDraftChange(draft.copy(rendezvousPort = it)) },
             label = stringResource(R.string.port),
-            isError = validPort == null,
+            isError = draft.rendezvousPortValue == null,
             keyboardType = KeyboardType.Number,
-            onCommit = ::commit,
         )
+        ApplyRow(visible = showApply, onApply = onApply)
     }
     AnimatedVisibility(
-        visible = custom,
+        visible = draft.customRendezvous,
         enter = expandVertically() + fadeIn(),
         exit = shrinkVertically() + fadeOut(),
     ) {
         Column {
             Spacer(Modifier.height(2.dp))
+            val verify = draft.verifyRendezvousCertificate
             SettingsSwitchItem(
                 title = stringResource(R.string.verify_rendezvous_certificate),
                 subtitle = if (verify) null else stringResource(R.string.verify_rendezvous_certificate_summary),
@@ -198,7 +307,7 @@ private fun ColumnScope.RendezvousServerSetting(
                 icon = Icons.Default.VerifiedUser,
                 iconTint = if (verify) accent else MaterialTheme.colorScheme.error,
                 checked = verify,
-                onCheckedChange = { verify = it; commit() },
+                onCheckedChange = { onDraftChange(draft.copy(verifyRendezvousCertificate = it)) },
                 position = CardPosition.BOTTOM,
             )
         }
@@ -207,68 +316,49 @@ private fun ColumnScope.RendezvousServerSetting(
 
 @Composable
 private fun TurnServerSetting(
-    endpoint: TurnEndpoint?,
-    onCommit: (TurnEndpoint?) -> Boolean,
+    draft: HybridDraft,
+    saved: HybridDraft,
+    onDraftChange: (HybridDraft) -> Unit,
+    showApply: Boolean,
+    onApply: () -> Unit,
     accent: androidx.compose.ui.graphics.Color,
 ) {
-    var custom by rememberSaveable { mutableStateOf(endpoint != null) }
-    var host by rememberSaveable { mutableStateOf(endpoint?.host.orEmpty()) }
-    var port by rememberSaveable { mutableStateOf((endpoint?.port ?: 3478).toString()) }
-    var user by rememberSaveable { mutableStateOf(endpoint?.username.orEmpty()) }
-    var password by rememberSaveable { mutableStateOf(endpoint?.password.orEmpty()) }
     var visible by rememberSaveable { mutableStateOf(false) }
-    val validPort = port.toIntOrNull()?.takeIf { it in 1..65535 }
-    val validHost = TurnServerInputPolicy.fitsNativeBuffer(host.trim(), TurnServerInputPolicy.HOST_BYTES)
-    val validUser = TurnServerInputPolicy.fitsNativeBuffer(user, TurnServerInputPolicy.USERNAME_BYTES)
-    val validPassword = TurnServerInputPolicy.fitsNativeBuffer(password, TurnServerInputPolicy.PASSWORD_BYTES)
-
-    fun commit() {
-        if (!custom || host.isBlank()) {
-            if (endpoint != null) onCommit(null)
-        } else if (validPort != null && validHost && validUser && validPassword) {
-            onCommit(TurnEndpoint(host.trim(), validPort, user, password))
-        }
-    }
-
     DisclosingSwitchCard(
         title = stringResource(R.string.use_custom_turn_server),
-        subtitle = endpoint?.let { formatNetworkEndpoint(it.host, it.port) }
+        subtitle = saved.turnEndpoint?.let { formatNetworkEndpoint(it.host, it.port) }
             ?: stringResource(R.string.mirror_app_turn_server),
         icon = Icons.Default.CloudQueue,
         iconTint = accent,
-        checked = custom,
-        onCheckedChange = { custom = it; commit() },
+        checked = draft.customTurn,
+        onCheckedChange = { onDraftChange(draft.copy(customTurn = it)) },
         position = CardPosition.TOP,
     ) {
-        CommittingTextField(
-            value = host,
-            onValueChange = { host = it },
+        DraftTextField(
+            value = draft.turnHost,
+            onValueChange = { onDraftChange(draft.copy(turnHost = it)) },
             label = stringResource(R.string.hostname),
             placeholder = "turn.example.org",
-            isError = !validHost,
-            onCommit = ::commit,
+            isError = !draft.turnHostValid,
         )
-        CommittingTextField(
-            value = port,
-            onValueChange = { port = it },
+        DraftTextField(
+            value = draft.turnPort,
+            onValueChange = { onDraftChange(draft.copy(turnPort = it)) },
             label = stringResource(R.string.port),
-            isError = validPort == null,
+            isError = draft.turnPortValue == null,
             keyboardType = KeyboardType.Number,
-            onCommit = ::commit,
         )
-        CommittingTextField(
-            value = user,
-            onValueChange = { user = it },
+        DraftTextField(
+            value = draft.turnUser,
+            onValueChange = { onDraftChange(draft.copy(turnUser = it)) },
             label = stringResource(R.string.username),
-            isError = !validUser,
-            onCommit = ::commit,
+            isError = !draft.turnUserValid,
         )
-        CommittingTextField(
-            value = password,
-            onValueChange = { password = it },
+        DraftTextField(
+            value = draft.turnPassword,
+            onValueChange = { onDraftChange(draft.copy(turnPassword = it)) },
             label = stringResource(R.string.password),
-            isError = !validPassword,
-            onCommit = ::commit,
+            isError = !draft.turnPasswordValid,
             visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { visible = !visible }) {
@@ -279,33 +369,28 @@ private fun TurnServerSetting(
                 }
             },
         )
-        if (!validHost || !validUser || !validPassword) {
+        if (!draft.turnHostValid || !draft.turnUserValid || !draft.turnPasswordValid) {
             Text(
-                stringResource(if (!validHost) R.string.mirror_host_error_hostname_too_long else R.string.turn_credentials_too_long),
+                stringResource(if (!draft.turnHostValid) R.string.mirror_host_error_hostname_too_long else R.string.turn_credentials_too_long),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+        ApplyRow(visible = showApply, onApply = onApply)
     }
 }
 
-/**
- * Nothing on this page has a Save, so a field writes its value when it loses
- * focus rather than on every keystroke -- half a hostname is not a hostname.
- */
 @Composable
-private fun CommittingTextField(
+private fun DraftTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    onCommit: () -> Unit,
     isError: Boolean = false,
     placeholder: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    var wasFocused by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -316,11 +401,6 @@ private fun CommittingTextField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         visualTransformation = visualTransformation,
         trailingIcon = trailingIcon,
-        modifier = Modifier
-            .fillMaxWidth()
-            .onFocusChanged { state ->
-                if (wasFocused && !state.isFocused) onCommit()
-                wasFocused = state.isFocused
-            },
+        modifier = Modifier.fillMaxWidth(),
     )
 }

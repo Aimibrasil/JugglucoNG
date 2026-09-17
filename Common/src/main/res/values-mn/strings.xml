@@ -2966,8 +2966,8 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="clone_local_short_desc">Дотоод сүлжээгээр дахин холбогдох</string>
     <string name="clone_stun_short">STUN-д TURN ашиглах</string>
     <string name="clone_stun_needs_server">Эхлээд TURN сервер тохируулна уу</string>
-    <string name="clone_stun_short_desc">Шууд холболт үүсгэхэд мөн дамжуулах серверийг ашиглах</string>
-    <string name="clone_switches_apply">Автоматаар хадгална. Дараагийн холболтын оролдлогод үйлчилнэ.</string>
+    <string name="clone_stun_short_desc">Нийтийн хаягаа нийтийн STUN серверээс биш өөрийн TURN серверээс асуух</string>
+    <string name="clone_apply">Хэрэглэх</string>
     <string name="clone_server_edit_hint">Серверийн өөрчлөлт Clone-ийг дахин холбоно. Хоёр төхөөрөмжид ижил тохиргоо ашиглана уу.</string>
     <string name="clone_use_default_server">Аппын сервер ашиглах</string>
     <string name="clone_custom_server">Өөрийн сервер</string>

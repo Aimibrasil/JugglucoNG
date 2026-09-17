@@ -2938,8 +2938,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="clone_local_short_desc">Повторне з’єднання в локальній мережі</string>
     <string name="clone_stun_short">TURN для STUN</string>
     <string name="clone_stun_needs_server">Спочатку налаштуйте сервер TURN</string>
-    <string name="clone_stun_short_desc">Той самий сервер для налаштування прямого з’єднання</string>
-    <string name="clone_switches_apply">Зберігається одразу. Застосовується при наступному з’єднанні.</string>
+    <string name="clone_stun_short_desc">Дізнаватися свою публічну адресу у власного TURN-сервера, а не у публічного STUN-сервера</string>
+    <string name="clone_apply">Застосувати</string>
     <string name="clone_server_edit_hint">Зміни сервера перепідключать Clone. На обох пристроях мають бути однакові налаштування.</string>
     <string name="clone_use_default_server">Сервер застосунку</string>
     <string name="clone_custom_server">Власний сервер</string>

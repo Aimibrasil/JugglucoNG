@@ -2875,8 +2875,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="clone_local_short_desc">通过局域网重新连接</string>
     <string name="clone_stun_short">将 TURN 用于 STUN</string>
     <string name="clone_stun_needs_server">请先配置 TURN 服务器</string>
-    <string name="clone_stun_short_desc">也使用中继服务器协助建立直连</string>
-    <string name="clone_switches_apply">自动保存，下次尝试连接时生效。</string>
+    <string name="clone_stun_short_desc">向自己的 TURN 服务器询问公网地址，而不是公共 STUN 服务器</string>
+    <string name="clone_apply">应用</string>
     <string name="clone_server_edit_hint">更改服务器将重新连接 Clone。请在两台设备上使用相同的设置。</string>
     <string name="clone_use_default_server">使用默认服务器</string>
     <string name="clone_custom_server">自定义服务器</string>

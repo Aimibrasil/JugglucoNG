@@ -2909,8 +2909,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="clone_local_short_desc">Переподключение в локальной сети</string>
     <string name="clone_stun_short">TURN для STUN</string>
     <string name="clone_stun_needs_server">Сначала настройте сервер TURN</string>
-    <string name="clone_stun_short_desc">Тот же сервер для настройки прямого соединения</string>
-    <string name="clone_switches_apply">Сохраняется сразу. Применяется при следующем подключении.</string>
+    <string name="clone_stun_short_desc">Узнавать свой публичный адрес у своего TURN-сервера, а не у публичного STUN-сервера</string>
+    <string name="clone_apply">Применить</string>
     <string name="clone_server_edit_hint">Изменения сервера переподключат Clone. На обоих устройствах должны быть одинаковые настройки.</string>
     <string name="clone_use_default_server">Сервер приложения</string>
     <string name="clone_custom_server">Свой сервер</string>

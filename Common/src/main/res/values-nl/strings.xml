@@ -2903,8 +2903,8 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="clone_local_short_desc">Opnieuw verbinden via het lokale netwerk</string>
     <string name="clone_stun_short">TURN voor STUN</string>
     <string name="clone_stun_needs_server">Stel eerst een TURN-server in</string>
-    <string name="clone_stun_short_desc">Gebruik de relay ook voor directe verbindingsopbouw</string>
-    <string name="clone_switches_apply">Automatisch opgeslagen. Geldt bij de volgende verbindingspoging.</string>
+    <string name="clone_stun_short_desc">Vraag je openbare adres aan je TURN-server in plaats van aan een openbare STUN-server</string>
+    <string name="clone_apply">Toepassen</string>
     <string name="clone_server_edit_hint">Serverwijzigingen verbinden Clone opnieuw. Gebruik dezelfde instellingen op beide apparaten.</string>
     <string name="clone_use_default_server">App-standaard gebruiken</string>
     <string name="clone_custom_server">Eigen server</string>
