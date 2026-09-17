@@ -1000,8 +1000,8 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="icanhealth_sensor_desc">Ku habeyn iCan i3/i6/i7 CGM adigoo isticmaalaya Bluetooth</string>
     <string name="mq_sensor">MQ / Glutec</string>
     <string name="mq_sensor_desc">Ku xidh gudbiyaha Glutec/MQ CGM adoo isticmaalaya Bluetooth</string>
-    <string name="anytime_sensor">Waqti kasta / Yuwell 4 / 4H / 5</string>
-    <string name="anytime_sensor_desc">Isku-dubbarid wakhti kasta / Yuwell CT3 CGM adoo isticmaalaya Bluetooth</string>
+    <string name="anytime_sensor">Anytime / Yuwell</string>
+    <string name="anytime_sensor_desc">Ku xidh gudbiyaha CGM ee Anytime / Yuwell iyada oo loo marayo Bluetooth</string>
     <string name="ottai_sensor">Ottai CGM</string>
     <string name="ottai_sensor_desc">Koontada Ottai ama faylka aqoonsiga + Bluetooth</string>
     <string name="ottai_sensor_picker_desc">Shiinaha-suuqa CGM - daruur gelida + Bluetooth</string>
@@ -1110,7 +1110,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="anytime_setup_title">Waqti kasta / dejinta Yuwell</string>
     <string name="anytime_searching_sensors">Raadinta wakhti kasta / Yuwell gudbiyaasha…</string>
     <string name="anytime_no_sensors_hint">Hay qalabka meel dhow oo hubi inuu shidan yahay.</string>
-    <string name="anytime_detected_label">%1$s · Waqti kasta qoyska CT3</string>
+    <string name="anytime_detected_label">%1$s · gudbiyaha Anytime / Yuwell</string>
     <string name="anytime_selectable_unrecognized">%1$s · la tusay sababtoo ah \"Eeg dhammaan aaladaha\" waa shidan</string>
     <string name="anytime_connecting_to">Isku xidhka %1$s…</string>
 
@@ -1367,6 +1367,8 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="anytime_calibration_not_allowed_status">Qalabaynta ma oggola dareenka hadda</string>
     <string name="anytime_calibration_not_streaming_status">Qalabaynta lama heli karo halka dareeruhu aanu soconayn</string>
     <string name="anytime_calibration_after_24h_status">Qalabaynta lama heli karo kahor 24h</string>
+    <string name="anytime_calibration_unstable_trend_status">Hagaajinta lama heli karo; sug isbeddel deggan (→)</string>
+    <string name="anytime_calibration_noisy_status">Hagaajinta lama heli karo; buuqa calaamadda aad buu u sarreeyaa</string>
     <string name="calibrate_sensor_desc">Geli qiimaha gulukoosta dhiigga ee %1$s si aad u cabbirto dareenka</string>
     <string name="calibrate_sensor_timing_note">Iska ilaali in aad isku hagaajiso 2 saacadood gudahood cuntada ama insulinta ka dib.</string>
     <string name="calibrate_sensor_title">Calibrate Sensor</string>

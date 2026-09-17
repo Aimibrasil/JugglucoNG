@@ -422,7 +422,6 @@ fun DashboardScreen(
     var showICanHealthWizard by remember { mutableStateOf(false) }
     var showMQWizard by remember { mutableStateOf(false) }
     var showAnytimeWizard by remember { mutableStateOf(false) }
-    var showCt14Wizard by remember { mutableStateOf(false) }
     var showOttaiWizard by remember { mutableStateOf(false) }
     var journalEditorRequest by remember { mutableStateOf<JournalEditorRequest?>(null) }
     var journalActionTimestamp by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -874,18 +873,6 @@ fun DashboardScreen(
         return
     }
 
-    // CT-14 Setup Wizard
-    if (showCt14Wizard) {
-        tk.glucodata.ui.setup.Ct14SetupWizard(
-            onDismiss = { showCt14Wizard = false },
-            onNavigateToReadiness = onNavigateToReadiness,
-            onComplete = {
-                showCt14Wizard = false
-                viewModel.refreshData()
-            },
-        )
-        return
-    }
 
     // Ottai Setup Wizard
     if (showOttaiWizard) {
@@ -1389,7 +1376,6 @@ fun DashboardScreen(
                     tk.glucodata.ui.components.SensorType.ICANHEALTH -> showICanHealthWizard = true
                     tk.glucodata.ui.components.SensorType.MQ -> showMQWizard = true
                         tk.glucodata.ui.components.SensorType.ANYTIME -> showAnytimeWizard = true
-                        tk.glucodata.ui.components.SensorType.CT14 -> showCt14Wizard = true
                         tk.glucodata.ui.components.SensorType.OTTAI -> showOttaiWizard = true
                 }
             },
