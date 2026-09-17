@@ -72,6 +72,14 @@ class AnytimeBleManager(
         /** SuperGattCallback generation tag. Same as MQ/iCan/AiDex. */
         const val SENSOR_GEN = 0
 
+        /**
+         * Shortest rated life any Anytime chemistry carries (the shortest-rated
+         * family, endNumber 3380 × 3 min = 7.04 d). A QR-decoded figure below this cannot be a real
+         * sensor life — the vendor decodeCT returns 6 for the 15-day CT4
+         * label — so it is treated as a mis-decode and the family profile wins.
+         */
+        private const val MIN_PLAUSIBLE_LIFETIME_DAYS = 7
+
         private const val ACTIVE_SESSION_RECONNECT_DELAY_MS = 2_000L
 
         /**
@@ -225,6 +233,9 @@ class AnytimeBleManager(
         /** Tiny private cache for UI-only telemetry that is not part of the raw algorithm state. */
         private const val TELEMETRY_PREFS = "anytime_ble_telemetry"
         private const val TELEMETRY_BATTERY_VOLTS_PREFIX = "battery_volts_"
+
+        /** CT2 battery is a percent in the record/check bytes, not volts. */
+        private const val TELEMETRY_BATTERY_PERCENT_PREFIX = "battery_percent_"
 
         /** Refresh check-frame telemetry after reconnect settles, then hourly. */
         private const val TELEMETRY_CHECK_INTERVAL_MS = 60L * 60L * 1000L
@@ -536,6 +547,7 @@ class AnytimeBleManager(
         freshOlderBackfillStarted = false
         pendingFreshOlderBackfillStartId = -1
         lastBatteryVolts = loadCachedBatteryVolts(context, id)
+        lastCt2BatteryPercent = loadCachedBatteryPercent(context, id)
     }
 
     private fun hasExistingNativeBacking(context: Context?, sensorId: String): Boolean {
@@ -573,6 +585,36 @@ class AnytimeBleManager(
             .edit()
             .putFloat(TELEMETRY_BATTERY_VOLTS_PREFIX + sensorId, volts)
             .apply()
+    }
+
+    private fun loadCachedBatteryPercent(context: Context?, sensorId: String): Int {
+        if (context == null) return -1
+        return context
+            .getSharedPreferences(TELEMETRY_PREFS, Context.MODE_PRIVATE)
+            .getInt(TELEMETRY_BATTERY_PERCENT_PREFIX + sensorId, -1)
+    }
+
+    private fun saveCachedBatteryPercent(context: Context?, sensorId: String?, percent: Int) {
+        if (context == null || sensorId.isNullOrBlank() || percent !in 0..100) return
+        context
+            .getSharedPreferences(TELEMETRY_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(TELEMETRY_BATTERY_PERCENT_PREFIX + sensorId, percent)
+            .apply()
+    }
+
+    /**
+     * Record a CT2 battery percent from either the live `0x44` push or the `0x43`
+     * self-test. Persisted so the card keeps showing it across restarts, between
+     * the sparse live pushes, and warns once when it drops below the CT2 floor.
+     */
+    private fun setCt2BatteryPercent(percent: Int) {
+        if (percent !in 0..100) return
+        lastCt2BatteryPercent = percent
+        saveCachedBatteryPercent(Applic.app, SerialNumber, percent)
+        if (percent < AnytimeConstants.BATTERY_LOW_PERCENT_CT2) {
+            Log.w(TAG, "CT2 low battery ($percent% < ${AnytimeConstants.BATTERY_LOW_PERCENT_CT2}%)")
+        }
     }
 
     private fun synthesiseQr(raw: String, k: Float, r: Float): AnytimeQrCalibration =
@@ -2800,15 +2842,12 @@ class AnytimeBleManager(
         lastIwNa = result.iwNa
         lastIbNa = result.ibNa
         lastTemperatureC = result.temperatureC
-        if (result.powerByte in 0..100) lastCt2BatteryPercent = result.powerByte
+        setCt2BatteryPercent(result.powerByte)
         Log.i(
             TAG,
             "CT2 self-test: iw=${result.iwNa} ib=${result.ibNa} T=${result.temperatureC} " +
                     "power=${result.powerByte} passed=${result.passed}",
         )
-        if (result.powerByte in 0 until AnytimeConstants.BATTERY_LOW_PERCENT_CT2) {
-            Log.w(TAG, "CT2 self-test: low battery (${result.powerByte}%)")
-        }
         UiRefreshBus.requestStatusRefresh()
     }
 
@@ -3519,7 +3558,7 @@ class AnytimeBleManager(
             enterStreaming("CT2 raw glucose during handshake")
         }
         if (!historical) {
-            frame.batteryPercent?.takeIf { it in 0..100 }?.let { lastCt2BatteryPercent = it }
+            frame.batteryPercent?.let { setCt2BatteryPercent(it) }
         }
         processRawRecords(listOf(frame.record), push)
     }
@@ -3703,8 +3742,14 @@ class AnytimeBleManager(
         }
     }
 
+    // False for CT2/CT4: their reference models run in-tree and never hand back a
+    // NATIVE result, so the vendor library must not be treated as the expected
+    // source (that would keep their readings out of Room while waiting for it).
     private fun nativeAlgorithmExpected(): Boolean =
-        qr?.isFactoryCalibration == true && AnytimeAlgorithm.isNativeAvailable
+        qr?.isFactoryCalibration == true &&
+            AnytimeAlgorithm.isNativeAvailable &&
+            familyEntry.family != AnytimeConstants.Family.CT2 &&
+            familyEntry.family != AnytimeConstants.Family.CT4
 
     private fun recomputePendingNativeReadings(context: Context?, intervalMs: Long) {
         if (!nativeAlgorithmExpected() || intervalMs <= 0L) return
@@ -4435,13 +4480,21 @@ class AnytimeBleManager(
      * is next constructed, and stops checkinfo() retiring a 16-day sensor on day 14.
      */
     /**
-     * Rated lifetime in days. The QR/SSN value is the sensor's own figure and wins
-     * when we have it; the profile figure (CT5: endNumber 7695 x 3 min = 16 days)
-     * is the fallback. Both are derived on the 3-minute tick scale.
+     * Rated lifetime in days, on the 3-minute tick scale. CT2/CT4 take the family
+     * profile figure; the families still on the vendor path keep the QR/SSN value
+     * when it is plausible (CT5: endNumber 7695 x 3 min = 16 days) and fall back
+     * to the profile otherwise.
      */
     private fun effectiveLifetimeDays(): Int {
+        // CT2/CT4 run their in-tree reference models, so their rated life comes
+        // from the family profile and the vendor decode is never consulted: a
+        // 15-day CT4 sticker decodes as 6 through the vendor path. The
+        // families that still use the vendor keep the QR figure when plausible.
+        if (isCt2() || familyEntry.family == AnytimeConstants.Family.CT4) {
+            return profile.ratedLifetimeDays
+        }
         val qrDays = qr?.lifeTime ?: 0
-        return if (qrDays > 0) qrDays else profile.ratedLifetimeDays
+        return if (qrDays >= MIN_PLAUSIBLE_LIFETIME_DAYS) qrDays else profile.ratedLifetimeDays
     }
 
     /**
@@ -4882,6 +4935,15 @@ class AnytimeBleManager(
 
     override fun pushReferenceBg(mgdl: Int): Boolean {
         if (mgdl <= 0) return false
+        // CT-14 (CT2) calibration is local only. CalibrationAccess applies the
+        // fingerstick through applyUserCalibration(); no input-BG frame is written
+        // to the CT2 transmitter, so neither the CT3 0x09
+        // nor the (unused) CT2 0x08 is sent. The 24h gate is an Anytime/CT3 rule
+        // and does not apply here either.
+        if (isCt2()) {
+            Log.i(TAG, "CT2/CT-14 calibration is local; no input-BG frame sent")
+            return true
+        }
         if (lastGlucoseId < 0) {
             Log.w(TAG, "pushReferenceBg($mgdl) rejected — waiting for first glucose id")
             setCalibrationStatus(
