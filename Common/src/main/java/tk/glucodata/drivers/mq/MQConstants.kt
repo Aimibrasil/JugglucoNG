@@ -129,7 +129,7 @@ object MQConstants {
     //   byte 2  : packet index high byte
     //   byte 3  : sample current low byte
     //   byte 4  : sample current high byte
-    //   byte 5  : battery percent
+    //   byte 5  : raw battery field (not a percentage)
     //
     // Record count = LEN / 6. These records do NOT contain final glucose.
 
