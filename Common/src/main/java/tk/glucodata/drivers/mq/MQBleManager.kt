@@ -33,6 +33,7 @@ import tk.glucodata.Natives
 import tk.glucodata.NightscoutUploadWake
 import tk.glucodata.SuperGattCallback
 import tk.glucodata.UiRefreshBus
+import tk.glucodata.drivers.ManagedSensorUiFamily
 
 @SuppressLint("MissingPermission")
 class MQBleManager(
@@ -454,6 +455,10 @@ class MQBleManager(
         runCatching { Natives.ensureSensorShell(canonical, startSec) }
             .onFailure { Log.stack(TAG, "ensureNativeDataptr(ensureSensorShell)", it) }
         val nativeName = resolveExistingNativeSensorName(canonical) ?: canonical
+        // The shell is Libre 2 to native by elimination; say what it really is, so a
+        // phone receiving it over Clone can too.
+        runCatching { Natives.setSensorManagedFamily(nativeName, ManagedSensorUiFamily.MQ.nativeCode) }
+            .onFailure { Log.stack(TAG, "ensureNativeDataptr(setSensorManagedFamily)", it) }
         if (dataptr == 0L) {
             dataptr = runCatching { Natives.getdataptr(nativeName) }.getOrDefault(0L)
         }

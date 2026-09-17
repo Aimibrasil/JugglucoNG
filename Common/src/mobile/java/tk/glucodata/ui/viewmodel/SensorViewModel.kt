@@ -530,27 +530,31 @@ class SensorViewModel : ViewModel() {
                         val nativeSensorKind =
                             runCatching { Natives.getLibreVersion(gatt.dataptr) }.getOrDefault(-1)
                         // Native decides Libre 2 by elimination -- anything not flagged
-                        // Sibionics, Dexcom, Accu-Chek or five-minute is Libre 2 -- and it
-                        // carries no flag at all for Ottai, Anytime, MQ or iCan. On the
-                        // device holding the sensor the driver registry corrects that; on a
-                        // device that only mirrors it there is no driver to ask, so the
-                        // catch-all would badge every mirrored managed sensor Abbott. Claim
-                        // nothing rather than claim wrongly.
-                        // Never paired to this phone: no address was ever resolved for it and
-                        // no GATT was ever connected. A real Libre 2 in use has both.
-                        val mirrored = gatt.mActiveDeviceAddress == null &&
-                            !gatt.hasLocallyConnectedGatt()
+                        // Sibionics, Dexcom, Accu-Chek or AiDex is Libre 2 -- so a shell a
+                        // managed driver writes into is Libre 2 to the ladder, and a phone
+                        // receiving it over Clone has no driver record to correct that.
+                        // The driver that holds the sensor stamps its family into the info
+                        // block, which travels with the sensor; that is the first word.
+                        // A shell written before the stamp existed reads as no family, and
+                        // for those the old rule stands: Libre 2 by elimination on a
+                        // record this phone never paired with is not evidence of anything,
+                        // so it claims nothing rather than claiming wrongly.
+                        val nativeFamily = ManagedSensorUiFamily.fromNativeCode(
+                            runCatching { Natives.getSensorManagedFamily(gatt.dataptr) }.getOrDefault(0)
+                        )
+                        val mirrored = tk.glucodata.CloneSensorRegistry.isCloneSensor(gatt.SerialNumber) ||
+                            (gatt.mActiveDeviceAddress == null && !gatt.hasLocallyConnectedGatt())
                         val unknownVendor = mirrored &&
                             nativeSensorKind == tk.glucodata.SensorSourceResolver.SENSOR_KIND_LIBRE2
-                        val sensorVendor = if (unknownVendor) {
-                            SensorVendor.UNKNOWN
-                        } else {
-                            SensorVendor.fromNativeKind(nativeSensorKind)
+                        val sensorVendor = when {
+                            nativeFamily != ManagedSensorUiFamily.GENERIC -> SensorVendor.fromManagedFamily(nativeFamily)
+                            unknownVendor -> SensorVendor.UNKNOWN
+                            else -> SensorVendor.fromNativeKind(nativeSensorKind)
                         }
-                        val sensorType = if (unknownVendor) {
-                            SensorTypeName.UNKNOWN
-                        } else {
-                            SensorTypeName.fromNativeKind(nativeSensorKind, isSi2)
+                        val sensorType = when {
+                            nativeFamily != ManagedSensorUiFamily.GENERIC -> SensorTypeName.fromManagedFamily(nativeFamily)
+                            unknownVendor -> SensorTypeName.UNKNOWN
+                            else -> SensorTypeName.fromNativeKind(nativeSensorKind, isSi2)
                         }
                         // Managed and legacy Sibionics 2 both default to 22 days, while preserving
                         // an explicit earlier reset target selected with the sensor-card stepper.

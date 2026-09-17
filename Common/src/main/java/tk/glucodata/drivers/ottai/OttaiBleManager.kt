@@ -42,6 +42,7 @@ import tk.glucodata.R
 import tk.glucodata.SensorBluetooth
 import tk.glucodata.SuperGattCallback
 import tk.glucodata.UiRefreshBus
+import tk.glucodata.drivers.ManagedSensorUiFamily
 
 @SuppressLint("MissingPermission")
 class OttaiBleManager(
@@ -1115,6 +1116,7 @@ class OttaiBleManager(
                 .takeIf { it != 0L }
                 ?: Natives.ensureSensorShell(id, correctedStartSec)
             if (sensorPtr == 0L) return@runCatching
+            Natives.setSensorManagedFamily(id, ManagedSensorUiFamily.OTTAI.nativeCode)
             val nativeStartSec = Natives.getSensorStartmsecFromSensorptr(sensorPtr) / 1_000L
             if (nativeStartSec in 1L until 946_684_800L) {
                 Log.w(TAG, "repairing seconds-unit native start for $id")
@@ -3646,6 +3648,7 @@ class OttaiBleManager(
             if (Natives.ensureSensorShellWithCapacity(id, startSec, minimumRecords) == 0L) {
                 Natives.ensureSensorShell(id, startSec)
             }
+            Natives.setSensorManagedFamily(id, ManagedSensorUiFamily.OTTAI.nativeCode)
             applyActivatedWearToNative(id)
             if (nativeCapacityCheckedFor != id) {
                 if (!Natives.hasSensorStreamCapacity(id, minimumRecords)) {

@@ -762,6 +762,9 @@ public class Natives {
         // Set a direct-stream sensor's wear duration (days) by id -> info->wearduration2,
         // so the main graph's sensor-end reflects the real activated lifetime (Ottai).
         public static native void setSensorWearDays(String sensorId, int days);
+        /** ManagedSensorUiFamily.nativeCode; 0 clears. Travels in info.dat, so a Clone receiver sees it. */
+        public static native void setSensorManagedFamily(String sensorId, int code);
+        public static native int getSensorManagedFamily(long dataptr);
 
         public static native boolean hasSensorStreamCapacity(String sensorId, int minimumRecords);
 

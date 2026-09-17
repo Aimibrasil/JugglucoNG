@@ -59,6 +59,7 @@ import tk.glucodata.SuperGattCallback
 import tk.glucodata.UiRefreshBus
 import tk.glucodata.drivers.ManagedSensorViewModeStore
 import tk.glucodata.drivers.VirtualGlucoseSensorBridge
+import tk.glucodata.drivers.ManagedSensorUiFamily
 
 @SuppressLint("MissingPermission")
 class AnytimeBleManager(
@@ -4343,6 +4344,7 @@ class AnytimeBleManager(
             }.coerceAtLeast(1L)
             declareNativeLifetime(name, startSec)
             Natives.ensureSensorShell(name, startSec)
+            Natives.setSensorManagedFamily(name, ManagedSensorUiFamily.ANYTIME.nativeCode)
             val temperatureC = temperatureCIn
                 .takeIf { it.isFinite() && it > -20f && it < 80f }
                 ?: 0f
@@ -4478,6 +4480,7 @@ class AnytimeBleManager(
             val startSec = (sensorStartAtMs / 1000L).coerceAtLeast(1L)
             declareNativeLifetime(canonical, startSec)
             Natives.ensureSensorShell(canonical, startSec)
+            Natives.setSensorManagedFamily(canonical, ManagedSensorUiFamily.ANYTIME.nativeCode)
             if (dataptr == 0L) {
                 dataptr = runCatching { Natives.getdataptr(canonical) }.getOrDefault(0L)
             }

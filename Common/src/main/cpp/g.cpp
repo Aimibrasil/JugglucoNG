@@ -1770,6 +1770,40 @@ extern "C" JNIEXPORT void JNICALL fromjava(setSensorWearDays)(
   env->ReleaseStringUTFChars(sensorId, str);
 }
 
+// Record which managed driver family owns a direct-stream shell, so a phone that
+// only receives the sensor over Clone can still say what it is. Written by the
+// driver that holds the sensor; read anywhere a dataptr is in hand.
+extern "C" JNIEXPORT void JNICALL fromjava(setSensorManagedFamily)(
+    JNIEnv *env, jclass cl, jstring sensorId, jint code) {
+  if (!sensors || !sensorId || code < 0 || code > 7)
+    return;
+  const char *str = env->GetStringUTFChars(sensorId, NULL);
+  if (!str)
+    return;
+  if (SensorGlucoseData *hist = ensureDirectStreamShellForId(str, 0)) {
+    if (!hist->error()) {
+      if (auto *info = hist->getinfo()) {
+        if (info->managedFamily != static_cast<unsigned>(code)) {
+          info->managedFamily = static_cast<unsigned>(code);
+          LOGGER("setSensorManagedFamily: %s family=%d\n", str, code);
+        }
+      }
+    }
+  }
+  env->ReleaseStringUTFChars(sensorId, str);
+}
+
+extern "C" JNIEXPORT jint JNICALL fromjava(getSensorManagedFamily)(
+    JNIEnv *env, jclass cl, jlong dataptr) {
+  if (!dataptr)
+    return 0;
+  const SensorGlucoseData *hist = reinterpret_cast<streamdata *>(dataptr)->hist;
+  if (!hist)
+    return 0;
+  const auto *info = hist->getinfo();
+  return info ? static_cast<jint>(info->managedFamily) : 0;
+}
+
 extern "C" JNIEXPORT jboolean JNICALL fromjava(hasSensorStreamCapacity)(
     JNIEnv *env, jclass cl, jstring sensorId, jint minimumRecords) {
   if (!sensors || !sensorId || minimumRecords <= 0)
