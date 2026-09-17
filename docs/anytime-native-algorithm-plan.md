@@ -4,6 +4,9 @@ Status: plan + P1/P2 started 2026-09-14. CT3 track: shipped-blob P1/P2 first
 pass (2026-09-16). NOTE: the P1/P2 baseline binary is not the shipped one — see
 "Binary divergence" under the CT3 findings.
 
+RE artifacts, the vendor `.so`, the Ghidra projects and the oracle harness live
+**outside the repo** in `/Users/jetcat/Projects/Dia/anytime-native/`.
+
 ## Goal
 
 Replace the two fallbacks that currently guess the vendor algorithm — the
