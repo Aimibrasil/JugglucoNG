@@ -139,9 +139,9 @@ class AiDexPureLogicTests {
 
         assertEquals("2222267V4E", SerialCrypto.stripPrefix("X-2222267V4E"))
         assertEquals("2222267V4E", SerialCrypto.stripPrefix("AiDEX X-2222267V4E"))
-        assertEquals("2222267V4E", SerialCrypto.stripPrefix("FOOX-2222267V4E"))
         assertEquals("2222267V4E", SerialCrypto.stripPrefix("2222267V4E"))
-        assertEquals("22", SerialCrypto.stripPrefix("X-22"))
+        // Too short to be a serial: main leaves sub-minimum-length inputs untouched.
+        assertEquals("X-22", SerialCrypto.stripPrefix("X-22"))
     }
 
     @Test

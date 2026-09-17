@@ -73,11 +73,11 @@ class MQParserTests {
         assertEquals(0x40, records[0].marker)
         assertEquals(0x0201, records[0].packetIndex)
         assertEquals(0x0403, records[0].sampleCurrent)
-        assertEquals(0x50, records[0].batteryPercent)
+        assertEquals(0x50, records[0].batteryRaw)
         assertArrayEquals(payload.copyOfRange(0, 6), records[0].recordBytes)
         assertEquals(1, records[1].indexInPacket)
         assertEquals(0x0605, records[1].packetIndex)
-        assertEquals(0x64, records[1].batteryPercent)
+        assertEquals(0x64, records[1].batteryRaw)
     }
 
     @Test
