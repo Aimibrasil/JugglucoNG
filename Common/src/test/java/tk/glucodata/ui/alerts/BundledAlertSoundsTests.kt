@@ -28,14 +28,7 @@ class BundledAlertSoundsTests {
             val selected = BundledAlertSounds.uri(packageName, style, AlertType.LOW.id)
             expected.forEach { (type, cue) ->
                 val uri = BundledAlertSounds.forAlert(selected, packageName, type.id)!!
-                if (style == "Juggluco") {
-                    val originals = mapOf("low" to "siren", "high" to "classic", "notice" to "ghost",
-                        "reminder" to "nudge", "signal" to "elves", "urgent_low" to "verylow",
-                        "urgent_high" to "veryhigh", "falling" to "lowsoon", "rising" to "highsoon")
-                    assertEquals("android.resource://$packageName/raw/${originals.getValue(cue)}", uri)
-                } else {
-                    assertEquals("android.resource://$packageName/raw/alert_${style.lowercase(Locale.ROOT)}_$cue", uri)
-                }
+                assertEquals("android.resource://$packageName/raw/alert_${style.lowercase(Locale.ROOT)}_$cue", uri)
                 assertEquals(style, BundledAlertSounds.styleFor(uri, packageName))
             }
         }
@@ -107,7 +100,7 @@ class BundledAlertSoundsTests {
         val references = listOf(File("../tools/alert-sounds/original-reference.json"),
             File("tools/alert-sounds/original-reference.json")).first { it.isFile }
         val original = JSONObject(references.readText())
-        listOf("timber", "ember").forEach { style ->
+        listOf("timber", "ember", "juggluco").forEach { style ->
             original.keys().forEach { cue ->
                 val bytes = File(raw, "alert_${style}_${cue}.wav").readBytes()
                 val pcm = java.nio.ByteBuffer.wrap(bytes, 44, bytes.size-44)
@@ -123,30 +116,39 @@ class BundledAlertSoundsTests {
     }
 
     @Test
-    fun jugglucoUsesUnmodifiedOriginalRecordings() {
+    fun jugglucoRemastersPlayModernWavsWhileLegacyChoicesStillReadAsJuggluco() {
         val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
         val referenceFile = listOf(File("../tools/alert-sounds/original-reference.json"),
             File("tools/alert-sounds/original-reference.json")).first { it.isFile }
         val refs = JSONObject(referenceFile.readText())
         AlertType.entries.forEach { type ->
-            val ref = refs.getJSONObject(BundledAlertSounds.cueFor(type.id))
-            val file = File(raw, ref.getString("source"))
+            val cue = BundledAlertSounds.cueFor(type.id)
             val uri = BundledAlertSounds.uri(packageName, "Juggluco", type.id)
-            assertEquals(file.nameWithoutExtension, uri.substringAfterLast('/'))
-            val hash = MessageDigest.getInstance("SHA-256").digest(file.readBytes())
+            assertEquals("android.resource://$packageName/raw/alert_juggluco_$cue", uri)
+            assertEquals("Juggluco", BundledAlertSounds.styleFor(uri, packageName))
+            // A saved legacy MP3/OGG choice still reads as Juggluco and remaps to
+            // the matching remaster when applied across alerts.
+            val legacy = "android.resource://$packageName/raw/" +
+                refs.getJSONObject(cue).getString("source").substringBeforeLast('.')
+            assertEquals("Juggluco", BundledAlertSounds.styleFor(legacy, packageName))
+            assertEquals(uri, BundledAlertSounds.forAlert(legacy, packageName, type.id))
+        }
+        // The legacy sources themselves are untouched.
+        refs.keys().forEach { cue ->
+            val ref = refs.getJSONObject(cue)
+            val hash = MessageDigest.getInstance("SHA-256").digest(File(raw, ref.getString("source")).readBytes())
                 .joinToString("") { "%02x".format(it.toInt() and 0xff) }
             assertEquals(ref.getString("sha256"), hash)
         }
-        assertNull(BundledAlertSounds.styleFor("android.resource://$packageName/raw/alert_juggluco_low", packageName))
     }
 
     @Test
     fun everyNamedUriHasARealPcmWaveResource() {
         val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
-        val names = BundledAlertSounds.styles.filterNot { it == "Juggluco" }.flatMap { style ->
+        val names = BundledAlertSounds.styles.flatMap { style ->
             AlertType.entries.map { BundledAlertSounds.uri(packageName, style, it.id).substringAfterLast('/') }
         }.toSet()
-        assertEquals(45, names.size)
+        assertEquals(54, names.size)
         names.forEach { name ->
             val bytes = File(raw, "$name.wav").readBytes()
             assertEquals("RIFF", String(bytes, 0, 4, Charsets.US_ASCII))

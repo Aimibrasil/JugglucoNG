@@ -2,8 +2,10 @@
 
 Six collections, nine cues each: **Contour**, **Porcelain**, **Halo**, **Timber**,
 **Ember**, and **Juggluco**. The original 27 synthesized sounds, names and URIs are preserved unchanged.
-Timber and Ember add 18 recorded-acoustic cues; Juggluco selects the nine actual original recordings, without processing or replacement. Select a collection in an alert's sound
-picker; the alert determines the cue. Global **Apply to all** selects the matching cue
+Timber and Ember add 18 recorded-acoustic cues; Juggluco remasters the nine original
+MP3/OGG recordings to modern-quality WAVs with the same melodies and durations. Select a collection in an alert's sound
+picker; the alert determines the cue. Juggluco is listed first, directly below System Default;
+tapping a row confirms it immediately (Cancel dismisses without changing anything). Global **Apply to all** selects the matching cue
 for each standard and custom glucose alert. **Ember is the app default** for unset sounds, including Wear playback. Explicit collection,
 external, system-default and saved native sound choices are retained. Choosing App Default
 in the phone picker previews Ember and clears the previous per-alert choice. Collection names are proper names shared across locales; the surrounding UI
@@ -20,7 +22,7 @@ with a one-second separator in addition to each cue's release.
 - [Halo](halo-preview.wav): FM, pulse modulation, compact phrases and rhythmic echoes.
 - [Timber](timber-preview.wav): soft recorded marimba, vibraphone, woodblock and piano.
 - [Ember](ember-preview.wav): lower recorded bodies with separate crisp strikes; app default.
-- **Juggluco**: the actual original siren, classic, ghost, nudge, elves, verylow, veryhigh, lowsoon and highsoon recordings.
+- [Juggluco](juggluco-preview.wav): the familiar siren, classic, ghost, nudge, elves, verylow, veryhigh, lowsoon and highsoon melodies, remastered.
 
 [Original alert-type comparison](alert-identities-preview.wav) demonstrates all nine Halo cues.
 The [acoustic study](acoustic-study/README.md) and [low/high A/B](acoustic-study/body-crisp/README.md)
@@ -49,7 +51,7 @@ preview reels are outside Android resources and do not add to the APK.
 
 ## Duration and mastering
 
-Timber and Ember match the decoded 48 kHz frame count of each
+Timber, Ember and the Juggluco remasters match the decoded 48 kHz frame count of each
 original cue. [original-reference.json](original-reference.json) records source hashes,
 durations and measured electrical levels (mono afconvert decode). Mapping: low=siren,
 high=classic, notice=ghost, reminder=nudge, signal=elves, urgent low=verylow,
@@ -66,9 +68,16 @@ waveshaping, compression or saturation. This preserves recorded transients inste
 forcing them into a loudness target. Active RMS excludes samples below 1% of peak and
 is not a claim of matched perceived loudness. The longer arrangements and releases remain.
 
-The Juggluco option points directly to the existing MP3/OGG resources; it is not a
-resynthesis or remaster. Their hashes and packaged bytes are checked against the originals.
-The existing user-configured alarm duration still controls playback and may stop a cue
+The Juggluco remasters decode those same MP3/OGG sources to the exact reference
+frame counts, then apply one linear gain with the same targets (ordinary -17.5 dBFS,
+urgent -15.25 dBFS, -3 dBFS peak ceiling), DC removal, 5 ms fades and zero endpoints.
+Interior samples match the originals up to that single gain (≤0.001 full scale):
+no compression, saturation, pitch or time changes. This fixes the hot masters
+(nudge peaked at -1.9 dBFS), the click-prone onsets (elves, ghost), the DC offset
+(highsoon) and the level spread, while keeping every cue recognizable. The legacy
+MP3/OGG files stay packaged so previously saved Juggluco choices keep playing;
+those saved URIs still read as Juggluco and remap to the matching remaster on
+**Apply to all**. The existing user-configured alarm duration still controls playback and may stop a cue
 before its recorded ending; this change does not extend or override alarm timers.
 
 ## Sources and licensing
@@ -85,31 +94,36 @@ and the upstream CC0 license are preserved in [acoustic-study](acoustic-study/RE
 No recordings are fetched during an Android build. The original stereo samples are downmixed
 and resampled by macOS afconvert, then trimmed, gently filtered, arranged and level-balanced.
 
+The nine `alert_juggluco_*.wav` remasters derive from the repository's own legacy
+originals, so they use the repository's GPL-3.0-or-later license like the synthesized
+collections.
+
 ## Reproduce and verify
 
-Python 3 and NumPy (authored with 2.3.5); acoustic reproduction also requires macOS afconvert:
+Python 3 and NumPy (authored with 2.3.5); acoustic and Juggluco reproduction also require macOS afconvert:
 
 ```sh
 python3 tools/alert-sounds/render.py --check
 python3 tools/alert-sounds/render_acoustic.py --check
+python3 tools/alert-sounds/render_juggluco.py --check
 ```
 
 Omit `--check` to deliberately regenerate the respective collection group. Each renderer writes
 only its own resources. Checks cover exact PCM/reel reproduction, source hashes, peaks, DC offset,
 zero endpoints and measurements. The short studies remain separate, unchanged artifacts. Exact bytes can depend on NumPy/platform and sample-rate-converter
-versions. Measurements are in `measurements.json` (original 27) and `acoustic-measurements.json`
-(new acoustic 18). Android builds use the committed WAVs and do not require Python or afconvert.
+versions. Measurements are in `measurements.json` (original 27), `acoustic-measurements.json`
+(new acoustic 18) and `juggluco-measurements.json` (remastered 9). Android builds use the committed WAVs and do not require Python or afconvert.
 
 Selections use `android.resource://<applicationId>/raw/<name>` so numeric resource-ID changes
 cannot retarget saved choices. `alert_sounds_keep.xml` preserves all six collections and legacy raw sounds during
 release shrinking. JVM tests cover selection, global remapping, external URIs, locale-independent
-names, all 45 WAV files plus nine original MP3/OGG files, and original-asset hashes. Verify actual APK resource tables too:
+names, all 54 WAV files, legacy Juggluco URI compatibility, and original-asset hashes. Verify actual APK resource tables too:
 
 ```sh
 python3 tools/alert-sounds/verify_apk.py --aapt2 "$ANDROID_HOME/build-tools/37.0.0/aapt2" path/to/app.apk
 ```
 
-This verifies all 45 named WAV resources, nine legacy originals, and the exact audio bytes they resolve to, even when
+This verifies all 54 named WAV resources, nine legacy originals, and the exact audio bytes they resolve to, even when
 release optimization shortens physical ZIP paths.
 
 ## Listening acceptance

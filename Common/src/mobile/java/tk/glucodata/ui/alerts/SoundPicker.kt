@@ -106,16 +106,38 @@ fun SoundPicker(
     val context = LocalContext.current
     var systemSounds by remember { mutableStateOf<List<SoundItem>>(emptyList()) }
     var customSounds by remember { mutableStateOf<Set<String>>(emptySet()) }
-    
-    // Selected URI - null means App Default
-    var selectedUri by remember { mutableStateOf(currentUri) }
+
     var isPlaying by remember { mutableStateOf(false) }
     var playingUri by remember { mutableStateOf<String?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-    
+
     // Preview what choosing App Default will save, not the previous native selection.
     val appDefaultUri = remember(alertTypeId, context.packageName) {
         tk.glucodata.alerts.AlertSoundDefaults.uri(context.packageName, alertTypeId)
+    }
+
+    fun stopSound() {
+        // release also cancels asynchronous preparation; stop/isPlaying are invalid
+        // in some MediaPlayer states, including a preview that has not prepared yet.
+        val previous = mediaPlayer
+        mediaPlayer = null
+        previous?.release()
+        isPlaying = false
+        playingUri = null
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            val previous = mediaPlayer
+            mediaPlayer = null
+            previous?.release()
+        }
+    }
+
+    // Tapping a row confirms it immediately; there is no OK button.
+    fun chooseSound(uri: String?) {
+        stopSound()
+        onSoundSelected(uri)
     }
 
     // File picker launcher
@@ -132,7 +154,7 @@ fun SoundPicker(
                 val uriString = uri.toString()
                 CustomSoundRepository.addCustomSound(uriString)
                 customSounds = CustomSoundRepository.getCustomSounds()
-                selectedUri = uriString
+                chooseSound(uriString)
             }
         }
     }
@@ -160,24 +182,6 @@ fun SoundPicker(
             }
         } finally { /* cursor managed by RingtoneManager */ }
         systemSounds = soundList
-    }
-
-    fun stopSound() {
-        // release also cancels asynchronous preparation; stop/isPlaying are invalid
-        // in some MediaPlayer states, including a preview that has not prepared yet.
-        val previous = mediaPlayer
-        mediaPlayer = null
-        previous?.release()
-        isPlaying = false
-        playingUri = null
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            val previous = mediaPlayer
-            mediaPlayer = null
-            previous?.release()
-        }
     }
 
     fun playSound(uri: String?) {
@@ -220,7 +224,10 @@ fun SoundPicker(
     }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            stopSound()
+            onDismiss()
+        },
         title = { Text(stringResource(R.string.select_alert_sound)) },
         text = {
             LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
@@ -262,9 +269,9 @@ fun SoundPicker(
                     items(customSounds.toList()) { uri ->
                         SoundRow(
                             title = context.getString(R.string.custom_sound_prefix, uri.substringAfterLast("/").take(25)),
-                            isSelected = selectedUri == uri,
+                            isSelected = currentUri == uri,
                             isPlaying = isPlaying && playingUri == uri,
-                            onClick = { selectedUri = uri },
+                            onClick = { chooseSound(uri) },
                             onPlay = { if (isPlaying && playingUri == uri) stopSound() else playSound(uri) }
                         )
                     }
@@ -274,23 +281,15 @@ fun SoundPicker(
                 items(systemSounds) { sound ->
                     SoundRow(
                         title = sound.title,
-                        isSelected = if (sound.uri == null) selectedUri.isNullOrEmpty() else selectedUri == sound.uri,
+                        isSelected = if (sound.uri == null) currentUri.isNullOrEmpty() else currentUri == sound.uri,
                         isPlaying = isPlaying && playingUri == sound.uri,
-                        onClick = { selectedUri = sound.uri },
+                        onClick = { chooseSound(sound.uri) },
                         onPlay = { if (isPlaying && playingUri == sound.uri) stopSound() else playSound(sound.uri) }
                     )
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                stopSound()
-                onSoundSelected(selectedUri)
-            }) {
-                Text(stringResource(R.string.ok))
-            }
-        },
-        dismissButton = {
             TextButton(onClick = {
                 stopSound()
                 onDismiss()
