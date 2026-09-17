@@ -2968,7 +2968,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="anytime_restart_title">Restart sensor?</string>
     <string name="anytime_restart_warning">End the current transmitter session and start a fresh pairing cycle? Existing glucose history will stay in the app.</string>
     <string name="anytime_history_action">History</string>
-    <string name="anytime_transmitter_glucose_action">Tx glucose</string>
 
     <!-- Web server TLS certificate -->
     <string name="webserver_https_subtitle">HTTPS encryption</string>

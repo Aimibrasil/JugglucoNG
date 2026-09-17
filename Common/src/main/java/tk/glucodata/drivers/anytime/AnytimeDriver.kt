@@ -64,16 +64,6 @@ interface AnytimeDriver : ManagedBluetoothSensorDriver, ManagedSensorMaintenance
     fun supportsSelfTest(): Boolean = false
 
     /**
-     * Ask the transmitter for its own computed glucose (CT2 `0x09`). Diagnostic only:
-     * the observed CT-14 firmware answers with a constant frame, so it is not used as
-     * a reading source.
-     */
-    fun requestTransmitterGlucose(): Boolean = false
-
-    /** Whether [requestTransmitterGlucose] applies (CT2 only today). */
-    fun supportsTransmitterGlucose(): Boolean = false
-
-    /**
      * Walk the transmitter's record buffer from `lastGlucoseId+1` upward until
      * it returns no more data, populating Juggluco's history with everything
      * we missed. Idempotent — extra calls are no-ops while a backfill is
@@ -141,7 +131,6 @@ interface AnytimeDriver : ManagedBluetoothSensorDriver, ManagedSensorMaintenance
             supportsHardwareReset = supportsResetAction(),
             supportsClearCalibration = supportsClearCalibrationAction() && referenceCalibrations.isNotEmpty(),
             supportsSelfTest = runCatching { supportsSelfTest() }.getOrDefault(false),
-            supportsTransmitterGlucose = runCatching { supportsTransmitterGlucose() }.getOrDefault(false),
             sensorDetailTelemetry = runCatching { getSensorDetailTelemetry() }.getOrDefault(""),
             vendorCalibrations = referenceCalibrations.map { record ->
                 ManagedSensorCalibrationRecord(

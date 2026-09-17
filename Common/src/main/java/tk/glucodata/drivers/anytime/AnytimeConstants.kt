@@ -220,7 +220,14 @@ object AnytimeConstants {
     /** Fingerstick reference BG (mg/dL big-endian). Body: {0x08, mgdlHi, mgdlLo, sum}. */
     const val TX_CT2_INPUT_BG_MG: Byte = 0x08
 
-    /** Glucose computed by the transmitter. Body: {0x09, idHi, idLo}. */
+    /**
+     * Glucose computed by the transmitter. Body: `{0x09, idHi, idLo}`.
+     *
+     * Not used: on the tested CT-14 firmware the answer is the constant
+     * `09 00 00 03 36` for any id (captures at ids 4310 and 4319), which does not
+     * fit the SDK's `GluMM = bArr[1]/10` layout and is not a reading source. Kept
+     * as protocol documentation; re-test before using it.
+     */
     const val TX_CT2_GLUCOSE_BY_TRANSMITTER: Byte = 0x09
 
     /** Handshake ACK — fixed frame {0x48, 0x55, 0xAA, sum}. */
@@ -371,13 +378,10 @@ object AnytimeConstants {
 
     /**
      * Response opcodes the CT-14 (CT2 protocol family) owns, including its unbind
-     * ack and the transmitter-computed glucose answer (`0x09`, the echo of our own
-     * request). Kept as an explicit set so this family is dispatched on its own and
-     * can never fall through to the generic CT3/CT2.5 handlers: `0x08` is a CT3
-     * response, `0x09` is a CT3 input-BG ack in one namespace and the CT2
-     * transmitter-glucose answer in the other, and `0x58` is CT2 unbind vs CT5
-     * generic unbind. The dispatch is family-gated, so a CT2 driver never runs the
-     * generic handler with these bytes.
+     * ack. Kept as an explicit set so this family is dispatched on its own and can
+     * never fall through to the generic CT3/CT2.5 handlers: 0x08 and 0x09 mean
+     * different things in the two namespaces, and 0x58 is CT2 unbind vs CT5 generic
+     * unbind.
      */
     @JvmStatic
     fun isCt14Opcode(opcode: Byte): Boolean = when (opcode) {
@@ -387,8 +391,7 @@ object AnytimeConstants {
         RX_CT2_CHECK,
         RX_CT2_PUSH_GLUCOSE,
         RX_CT2_PULL_RESPONSE,
-        RX_UNBIND_ACK_GENERIC,
-        TX_CT2_GLUCOSE_BY_TRANSMITTER -> true
+        RX_UNBIND_ACK_GENERIC -> true
         else -> false
     }
 

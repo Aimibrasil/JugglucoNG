@@ -79,8 +79,6 @@ data class SensorInfo(
     val supportsManualCalibration: Boolean = false,
     val supportsHardwareReset: Boolean = false,
     val supportsClearCalibration: Boolean = false,
-    val supportsSelfTest: Boolean = false,
-    val supportsTransmitterGlucose: Boolean = false,
     val sensorDetailTelemetry: String = "",
     val detailedStatus: String = "",
     val isActive: Boolean = false,  // True if this is the primary data source
@@ -430,8 +428,6 @@ class SensorViewModel : ViewModel() {
             supportsManualCalibration = snapshot.supportsManualCalibration,
             supportsHardwareReset = snapshot.supportsHardwareReset,
             supportsClearCalibration = snapshot.supportsClearCalibration,
-            supportsSelfTest = snapshot.supportsSelfTest,
-            supportsTransmitterGlucose = snapshot.supportsTransmitterGlucose,
             sensorDetailTelemetry = snapshot.sensorDetailTelemetry,
             detailedStatus = handoffStatus ?: snapshot.subtitleStatus.ifBlank {
                 snapshot.detailedStatus.ifBlank { snapshot.connectionStatus }
@@ -1068,24 +1064,6 @@ class SensorViewModel : ViewModel() {
         return runCatching { driver.requestHistoryBackfill() }
             .onFailure {
                 android.util.Log.e("SensorVM", "Anytime history request failed for $serial", it)
-            }
-            .getOrDefault(false)
-            .also {
-                UiRefreshBus.requestStatusRefresh()
-                refreshSensors()
-            }
-    }
-
-    /**
-     * CT2 diagnostic: ask the transmitter for its own computed glucose (`0x09`). The
-     * raw answer is logged to the connection log; a usable value (none seen on the
-     * tested firmware) would be shown on the display only, never written to history.
-     */
-    fun requestAnytimeTransmitterGlucose(serial: String): Boolean {
-        val driver = findGatt(serial) as? AnytimeDriver ?: return false
-        return runCatching { driver.requestTransmitterGlucose() }
-            .onFailure {
-                android.util.Log.e("SensorVM", "Anytime transmitter-glucose request failed for $serial", it)
             }
             .getOrDefault(false)
             .also {

@@ -285,10 +285,6 @@ class AnytimeBleManager(
     @Volatile private var warmupStartedAtMs: Long = 0L
     @Volatile private var lastBatteryVolts: Float = 0f
     @Volatile private var lastCt2BatteryPercent: Int = -1
-
-    /** Live CT2 id the local model could not read; awaiting the transmitter's `0x09` answer. */
-    @Volatile private var pendingCt2TransmitterGlucoseId: Int = -1
-    @Volatile private var pendingCt2TransmitterSampleMs: Long = 0L
     @Volatile private var lastIwNa: Float = 0f
     @Volatile private var lastIbNa: Float = 0f
     @Volatile private var lastTemperatureC: Float = 0f
@@ -2841,17 +2837,6 @@ class AnytimeBleManager(
 
     override fun supportsSelfTest(): Boolean = AnytimeConstants.supportsSelfTest(familyEntry.family)
 
-    override fun supportsTransmitterGlucose(): Boolean = isCt2() && lastGlucoseId >= 0
-
-    /** Manual diagnostic: fetch the transmitter's own glucose for the current id. */
-    override fun requestTransmitterGlucose(): Boolean {
-        if (!isCt2() || lastGlucoseId < 0) return false
-        if (phase != Phase.STREAMING && phase != Phase.HANDSHAKING) return false
-        pendingCt2TransmitterGlucoseId = -1
-        requestCt2TransmitterGlucose(lastGlucoseId, System.currentTimeMillis())
-        return true
-    }
-
     private fun handleSelfTestResult(data: ByteArray) {
         val result = AnytimeFrames.parseCt2CheckResponse(data)
         if (result == null) {
@@ -2868,59 +2853,6 @@ class AnytimeBleManager(
                     "power=${result.powerByte} passed=${result.passed}",
         )
         UiRefreshBus.requestStatusRefresh()
-    }
-
-    /**
-     * Ask the transmitter for its own glucose for [id] (`0x09 idHi idLo`, SDK
-     * `getGlucoseByTransmitterRequest`). Diagnostic only, driven by the card's
-     * "Tx glucose" action: on the observed CT-14 firmware the answer is a constant
-     * `09 00 00 03 36` regardless of id, so it is not a usable reading source and
-     * nothing requests it automatically. Fire-and-forget: the answer is handled by
-     * [handleCt2TransmitterGlucose] if it arrives.
-     */
-    private fun requestCt2TransmitterGlucose(id: Int, sampleMs: Long) {
-        if (!isCt2() || id < 0 || sampleMs <= 0L) return
-        if (pendingCt2TransmitterGlucoseId == id) return
-        pendingCt2TransmitterGlucoseId = id
-        pendingCt2TransmitterSampleMs = sampleMs
-        writeFrame(
-            AnytimeFrames.Builders.ct2GlucoseByTransmitter(id),
-            "ct2-glucoseByTx($id)",
-            expectResponse = false,
-        )
-    }
-
-    /**
-     * CT2 `0x09` answer. One observed CT-14 firmware replies to any id with the
-     * constant `09 00 00 03 36`, which does not fit the SDK's `bArr[1] = GluMM×10`
-     * layout and is rejected here; a transmitter that ever returns a usable value is
-     * shown on the display only, never in Room history.
-     */
-    private fun handleCt2TransmitterGlucose(data: ByteArray) {
-        val mmol = AnytimeFrames.parseCt2GlucoseByTransmitter(data)
-        if (mmol == null) {
-            Log.w(TAG, "CT2 transmitter glucose: bad frame ${data.joinToHex()}")
-            return
-        }
-        val id = pendingCt2TransmitterGlucoseId
-        val sampleMs = pendingCt2TransmitterSampleMs
-        if (id < 0 || sampleMs <= 0L) return
-        pendingCt2TransmitterGlucoseId = -1
-        val displayValue = if (Applic.unit == 1) mmol else mmol * MGDL_PER_MMOLL_DISPLAY
-        Log.i(TAG, "CT2 transmitter glucose id=$id mmol=$mmol frame=${data.joinToHex()}")
-        runCatching {
-            CurrentDisplaySource.resolveIncomingReading(
-                liveNumericValue = displayValue,
-                rate = 0f,
-                targetTimeMillis = sampleMs,
-                preferredSensorId = SerialNumber,
-                sensorGen = SENSOR_GEN,
-                source = "ct2-transmitter",
-            )?.primaryValue?.takeIf { it.isFinite() && it > 0f }?.let { value ->
-                markLocalReadingAccepted(sampleMs)
-                SuperGattCallback.processExternalCurrentReading(SerialNumber, value, 0f, sampleMs, SENSOR_GEN)
-            }
-        }.onFailure { Log.stack(TAG, "handleCt2TransmitterGlucose", it) }
     }
 
     override fun onCharacteristicWrite(
@@ -3044,7 +2976,6 @@ class AnytimeBleManager(
             AnytimeConstants.RX_CT2_PULL_RESPONSE -> handleCt2GlucoseFrame(data, historical = true)
             AnytimeConstants.RX_CT2_CHECK -> handleSelfTestResult(data)
             AnytimeConstants.RX_UNBIND_ACK_GENERIC -> handleUnbindAck(data)
-            AnytimeConstants.TX_CT2_GLUCOSE_BY_TRANSMITTER -> handleCt2TransmitterGlucose(data)
             else -> Unit
         }
         return true

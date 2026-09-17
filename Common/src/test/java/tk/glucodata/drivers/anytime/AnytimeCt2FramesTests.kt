@@ -153,21 +153,6 @@ class AnytimeCt2FramesTests {
     }
 
     @Test
-    fun glucoseByTransmitterRequestBuildsOfficialFrame() {
-        // SDK getGlucoseByTransmitterRequest: {0x09, idHi, idLo, sum}.
-        assertEquals(listOf(0x09, 0x00, 0x0E, 0x17),
-            AnytimeFrames.Builders.ct2GlucoseByTransmitter(14).map { it.toInt() and 0xFF })
-    }
-
-    @Test
-    fun glucoseByTransmitterResponseParsesGluMmTenths() {
-        // SDK ProtocolTools.GlucoseByTransmitter: byte 1 = GluMM x 10.
-        assertEquals(5.6f, AnytimeFrames.parseCt2GlucoseByTransmitter(byteArrayOf(0x09, 0x38.toByte()))!!, 0.0001f)
-        assertNull(AnytimeFrames.parseCt2GlucoseByTransmitter(byteArrayOf(0x44, 0x38)))
-        assertNull(AnytimeFrames.parseCt2GlucoseByTransmitter(byteArrayOf(0x09))) // too short
-    }
-
-    @Test
     fun pullResponseWithMaxIdIsEndOfHistorySentinel() {
         // id = 0xFFFF on a pull response (0x47) — the transmitter's own
         // end-of-history marker, mirrored from the original POCTech driver's
