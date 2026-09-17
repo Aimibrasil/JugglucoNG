@@ -1,8 +1,7 @@
 # Recorded-acoustic listening study
 
 The original acoustic audition is retained for comparison. Its four cues form the basis
-of Timber; the low/high B cues form the basis of Ember. Production arrangements are longer
-and louder; the short study files here remain unchanged.
+of Timber; the low/high B cues form the basis of Ember. Production arrangements are longer; the short study files here remain unchanged.
 The study copies and source recordings in this directory are not themselves packaged in the
 APK. All three original synthesized collections remain available alongside both acoustic sets.
 
@@ -46,5 +45,5 @@ recognition or listening acceptance is claimed. These original studies contain n
 are documented in the parent listening guide.
 
 Production update: these short audition WAVs remain unchanged. The selectable Timber and Ember
-collections now use longer arrangements and louder mastering; they are no longer byte-identical
+collections now use longer arrangements with restrained linear mastering; they are no longer byte-identical
 to these study copies. Ember is the default for unset sounds; explicit choices remain saved.
