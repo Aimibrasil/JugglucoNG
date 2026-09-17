@@ -1,26 +1,23 @@
 package tk.glucodata.ui.alerts
 
 import java.util.Locale
-import tk.glucodata.alerts.AlertType
 
 /** Named resource URIs survive resource-ID reassignment between app updates. */
 internal object BundledAlertSounds {
     // Collection names are proper names, identical in every locale.
-    val styles = listOf("Contour", "Porcelain", "Halo")
+    // Order is the picker order: Juggluco sits directly below System Default.
+    val styles = listOf("Juggluco", "Contour", "Porcelain", "Halo", "Timber", "Ember")
     private val cues = setOf("low", "high", "urgent_low", "urgent_high", "falling", "rising", "signal", "reminder", "notice")
 
-    fun cueFor(alertTypeId: Int): String = when (AlertType.fromId(alertTypeId)) {
-        AlertType.LOW -> "low"
-        AlertType.HIGH, AlertType.PERSISTENT_HIGH -> "high"
-        AlertType.AVAILABLE -> "notice"
-        AlertType.AMOUNT, AlertType.SENSOR_EXPIRY -> "reminder"
-        AlertType.LOSS, AlertType.MISSED_READING -> "signal"
-        AlertType.VERY_LOW -> "urgent_low"
-        AlertType.VERY_HIGH -> "urgent_high"
-        AlertType.PRE_LOW, AlertType.FALLING_FAST -> "falling"
-        AlertType.PRE_HIGH, AlertType.RISING_FAST -> "rising"
-        null -> "notice"
-    }
+    // Legacy low-bitrate MP3/OGG originals. Saved selections still resolve to
+    // Juggluco; new selections use the remastered alert_juggluco_* WAVs below.
+    private val legacyOriginals = mapOf(
+        "low" to "siren", "high" to "classic", "notice" to "ghost",
+        "reminder" to "nudge", "signal" to "elves", "urgent_low" to "verylow",
+        "urgent_high" to "veryhigh", "falling" to "lowsoon", "rising" to "highsoon"
+    )
+
+    fun cueFor(alertTypeId: Int): String = tk.glucodata.alerts.AlertSoundDefaults.cueFor(alertTypeId)
 
     fun uri(packageName: String, style: String, alertTypeId: Int): String {
         require(style in styles)
@@ -28,7 +25,11 @@ internal object BundledAlertSounds {
     }
 
     fun styleFor(uri: String?, packageName: String): String? {
-        val prefix = "android.resource://$packageName/raw/alert_"
+        val rawPrefix = "android.resource://$packageName/raw/"
+        if (uri != null && uri.startsWith(rawPrefix) && uri.removePrefix(rawPrefix) in legacyOriginals.values) {
+            return "Juggluco"
+        }
+        val prefix = rawPrefix + "alert_"
         if (uri == null || !uri.startsWith(prefix)) return null
         val name = uri.removePrefix(prefix)
         return styles.firstOrNull { style ->
