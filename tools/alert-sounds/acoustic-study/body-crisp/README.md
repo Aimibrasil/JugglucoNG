@@ -9,7 +9,7 @@ hard-mallet strike. There are no bass oscillators, synthetic sweeps, distortion,
 shifts, or added reverberation. Both designs target -20 dBFS active RMS; this is electrical
 level matching, not a claim of equal perceived loudness.
 
-These remain listening prototypes outside Android resources. Sources and CC0 terms are
-in the parent folder. Reproduce with `render_body_crisp.py`; append `--check` to verify
+These comparison copies remain outside Android resources. A is preserved in Timber and B
+is preserved in Ember as selectable collections. Sources and CC0 terms are in the parent folder. Reproduce with `render_body_crisp.py`; append `--check` to verify
 source hashes, exact output, headroom, DC offset and zero endpoints. Python/NumPy and
-macOS afconvert are required. The study does not modify the app's current alarm choices.
+macOS afconvert are required. Adding the collections does not migrate existing alarm choices.

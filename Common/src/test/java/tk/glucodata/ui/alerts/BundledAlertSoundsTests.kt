@@ -2,6 +2,8 @@ package tk.glucodata.ui.alerts
 
 import java.io.File
 import java.util.Locale
+import java.security.MessageDigest
+import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
 import tk.glucodata.alerts.AlertConfig
@@ -59,17 +61,37 @@ class BundledAlertSoundsTests {
 
     @Test
     fun globalApplyRecognizesMatchingFamilyWithDifferentCues() {
-        val draft = AlertConfig(AlertType.LOW, customSoundUri = BundledAlertSounds.uri(packageName, "Halo", 0))
-        val targets = AlertType.entries.associateWith { type ->
-            draft.copy(type = type, customSoundUri = BundledAlertSounds.forAlert(draft.customSoundUri, packageName, type.id))
+        BundledAlertSounds.styles.forEach { style ->
+            val draft = AlertConfig(AlertType.LOW, customSoundUri = BundledAlertSounds.uri(packageName, style, 0))
+            val targets = AlertType.entries.associateWith { type ->
+                draft.copy(type = type, customSoundUri = BundledAlertSounds.forAlert(draft.customSoundUri, packageName, type.id))
+            }
+            assertFalse(shouldEnableApplyToAll(draft, draft, targets, packageName))
+            // A low cue accidentally copied onto HIGH must still need correction.
+            assertTrue(shouldEnableApplyToAll(draft, draft,
+                targets + (AlertType.HIGH to draft.copy(type = AlertType.HIGH)), packageName))
+            val differentStyle = if (style == "Contour") "Halo" else "Contour"
+            assertTrue(shouldEnableApplyToAll(draft, draft,
+                targets + (AlertType.HIGH to targets.getValue(AlertType.HIGH).copy(
+                    customSoundUri = BundledAlertSounds.uri(packageName, differentStyle, 1))), packageName))
         }
-        assertFalse(shouldEnableApplyToAll(draft, draft, targets, packageName))
-        // A low cue accidentally copied onto HIGH must still need correction.
-        assertTrue(shouldEnableApplyToAll(draft, draft,
-            targets + (AlertType.HIGH to draft.copy(type = AlertType.HIGH)), packageName))
-        assertTrue(shouldEnableApplyToAll(draft, draft,
-            targets + (AlertType.HIGH to targets.getValue(AlertType.HIGH).copy(
-                customSoundUri = BundledAlertSounds.uri(packageName, "Contour", 1))), packageName))
+    }
+
+    @Test
+    fun originalCollectionsKeepTheirPreviouslyPublishedAudio() {
+        val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
+        val measurements = listOf(
+            File("../tools/alert-sounds/measurements.json"),
+            File("tools/alert-sounds/measurements.json")
+        ).first { it.isFile }
+        val original = JSONObject(measurements.readText())
+        assertEquals(27, original.length())
+        original.keys().forEach { filename ->
+            val bytes = File(raw, filename).readBytes()
+            val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            assertEquals(filename, original.getJSONObject(filename).getString("sha256"), digest)
+        }
     }
 
     @Test

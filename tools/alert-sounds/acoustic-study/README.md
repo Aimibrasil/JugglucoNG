@@ -1,9 +1,9 @@
 # Recorded-acoustic listening study
 
-An audition for the proposed acoustic direction, separate from the currently packaged
-synthesized collections. These four cues are not Android resources and are not in the APK.
-The point of this study is to settle the material and character through listening before
-replacing the production set.
+The original acoustic audition is retained for comparison. Its four cues are now included
+byte-for-byte in the selectable Timber collection; the low/high B cues are included in Ember.
+The study copies and source recordings in this directory are not themselves packaged in the
+APK. All three original synthesized collections remain available alongside both acoustic sets.
 
 [Listen to the audition](acoustic-audition.wav), in this order:
 
@@ -41,5 +41,5 @@ python3 tools/alert-sounds/acoustic-study/render_study.py --check
 The check validates source hashes, reproduces all four cues and the reel, checks digital
 peaks, DC offset and zero endpoints, and compares `measurements.json`. Exact bytes can
 depend on the macOS sample-rate converter and NumPy versions. No physical-device
-recognition or listening acceptance is claimed. These are character studies, not
-validated urgent-alarm designs.
+recognition or listening acceptance is claimed. These original studies contain no urgent-alarm designs; the complete collections
+are documented in the parent listening guide.
