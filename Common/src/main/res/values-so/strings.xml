@@ -1040,6 +1040,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="ottai_login_button">Soo gal</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Saxiixday</string>
+    <string name="ottai_session_invalid">Fadhigii daruurta hadda shaqayn maayo – mar kale gal</string>
     <string name="ottai_account_id">Akoon: %1$s</string>
     <string name="ottai_sensor_mac_hint">Aqoonsiga aaladda Cloud (12 hex ama QR)</string>
     <string name="ottai_connect_saved">Ku xidhnow</string>

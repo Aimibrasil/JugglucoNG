@@ -250,6 +250,9 @@ private fun ottaiMaterialFailureMessage(
     // one rather than showing a bare headline — that path used to append lastError and must not
     // come out of this change with less detail than it had.
     val effective = failure ?: OttaiCloudClient.lastFailure
+    // A rejected session is not a sensor problem; the caller has already signed the account
+    // out, so the offline-routes hint would only send the user the wrong way.
+    if (effective?.isTokenInvalid == true) return context.getString(R.string.ottai_session_invalid)
     val headline = if (effective?.code.equals(OttaiCloudClient.BIZ_ALREADY_BINDING, ignoreCase = true)) {
         context.getString(R.string.ottai_cloud_already_binding)
     } else {
@@ -501,6 +504,20 @@ fun OttaiSetupWizard(
     var savedRefresh by remember { mutableStateOf(0) }
     var nfcScanRestartKey by remember { mutableStateOf(0) }
 
+    // The backend has rejected the stored session (AuthFailed_TokenInvalid). Every cloud call
+    // will keep failing, so stop presenting the account as signed in and say why: before this the
+    // wizard kept "Signed in" up while the device list silently stayed empty, and a user who had
+    // just signed up read that as email sign-in being broken.
+    val invalidateSession: () -> Unit = {
+        OttaiCloudClient.clearSession(context)
+        signedIn = false
+        devices = null
+        cloudBindingCheckingId = ""
+        cloudBindingCheckedId = ""
+        cloudBindingFailedId = ""
+        status = context.getString(R.string.ottai_session_invalid)
+    }
+
     val refreshAccountDevices: (String) -> Unit = refreshAccountDevices@{ sensorId ->
         val canonical = OttaiConstants.canonicalSensorId(sensorId)
         if (!signedIn || !OttaiConstants.looksLikeMac(canonical)) return@refreshAccountDevices
@@ -525,6 +542,9 @@ fun OttaiSetupWizard(
                     "cloud binding refresh sensor=$canonical rows=${list.size} " +
                         "active=${ottaiActiveCloudUnbindTarget(canonical, list) != null}",
                 )
+            } else if (failure?.isTokenInvalid == true) {
+                Log.w(tag, "cloud binding refresh sensor=$canonical rejected: session invalid")
+                invalidateSession()
             } else {
                 cloudBindingFailedId = canonical
                 Log.w(tag, "cloud binding refresh failed sensor=$canonical ${failure?.text.orEmpty()}")
@@ -556,6 +576,9 @@ fun OttaiSetupWizard(
                             "active=${ottaiActiveCloudUnbindTarget(pendingId, list) != null}",
                     )
                 }
+            } else if (failure?.isTokenInvalid == true) {
+                Log.w(tag, "listDevices rejected: session invalid")
+                invalidateSession()
             } else if (OttaiConstants.looksLikeMac(cloudBindingCheckingId)) {
                 cloudBindingFailedId = cloudBindingCheckingId
                 cloudBindingCheckingId = ""
@@ -658,6 +681,7 @@ fun OttaiSetupWizard(
                     fetched?.requiresV3Bootstrap == true -> ""
                     else -> ottaiMaterialFailureMessage(context, fetched?.failure)
                 }
+                if (fetched?.failure?.isTokenInvalid == true) invalidateSession()
             }
         } else {
             materialLoading = false
@@ -921,11 +945,15 @@ fun OttaiSetupWizard(
                                             context, email.trim(), regPassword, profileName.trim(),
                                             regRequestId, regCode.trim(),
                                             region.webBase ?: OttaiConstants.WEB_BASE_OTTAI,
-                                        )?.accessToken?.isNotBlank() == true
+                                        )?.ok == true
                                     }.onFailure { Log.w(tag, "signUp: ${it.message}") }.getOrDefault(false)
                                 }
                                 busy = false
-                                if (ok) { signedIn = true; step = OttaiSetupStep.SENSOR }
+                                if (ok) {
+                                    OttaiRegistry.saveAccountLogin(context, email.trim())
+                                    signedIn = true
+                                    step = OttaiSetupStep.SENSOR
+                                }
                                 else status = context.getString(R.string.ottai_register_fail) +
                                     OttaiCloudClient.lastError.takeIf { it.isNotBlank() }?.let { "\n$it" }.orEmpty()
                             }
@@ -1081,6 +1109,7 @@ fun OttaiSetupWizard(
                                     } else {
                                         busy = false
                                         status = ottaiMaterialFailureMessage(context, failure)
+                                        if (failure?.isTokenInvalid == true) invalidateSession()
                                     }
                                 }
                                 if (credentialBootstrap == null) {
@@ -1146,6 +1175,7 @@ fun OttaiSetupWizard(
                             } else {
                                 busy = false
                                 status = ottaiMaterialFailureMessage(context, fetched?.failure)
+                                if (fetched?.failure?.isTokenInvalid == true) invalidateSession()
                             }
                         }
                     }

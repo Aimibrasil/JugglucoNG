@@ -2161,6 +2161,7 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="ottai_login_button">Aanmelden</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Aangemeld</string>
+    <string name="ottai_session_invalid">Uw cloudsessie is niet meer geldig – meld u opnieuw aan</string>
     <string name="ottai_account_id">Account: %1$s</string>
     <string name="ottai_sensor_mac_hint">Cloud-apparaat-ID (12 hex of QR)</string>
     <string name="ottai_connect_saved">Verbinden</string>

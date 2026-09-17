@@ -2186,6 +2186,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ottai_login_button">Увайсці</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Уваход выкананы</string>
+    <string name="ottai_session_invalid">Ваша воблачная сесія больш не дзейнічае – увайдзіце зноў</string>
     <string name="ottai_account_id">Уліковы запіс: %1$s</string>
     <string name="ottai_sensor_mac_hint">Воблачны ID прылады (12 hex або QR)</string>
     <string name="ottai_connect_saved">Падключыць</string>
