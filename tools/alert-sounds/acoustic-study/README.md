@@ -1,7 +1,8 @@
 # Recorded-acoustic listening study
 
-The original acoustic audition is retained for comparison. Its four cues are now included
-byte-for-byte in the selectable Timber collection; the low/high B cues are included in Ember.
+The original acoustic audition is retained for comparison. Its four cues form the basis
+of Timber; the low/high B cues form the basis of Ember. Production arrangements are longer
+and louder; the short study files here remain unchanged.
 The study copies and source recordings in this directory are not themselves packaged in the
 APK. All three original synthesized collections remain available alongside both acoustic sets.
 
