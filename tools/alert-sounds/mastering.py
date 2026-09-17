@@ -8,10 +8,10 @@ REFERENCES = json.loads((Path(__file__).parent/'original-reference.json').read_t
 def master(out, cue):
     assert len(out) == REFERENCES[cue]['frames']
     out = out - np.mean(out)
-    # Restore the audition's restrained levels. Apply ONE linear gain: no
+    # Midway between the quiet audition and the rejected loud master. ONE gain: no
     # waveshaping, saturation, compression, or iterative loudness normalization.
     # If a recorded strike reaches the peak ceiling first, accept lower RMS.
-    target = -17.5 if cue.startswith('urgent') else -20.0
+    target = -15.25 if cue.startswith('urgent') else -17.5
     active = out[np.abs(out) > .01*np.max(np.abs(out))]
     gain = min(10**(target/20)/np.sqrt(np.mean(active**2)),
                10**(-3/20)/np.max(np.abs(out)))

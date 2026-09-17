@@ -58,8 +58,9 @@ Acoustic motifs return with breathing space and varied accents, then a longer fi
 the source recordings are never time-stretched. The three earlier synthesized sets keep
 all their original bytes, durations and levels.
 
-Acoustic masters restore the audition levels: -20 dBFS active RMS for ordinary cues and
--17.5 dBFS for urgent cues, with a -3 dBFS sample-peak ceiling. A single linear gain is
+Acoustic masters sit between the quiet auditions and the rejected loud version:
+-17.5 dBFS active RMS for ordinary cues and -15.25 dBFS for urgent cues, with a -3 dBFS
+sample-peak ceiling. A single linear gain is
 applied; if the peak ceiling is reached first, the lower RMS is retained. There is no
 waveshaping, compression or saturation. This preserves recorded transients instead of
 forcing them into a loudness target. Active RMS excludes samples below 1% of peak and
