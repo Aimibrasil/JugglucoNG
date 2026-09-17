@@ -552,7 +552,6 @@ fun AlertSettingsScreen(
                     subtitle = stringResource(R.string.speakglucose) + " \u2022 " + stringResource(R.string.speakalarms),
                     icon = Icons.AutoMirrored.Filled.VolumeUp,
                     iconTint = MaterialTheme.colorScheme.secondary,
-                    showArrow = true,
                     position = SettingsItemPosition.SINGLE,
                     onClick = { navController.navigate("settings/alerts/talker") }
                 )

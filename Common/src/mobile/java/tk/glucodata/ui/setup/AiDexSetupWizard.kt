@@ -410,7 +410,6 @@ fun AiDexScanStep(
         SettingsItem(
             title = stringResource(R.string.aidex_key_management_title),
             subtitle = stringResource(R.string.aidex_key_management_entry_desc),
-            showArrow = true,
             icon = Icons.Default.Key,
             iconTint = MaterialTheme.colorScheme.primary,
             position = CardPosition.SINGLE,
