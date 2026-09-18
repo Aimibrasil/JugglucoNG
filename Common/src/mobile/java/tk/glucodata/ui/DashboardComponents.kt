@@ -1802,7 +1802,7 @@ fun CalibrationsCard(
     
     // EMPTY STATE: No card shown at all - just the button floating (Full Width, Tonal)
     if (calibrations.isEmpty()) {
-        if (!showEmptyAction) {
+        if (!showEmptyAction || !isCalibrationEnabled) {
             return
         }
         androidx.compose.material3.FilledTonalButton(
@@ -1870,33 +1870,34 @@ fun CalibrationsCard(
 //                     Spacer(modifier = Modifier.weight(8.dp))
                  }
 
-                 // Right: Calibrate
-                 androidx.compose.material3.Button(
-                    onClick = onAddCalibration,
-                    enabled = isCalibrationEnabled,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(
-                        topStart = 4.dp, 
-                        bottomStart = 4.dp,
-                        topEnd = 12.dp, 
-                        bottomEnd = 12.dp
-                    ),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-//                    elevation = androidx.compose.material3.ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.WaterDrop,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.calibrate_action),
-                        style = MaterialTheme.typography.labelLarge
-                    )
+                if (isCalibrationEnabled) {
+                    // Right: Calibrate
+                    androidx.compose.material3.Button(
+                        onClick = onAddCalibration,
+                        enabled = isCalibrationEnabled,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(
+                            topStart = 4.dp,
+                            bottomStart = 4.dp,
+                            topEnd = 12.dp,
+                            bottomEnd = 12.dp
+                        ),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.WaterDrop,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.calibrate_action),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             }
             
