@@ -894,11 +894,16 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
                 && managed.managesLiveRoomStorage()
                 && SerialNumber != null
                 && !SerialNumber.isEmpty();
-        final boolean shouldApplyGenericLiveCalibration = !liveRoomStorage;
 
         // Check viewMode early - RAW modes may have data even when calibrated glucose is 0
         int viewMode = Natives.getViewMode(dataptr);
         boolean isRawMode = (viewMode == 1 || viewMode == 3);
+        // Applied unless the driver has already folded the user's calibration
+        // into the value itself — see LiveCalibrationPolicy. Managing its own
+        // Room rows is not the same thing.
+        final boolean shouldApplyGenericLiveCalibration = this instanceof ManagedBluetoothSensorDriver managed
+                ? LiveCalibrationPolicy.appliesGenericCalibration(true, managed.integratesUserCalibration(isRawMode))
+                : LiveCalibrationPolicy.appliesGenericCalibration(false, false);
         boolean shouldUseRawAsPrimary = shouldUseRawAsPrimary(viewMode);
         boolean hasPreferredRawLane = Float.isFinite(preferredRawMgdl) && preferredRawMgdl > 0f;
         boolean shouldStoreRawLane = hasPreferredRawLane || shouldStoreRawLane(viewMode);
@@ -923,7 +928,7 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
                     syncLegacyRoomHistoryAfterLive(SerialNumber, timmsec);
                 }
                 if (shouldApplyGenericLiveCalibration) {
-                    glucoseToUse = CalibrationAccess.getCalibratedValue(glucoseToUse, timmsec, true);
+                    glucoseToUse = CalibrationAccess.getCalibratedValue(glucoseToUse, timmsec, true, false, SerialNumber);
                     mgdlToUse = (int) Math.round(glucoseToUse * (Applic.unit == 1 ? mgdLmult : 1.0f));
                 }
 
@@ -1005,7 +1010,7 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
             }
 
             if (shouldApplyGenericLiveCalibration) {
-                glucoseToUse = CalibrationAccess.getCalibratedValue(glucoseToUse, timmsec, isRawMode);
+                glucoseToUse = CalibrationAccess.getCalibratedValue(glucoseToUse, timmsec, isRawMode, false, SerialNumber);
                 mgdlToUse = (int) Math.round(glucoseToUse * (Applic.unit == 1 ? mgdLmult : 1.0f));
             }
 
