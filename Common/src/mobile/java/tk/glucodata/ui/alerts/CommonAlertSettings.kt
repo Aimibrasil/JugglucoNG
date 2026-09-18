@@ -45,6 +45,7 @@ fun CommonAlertSettings(
     onPickSound: (AlertConfig) -> Unit,
     onTest: () -> Unit,
     showTestButton: Boolean = true,
+    onReset: (() -> Unit)? = null,
     // What the alert is about: thresholds, durations, look-ahead.
     headerContent: (@Composable () -> Unit)? = null,
     // The alert's own power-user options, rendered inside the Advanced section.
@@ -333,6 +334,14 @@ fun CommonAlertSettings(
                 )
 
                 advancedContent?.invoke()
+            }
+        }
+        onReset?.let { reset ->
+            TextButton(
+                onClick = reset,
+                modifier = Modifier.align(Alignment.End).padding(horizontal = sectionHorizontalPadding)
+            ) {
+                Text(stringResource(R.string.resetname))
             }
         }
     }
