@@ -307,8 +307,10 @@ private fun JournalActionMenuRow(
         if (!placeIconAfterLabel) {
             JournalActionFab(actionType, label, actionTint, iconContainerColor, onClick)
         }
+        // Clickable Surface overload, not an outer .clickable: the ripple
+        // must be clipped to the pill, otherwise it paints a square.
         Surface(
-            modifier = Modifier.clickable(onClick = onClick),
+            onClick = onClick,
             shape = RoundedCornerShape(18.dp),
             color = labelContainerColor,
             tonalElevation = 0.dp,
