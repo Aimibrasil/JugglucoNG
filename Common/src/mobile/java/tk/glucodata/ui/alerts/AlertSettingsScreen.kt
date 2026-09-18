@@ -770,6 +770,7 @@ fun CustomAlertCard(
                     CommonAlertSettings(
                         config = genericConfig,
                         onReset = { onUpdate(alert.resetToDefaults(isMmol)) },
+                        isModified = alert.isModifiedFromDefaults(isMmol),
                         onConfigChange = { newConfig ->
                             val updated = alert.copy(
                                 enabled = newConfig.enabled,
@@ -1130,6 +1131,7 @@ private fun AlertSettingsExpanded(
             onPickSound = { onPickSound() },
             onTest = onTest,
             onReset = { onConfigChange(config.resetToDefaults(isMmol)) },
+            isModified = config.isModifiedFromDefaults(isMmol),
             headerContent = {
                 // === Delta-counter Section (FALLING_FAST / RISING_FAST) ===
                 if (config.type == AlertType.FALLING_FAST || config.type == AlertType.RISING_FAST) {
