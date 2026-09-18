@@ -3760,14 +3760,9 @@ class AnytimeBleManager(
         }
     }
 
-    // False for CT2/CT4: their reference models run in-tree and never hand back a
-    // NATIVE result, so the vendor library must not be treated as the expected
-    // source (that would keep their readings out of Room while waiting for it).
-    private fun nativeAlgorithmExpected(): Boolean =
-        qr?.isFactoryCalibration == true &&
-            AnytimeAlgorithm.isNativeAvailable &&
-            familyEntry.family != AnytimeConstants.Family.CT2 &&
-            familyEntry.family != AnytimeConstants.Family.CT4
+    // The vendor algorithm is gone (pure-Kotlin paths only), so there is never a
+    // vendor result to wait for and nothing to recompute with a full prefix.
+    private fun nativeAlgorithmExpected(): Boolean = false
 
     private fun recomputePendingNativeReadings(context: Context?, intervalMs: Long) {
         if (!nativeAlgorithmExpected() || intervalMs <= 0L) return
