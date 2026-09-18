@@ -1904,6 +1904,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">用于远程连接的 TURN 中继</string>
     <string name="mirror_connections">连接</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">本地克隆</string>
+    <string name="mirror_default_hybrid_label">混合克隆</string>
     <string name="mirror_clone_master_desc">启用所有已保存的 Clone 连接</string>
     <string name="clone_history_recovery">历史记录恢复</string>
     <string name="clone_history_direction_send">发送至接收端</string>

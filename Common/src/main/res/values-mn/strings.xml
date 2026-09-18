@@ -1916,6 +1916,8 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="mirror_turn_server_desc">TURN relay for remote connections</string>
     <string name="mirror_connections">Connections</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Дотоод клон</string>
+    <string name="mirror_default_hybrid_label">Хосолмол клон</string>
     <string name="mirror_clone_master_desc">Хадгалсан бүх Clone холболтыг идэвхжүүлэх</string>
     <string name="clone_history_recovery">Түүх сэргээх</string>
     <string name="clone_history_direction_send">Хүлээн авагч руу илгээх</string>

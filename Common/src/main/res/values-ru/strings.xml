@@ -1935,6 +1935,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">TURN-ретранслятор для удаленных подключений</string>
     <string name="mirror_connections">Соединения</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Локальный клон</string>
+    <string name="mirror_default_hybrid_label">Гибридный клон</string>
     <string name="mirror_clone_master_desc">Включить все сохранённые подключения Clone</string>
     <string name="clone_history_recovery">Восстановление истории</string>
     <string name="clone_history_direction_send">Отправить получателю</string>

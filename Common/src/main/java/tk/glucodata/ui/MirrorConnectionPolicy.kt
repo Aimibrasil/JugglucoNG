@@ -64,3 +64,14 @@ internal fun formatNetworkEndpoint(host: String?, port: Int): String? {
     }
     return "$displayHost:$port"
 }
+
+/** Localize generated names only for display; stored names also identify pending pairings. */
+internal fun localizedMirrorConnectionLabel(
+    storedLabel: String?,
+    localLabel: String,
+    hybridLabel: String
+): String? = when (storedLabel) {
+    "Local Clone" -> localLabel
+    "Hybrid Clone" -> hybridLabel
+    else -> storedLabel
+}
