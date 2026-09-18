@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import tk.glucodata.data.journal.CloneJournalRecoveryTombstoneEntity
+import tk.glucodata.data.journal.CloneJournalTombstoneEntity
 import tk.glucodata.data.journal.JournalDao
 import tk.glucodata.data.journal.JournalEntryEntity
 import tk.glucodata.data.journal.JournalFoodEntity
@@ -38,6 +40,27 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
  *   v17 — per-journal-entry LibreView delivery timestamp
  *   v18 — recorded main value keyed by the minute, written only on presentation
  *   v19 — versioned insulin curve evidence and immutable per-dose curve snapshots
+ *   v20–v29 — Clone-branch test builds only (never on main): provenance/recovery
+ *         columns and interim cleanups of the minute-keyed display table.
+ *         Main never shipped these versions.
+ *   v30 — test-branch stepping stone (never shipped): same owned schema as v19
+ *         plus four compatibility columns the Clone builds wrote (history source /
+ *         first-arrival, journal origin / recovery id). Not sufficient on its own:
+ *         at equal versions Room compares the whole-schema identity hash, which
+ *         covers the Clone-only tables this build does not own — so a Clone v30
+ *         database still fails to open. Kept only so every history has a
+ *         migration path forward to v31.
+ *   v31 — opens Clone test-build databases (v20–v30). The 30→31 step runs the
+ *         same idempotent ensures; with versions differing Room validates the
+ *         owned tables instead of the identity hash, ignores the Clone-only
+ *         tables left in place, and writes the new hash. Compatibility columns
+ *         are kept, never read.
+ *   v32 — the Clone tables become owned: journal tombstones, recovery
+ *         tombstones and import receipts, created only where absent, with the
+ *         identity backfills the Clone code relies on. Every earlier history
+ *         (main v19, a Clone build at v20–v23, a test build at v24–v31) arrives
+ *         here through the steps above, so this is the one place the tables
+ *         are guaranteed rather than assumed.
  */
 @Database(
     entities = [
@@ -48,9 +71,12 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
         JournalEntryEntity::class,
         JournalFoodEntity::class,
         JournalInsulinPresetEntity::class,
-        JournalPendingDeleteEntity::class
+        JournalPendingDeleteEntity::class,
+        CloneJournalTombstoneEntity::class,
+        CloneJournalRecoveryTombstoneEntity::class,
+        CloneRecoveryImportEntity::class
     ],
-    version = 19,
+    version = 32,
     exportSchema = false
 )
 abstract class HistoryDatabase : RoomDatabase() {
@@ -524,6 +550,224 @@ abstract class HistoryDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Shared compatibility ensures for v30: idempotent, additive, never drops
+         * user data except rebuilding a stale reading_display (see below).
+         */
+        private fun ensureV30Compatibility(db: SupportSQLiteDatabase) {
+            if (!hasColumn(db, "history_readings", "source")) {
+                db.execSQL(
+                    "ALTER TABLE history_readings ADD COLUMN source TEXT NOT NULL DEFAULT 'sensor'"
+                )
+            }
+            if (!hasColumn(db, "history_readings", "firstStoredAt")) {
+                db.execSQL(
+                    "ALTER TABLE history_readings ADD COLUMN firstStoredAt INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+            db.execSQL(
+                "UPDATE history_readings SET firstStoredAt = id WHERE firstStoredAt <= 0"
+            )
+            if (!hasColumn(db, "journal_entries", "originSource")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN originSource TEXT")
+            }
+            if (!hasColumn(db, "journal_entries", "recoveryId")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN recoveryId TEXT")
+            }
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS index_journal_entries_recoveryId " +
+                    "ON journal_entries (recoveryId)"
+            )
+            // Insulin curve columns: both histories have them at the top end, but an
+            // early Clone v19 reached 19 with a different meaning of it. Guarded, so
+            // safe for either history.
+            if (!hasColumn(db, "journal_insulin_presets", "curveProfileId")) {
+                db.execSQL("ALTER TABLE journal_insulin_presets ADD COLUMN curveProfileId TEXT")
+            }
+            if (!hasColumn(db, "journal_insulin_presets", "curveModelVersion")) {
+                db.execSQL(
+                    "ALTER TABLE journal_insulin_presets " +
+                        "ADD COLUMN curveModelVersion INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+            if (!hasColumn(db, "journal_insulin_presets", "curveEvidence")) {
+                db.execSQL(
+                    "ALTER TABLE journal_insulin_presets " +
+                        "ADD COLUMN curveEvidence TEXT NOT NULL DEFAULT 'unverified'"
+                )
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveJsonSnapshot")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinCurveJsonSnapshot TEXT")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveProfileId")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinCurveProfileId TEXT")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveModelVersion")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinCurveModelVersion INTEGER")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveEvidence")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinCurveEvidence TEXT")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinBodyWeightKg")) {
+                db.execSQL("ALTER TABLE journal_entries ADD COLUMN insulinBodyWeightKg REAL")
+            }
+            if (!hasColumn(db, "journal_entries", "insulinCurveWasApproximated")) {
+                db.execSQL(
+                    "ALTER TABLE journal_entries " +
+                        "ADD COLUMN insulinCurveWasApproximated INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+            // reading_display: rebuild only when the minute-keyed schema is absent.
+            // Main v19 and Clone v30 already have index_reading_display_sensorSerial;
+            // early Clone histories (v19–v22) do not, and their old per-sensor rows
+            // cannot be carried over (same reason as MIGRATION_17_18).
+            if (!hasIndex(db, "index_reading_display_sensorSerial")) {
+                db.execSQL("DROP TABLE IF EXISTS reading_display")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS reading_display (
+                        timestamp INTEGER NOT NULL,
+                        sensorSerial TEXT NOT NULL,
+                        displayMgdl REAL NOT NULL,
+                        viewMode INTEGER NOT NULL,
+                        calibrationFingerprint INTEGER NOT NULL,
+                        recordedAt INTEGER NOT NULL,
+                        PRIMARY KEY(timestamp)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_reading_display_sensorSerial " +
+                        "ON reading_display (sensorSerial)"
+                )
+            }
+        }
+
+        private fun hasIndex(db: SupportSQLiteDatabase, indexName: String): Boolean {
+            val cursor = db.query(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?",
+                arrayOf(indexName)
+            )
+            try {
+                return cursor.count > 0
+            } finally {
+                cursor.close()
+            }
+        }
+
+        /**
+         * v19 → v30: stepping stone on the way to v31 (see below). A phone on
+         * main v19 takes this step, then 30→31; a phone on a Clone build takes
+         * its own bridge to 30, then 30→31.
+         */
+        private val MIGRATION_19_30 = object : Migration(19, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureV30Compatibility(db)
+            }
+        }
+
+        /**
+         * v20–v29 all lived on the Clone branch only and differ from v30 solely in
+         * which compatibility columns or display cleanups they had already applied.
+         * Each bridge runs the same idempotent ensures, so any Clone test build can
+         * move forward without a downgrade.
+         */
+        private fun bridgeCloneToV30(from: Int) = object : Migration(from, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureV30Compatibility(db)
+            }
+        }
+
+        /**
+         * v30 → v31: the step that actually opens Clone databases.
+         *
+         * Same-version opens compare the whole-schema identity hash, which covers
+         * the Clone-only tables this build does not own — that is the
+         * "cannot verify the data integrity" failure. With versions differing,
+         * Room instead runs this migration and validates the owned tables, which
+         * do match; the Clone-only tables are left in place and ignored, and Room
+         * writes the new identity hash. Idempotent, additive, drops nothing but
+         * a stale reading_display (same rule as the ensures).
+         */
+        private val MIGRATION_30_31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureV30Compatibility(db)
+            }
+        }
+
+        /**
+         * v31 → v32: own the Clone tables.
+         *
+         * A phone can reach 31 from three histories -- main, which never had these
+         * tables; a Clone build, which created them at v20–v23; a test build, which
+         * bridged past them -- and Room validates owned tables on open, so they
+         * must exist in exactly the entity's shape on every one of those paths.
+         * Everything here is guarded and additive: tables and indexes only where
+         * absent, backfills only where null. Runs the v30 ensures first so a main
+         * history also picks up the columns the Clone code reads.
+         */
+        private val MIGRATION_31_32 = object : Migration(31, 32) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureV30Compatibility(db)
+                ensureCloneSchema(db)
+            }
+        }
+
+        /**
+         * The Clone-owned tables and the identity backfills, idempotently. Kept
+         * separate from [ensureV30Compatibility] because that one is also what a
+         * Clone-less build runs, and it must never start creating tables it does
+         * not own.
+         */
+        private fun ensureCloneSchema(db: SupportSQLiteDatabase) {
+            // Journal rows carry where their content came from and a stable
+            // identity that survives backup restore and row-id reuse. The columns
+            // are ensured above; a Clone history backfilled them at v20/v21 and a
+            // main history has them empty.
+            db.execSQL(
+                "UPDATE journal_entries SET originSource = source " +
+                    "WHERE originSource IS NULL " +
+                    "AND source IN ('manual', 'health_connect', 'meter', 'pen')"
+            )
+            db.execSQL(
+                "UPDATE journal_entries SET recoveryId = lower(hex(randomblob(16))) " +
+                    "WHERE recoveryId IS NULL"
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS clone_journal_tombstones (
+                    entryId INTEGER PRIMARY KEY NOT NULL,
+                    deletedAt INTEGER NOT NULL,
+                    recoveryId TEXT
+                )
+                """.trimIndent()
+            )
+            // A Clone build that stopped at v20 created this table before the
+            // column existed.
+            if (!hasColumn(db, "clone_journal_tombstones", "recoveryId")) {
+                db.execSQL("ALTER TABLE clone_journal_tombstones ADD COLUMN recoveryId TEXT")
+            }
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS clone_journal_recovery_tombstones (
+                    stableBaseId TEXT NOT NULL,
+                    recoveryId TEXT,
+                    deletedAt INTEGER NOT NULL,
+                    PRIMARY KEY(stableBaseId)
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                    "index_clone_journal_recovery_tombstones_recoveryId " +
+                    "ON clone_journal_recovery_tombstones (recoveryId)"
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS clone_recovery_imports " +
+                    "(jobId TEXT NOT NULL, sha256 TEXT NOT NULL, PRIMARY KEY(jobId))"
+            )
+        }
+
         fun getInstance(context: Context): HistoryDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -548,7 +792,20 @@ abstract class HistoryDatabase : RoomDatabase() {
                     MIGRATION_15_16,
                     MIGRATION_16_17,
                     MIGRATION_17_18,
-                    MIGRATION_18_19
+                    MIGRATION_18_19,
+                    MIGRATION_19_30,
+                    bridgeCloneToV30(20),
+                    bridgeCloneToV30(21),
+                    bridgeCloneToV30(22),
+                    bridgeCloneToV30(23),
+                    bridgeCloneToV30(24),
+                    bridgeCloneToV30(25),
+                    bridgeCloneToV30(26),
+                    bridgeCloneToV30(27),
+                    bridgeCloneToV30(28),
+                    bridgeCloneToV30(29),
+                    MIGRATION_30_31,
+                    MIGRATION_31_32
                 )
                 .build().also { INSTANCE = it }
             }

@@ -170,7 +170,7 @@ import tk.glucodata.ui.journal.JournalInlineChip
 import tk.glucodata.ui.journal.JournalSettingsScreen
 import tk.glucodata.data.journal.JournalIobCalculator
 import tk.glucodata.data.journal.JournalActiveInsulinSummary
-import tk.glucodata.drivers.nightscout.NightscoutFollowerDeviceStatus
+import tk.glucodata.RemoteIobSnapshot
 import tk.glucodata.ui.journal.buildJournalChartMarkers
 import tk.glucodata.ui.journal.journalQuickAddTimestamp
 import tk.glucodata.ui.viewmodel.DashboardViewModel
@@ -422,7 +422,6 @@ fun DashboardScreen(
     var showICanHealthWizard by remember { mutableStateOf(false) }
     var showMQWizard by remember { mutableStateOf(false) }
     var showAnytimeWizard by remember { mutableStateOf(false) }
-    var showCt14Wizard by remember { mutableStateOf(false) }
     var showOttaiWizard by remember { mutableStateOf(false) }
     var journalEditorRequest by remember { mutableStateOf<JournalEditorRequest?>(null) }
     var journalActionTimestamp by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -460,12 +459,11 @@ fun DashboardScreen(
             JournalIobCalculator.buildActiveInsulinSummary(scopedJournalEntries, journalPresetsById, journalNow)
         }
     }
-    // A fresh devicestatus published by the followed uploader replaces the
-    // locally recomputed IOB/eIOB so both devices show the same numbers; the
-    // journalNow ticker re-evaluates the freshness window, so a stale
-    // document falls back to the local computation on its own.
-    val remoteInsulin = remember(journalEnabled, journalNow) {
-        if (journalEnabled) NightscoutFollowerDeviceStatus.fresh(journalNow) else null
+    // Clone and Nightscout resolve through one precedence policy shared with
+    // notifications and broadcasts. UiRefreshBus makes a received/cleared
+    // snapshot visible immediately; the ticker still retires stale state.
+    val remoteInsulin = remember(journalEnabled, journalNow, predictionCalibrationRefresh) {
+        if (journalEnabled) RemoteIobSnapshot.fresh(journalNow) else null
     }
     val activeInsulinSummary = remember(localInsulinSummary, remoteInsulin) {
         when {
@@ -874,18 +872,6 @@ fun DashboardScreen(
         return
     }
 
-    // CT-14 Setup Wizard
-    if (showCt14Wizard) {
-        tk.glucodata.ui.setup.Ct14SetupWizard(
-            onDismiss = { showCt14Wizard = false },
-            onNavigateToReadiness = onNavigateToReadiness,
-            onComplete = {
-                showCt14Wizard = false
-                viewModel.refreshData()
-            },
-        )
-        return
-    }
 
     // Ottai Setup Wizard
     if (showOttaiWizard) {
@@ -1389,7 +1375,6 @@ fun DashboardScreen(
                     tk.glucodata.ui.components.SensorType.ICANHEALTH -> showICanHealthWizard = true
                     tk.glucodata.ui.components.SensorType.MQ -> showMQWizard = true
                         tk.glucodata.ui.components.SensorType.ANYTIME -> showAnytimeWizard = true
-                        tk.glucodata.ui.components.SensorType.CT14 -> showCt14Wizard = true
                         tk.glucodata.ui.components.SensorType.OTTAI -> showOttaiWizard = true
                 }
             },

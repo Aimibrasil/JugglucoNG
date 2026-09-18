@@ -93,6 +93,23 @@ interface ReadingDisplayDao {
     @Query("SELECT COUNT(*) FROM reading_display")
     suspend fun getCount(): Int
 
+
+    /**
+     * Recovered display rows in minute order. The table is keyed by the minute
+     * since the seal went in, so a page cursor is the minute alone.
+     */
+    @Query(
+        """
+        SELECT * FROM reading_display display
+        WHERE display.timestamp > :afterTimestamp
+        ORDER BY display.timestamp ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun getRecoveryPage(
+        afterTimestamp: Long,
+        limit: Int,
+    ): List<ReadingDisplay>
     @Query("DELETE FROM reading_display WHERE timestamp < :cutoff")
     suspend fun deleteOlderThan(cutoff: Long)
 

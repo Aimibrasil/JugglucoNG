@@ -398,10 +398,10 @@ private fun AnytimeScanStep(
                 if (!showAllDevices && !device.isLikelyAnytime) return@items
                 val title = device.displayName.ifBlank { stringResource(R.string.unknown) }
                 val supporting = when {
-                    device.advertisesPrimaryService ->
-                        stringResource(R.string.anytime_detected_label, device.address)
-                    device.isLikelyAnytime ->
+                    device.familyEntry.family != AnytimeConstants.Family.UNKNOWN ->
                         "${device.familyEntry.family.displayName} · ${device.address}"
+                    device.isLikelyAnytime ->
+                        stringResource(R.string.anytime_detected_label, device.address)
                     else -> stringResource(R.string.anytime_selectable_unrecognized, device.address)
                 }
                 ListItem(

@@ -2,6 +2,7 @@ package tk.glucodata.drivers
 
 import java.util.Locale
 import tk.glucodata.Applic
+import tk.glucodata.GlucoseReadingSource
 import tk.glucodata.HistorySyncAccess
 import tk.glucodata.Log
 import tk.glucodata.Natives
@@ -91,6 +92,7 @@ object VirtualGlucoseSensorBridge {
         backfill: Boolean = true,
         nearDuplicateWindowMs: Long = 0L,
         mirrorToNative: Boolean = false,
+        source: String = GlucoseReadingSource.SENSOR,
     ): Int {
         if (sensorSerial.isBlank() || readings.isEmpty()) return 0
         val nowMs = System.currentTimeMillis()
@@ -147,7 +149,14 @@ object VirtualGlucoseSensorBridge {
             values[index] = reading.storageGlucoseMgdl
             rawValues[index] = reading.rawMgdl.takeIf { it.isFinite() && it > 0f } ?: Float.NaN
         }
-        if (!HistorySyncAccess.storeSensorHistoryBatchBlocking(sensorSerial, timestamps, values, rawValues)) {
+        if (!HistorySyncAccess.storeSensorHistoryBatchWithSourceBlocking(
+                sensorSerial,
+                timestamps,
+                values,
+                rawValues,
+                source,
+            )
+        ) {
             return 0
         }
         Log.i(
@@ -210,6 +219,7 @@ object VirtualGlucoseSensorBridge {
         sensorGen: Int,
         logLabel: String = "virtual",
         mirrorToNative: Boolean = false,
+        source: String = GlucoseReadingSource.SENSOR,
     ) {
         if (sensorSerial.isBlank()) return
         if (!isUsableCurrentReading(reading, System.currentTimeMillis())) {
@@ -219,12 +229,13 @@ object VirtualGlucoseSensorBridge {
 
         val rawMgdl = reading.rawMgdl.takeIf { it.isFinite() && it > 0f } ?: 0f
         val rate = reading.rate.takeIf { it.isFinite() } ?: 0f
-        HistorySyncAccess.storeCurrentReadingAsync(
+        HistorySyncAccess.storeCurrentReadingWithSourceAsync(
             reading.timestampMs,
             reading.storageGlucoseMgdl,
             rawMgdl,
             rate,
             sensorSerial,
+            source,
         )
         if (mirrorToNative) {
             mirrorIntoNative(sensorSerial, listOf(reading), logLabel)

@@ -234,7 +234,9 @@ fun AlertSettingsScreen(
                                 flashEnabled = draft.flashEnabled,
                                 deliveryMode = draft.deliveryMode,
                                 hapticProfile = draft.hapticProfile,
-                                customSoundUri = draft.customSoundUri,
+                                customSoundUri = BundledAlertSounds.forAlert(
+                                    draft.customSoundUri, context.packageName, config.type.id
+                                ),
                                 overrideDND = draft.overrideDND,
                                 alarmDurationSeconds = draft.alarmDurationSeconds,
                                 timeRangeEnabled = draft.timeRangeEnabled,
@@ -270,7 +272,10 @@ fun AlertSettingsScreen(
                                 timeRangeEnabled = draft.timeRangeEnabled,
                                 startTimeMinutes = (draft.activeStartHour ?: 0) * 60 + (draft.activeStartMinute ?: 0),
                                 endTimeMinutes = (draft.activeEndHour ?: 0) * 60 + (draft.activeEndMinute ?: 0),
-                                soundUri = draft.customSoundUri
+                                soundUri = BundledAlertSounds.forAlert(
+                                    draft.customSoundUri, context.packageName,
+                                    if (alert.type == CustomAlertType.LOW) 0 else 1
+                                )
                             )
                         }
                         saveCustomAlerts(updatedCustomAlerts)
@@ -547,7 +552,6 @@ fun AlertSettingsScreen(
                     subtitle = stringResource(R.string.speakglucose) + " \u2022 " + stringResource(R.string.speakalarms),
                     icon = Icons.AutoMirrored.Filled.VolumeUp,
                     iconTint = MaterialTheme.colorScheme.secondary,
-                    showArrow = true,
                     position = SettingsItemPosition.SINGLE,
                     onClick = { navController.navigate("settings/alerts/talker") }
                 )
@@ -732,7 +736,7 @@ fun CustomAlertCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                        .padding(vertical = 16.dp)
+                        .padding(top = 16.dp)
                 ) {
                     // Map to AlertConfig for shared UI component
                     val genericConfig = AlertConfig(
@@ -1130,7 +1134,7 @@ private fun AlertSettingsExpanded(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .padding(vertical = 16.dp)
+            .padding(top = 16.dp)
     ) {
         CommonAlertSettings(
             config = config,
@@ -2030,7 +2034,8 @@ internal fun SoundSelector(
                         text = when {
                             currentUri.isNullOrEmpty() -> stringResource(R.string.app_default_sound)
                             currentUri == SYSTEM_DEFAULT_SOUND -> stringResource(R.string.system_default_sound)
-                            else -> stringResource(R.string.custom_sound_selected)
+                            else -> BundledAlertSounds.styleFor(currentUri, LocalContext.current.packageName)
+                                ?: stringResource(R.string.custom_sound_selected)
                         },
                         style = MaterialTheme.typography.bodyLarge
                    )

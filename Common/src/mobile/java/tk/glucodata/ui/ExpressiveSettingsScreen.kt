@@ -102,12 +102,10 @@ fun ExpressiveSettingsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val mqAccountState = tk.glucodata.drivers.mq.MQRegistry.loadAccountState(context)
-    val showMqAccount =
-        tk.glucodata.drivers.mq.MQRegistry.persistedRecords(context).isNotEmpty() ||
-            mqAccountState.hasCredentials ||
-            mqAccountState.hasToken ||
-            tk.glucodata.drivers.mq.MQRegistry.isCloudSyncEnabled(context)
+    val sensorStatusRevision by tk.glucodata.UiRefreshBus.revision.collectAsState()
+    val showMqAccount = remember(context, sensorStatusRevision) {
+        tk.glucodata.drivers.mq.MQRegistry.persistedRecords(context).isNotEmpty()
+    }
     // LibreView is relevant whenever the account is already set up *or* a Libre-family
     // sensor is active — the account no longer has to be configured in the setup wizard first.
     val showLibreView = remember {
@@ -142,13 +140,29 @@ fun ExpressiveSettingsScreen(
         CalibrationManager.isEnabledForMode(isRawCalibrationMode, sensorName)
     }
     val calibrationModeLabel = if (isRawCalibrationMode) "Raw" else "Auto"
-    
+
+    // Rows that carry a master switch read the same state their own screen reads. The
+    // system-granted ones can change while this screen is in the background, so they are
+    // re-read on resume rather than only at first composition.
+    val floatingOverlayEnabled by viewModel.floatingRepository.isEnabled.collectAsState(initial = false)
+    var floatingOverlayAllowed by remember {
+        mutableStateOf(android.provider.Settings.canDrawOverlays(context))
+    }
+    var aodServiceEnabled by remember { mutableStateOf(isAodAccessibilityEnabled(context)) }
+    val insulinPensEnabled by tk.glucodata.InsulinPenManager.enabled.collectAsState()
+    var webServerActive by remember { mutableStateOf(Natives.getusexdripwebserver()) }
+    var nightscoutActive by remember { mutableStateOf(isNightscoutActive(context)) }
+
     // Auto-refresh data when screen becomes active (e.g. returning from Alerts screen)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshData()
+                floatingOverlayAllowed = android.provider.Settings.canDrawOverlays(context)
+                aodServiceEnabled = isAodAccessibilityEnabled(context)
+                webServerActive = Natives.getusexdripwebserver()
+                nightscoutActive = isNightscoutActive(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -288,39 +302,56 @@ fun ExpressiveSettingsScreen(
                     onClick = { navController.navigate("settings/display-colors") }
                 )
 
-                ManualCalibrationSettingsItem(
-                    calibrationEnabled = calibrationEnabled,
-                    modeLabel = calibrationModeLabel,
-                    onToggleEnabled = {
+                SettingsNavSwitchItem(
+                    title = stringResource(R.string.manual_calibration),
+                    subtitle = "$calibrationModeLabel - ${
+                        stringResource(
+                            if (calibrationEnabled) R.string.enabled_status else R.string.disabled_status
+                        )
+                    }",
+                    checked = calibrationEnabled,
+                    onCheckedChange = {
                         CalibrationManager.setEnabledForMode(isRawCalibrationMode, it, sensorName)
                     },
-                    onOpenCalibration = { navController.navigate("settings/calibrations") },
+                    onClick = { navController.navigate("settings/calibrations") },
+                    icon = Icons.Default.WaterDrop,
                     iconTint = glucoseColor,
                     position = CardPosition.MIDDLE
                 )
 
-                SettingsItem(
+                SettingsNavSwitchItem(
                     title = stringResource(R.string.graph_smoothing_title),
                     subtitle = graphSmoothingLabel,
-                    showArrow = true,
+                    checked = chartSmoothingMinutes > 0,
+                    onCheckedChange = { viewModel.setDataSmoothingEnabled(it) },
+                    onClick = { navController.navigate("settings/data-smoothing") },
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    iconTint = glucoseColor,
-                    position = CardPosition.MIDDLE,
-                    onClick = { navController.navigate("settings/data-smoothing") }
-                )
-
-                JournalSettingsItem(
-                    journalEnabled = journalEnabled,
-                    onToggleEnabled = { viewModel.setJournalEnabled(it) },
-                    onOpenJournal = { navController.navigate("settings/journal") },
                     iconTint = glucoseColor,
                     position = CardPosition.MIDDLE
                 )
 
-                PredictiveSimulationSettingsItem(
-                    predictiveSimulationEnabled = predictiveSimulationEnabled,
-                    onToggleEnabled = { viewModel.setPredictiveSimulationEnabled(it) },
-                    onOpenSettings = { navController.navigate("settings/predictive-simulation") },
+                SettingsNavSwitchItem(
+                    title = stringResource(R.string.journal_title),
+                    subtitle = stringResource(
+                        if (journalEnabled) R.string.enabled_status else R.string.disabled_status
+                    ),
+                    checked = journalEnabled,
+                    onCheckedChange = { viewModel.setJournalEnabled(it) },
+                    onClick = { navController.navigate("settings/journal") },
+                    icon = Icons.Default.Vaccines,
+                    iconTint = glucoseColor,
+                    position = CardPosition.MIDDLE
+                )
+
+                SettingsNavSwitchItem(
+                    title = stringResource(R.string.predictive_simulation_title),
+                    subtitle = stringResource(
+                        if (predictiveSimulationEnabled) R.string.enabled_status else R.string.disabled_status
+                    ),
+                    checked = predictiveSimulationEnabled,
+                    onCheckedChange = { viewModel.setPredictiveSimulationEnabled(it) },
+                    onClick = { navController.navigate("settings/predictive-simulation") },
+                    icon = Icons.AutoMirrored.Filled.ShowChart,
                     iconTint = glucoseColor,
                     position = CardPosition.BOTTOM
                 )
@@ -334,10 +365,15 @@ fun ExpressiveSettingsScreen(
             // Theme: Secondary (Accent)
             val notifColor = MaterialTheme.colorScheme.secondary
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                AlertsAndAlarmsSettingsItem(
-                    alertsEnabled = alertsMasterEnabled,
-                    onToggleEnabled = { viewModel.setAlertsMasterEnabled(it) },
-                    onOpenSettings = { navController.navigate("settings/alerts") },
+                SettingsNavSwitchItem(
+                    title = stringResource(R.string.glucose_alerts_title),
+                    subtitle = stringResource(
+                        if (alertsMasterEnabled) R.string.global_active else R.string.global_all_alerts_disabled
+                    ),
+                    checked = alertsMasterEnabled,
+                    onCheckedChange = { viewModel.setAlertsMasterEnabled(it) },
+                    onClick = { navController.navigate("settings/alerts") },
+                    icon = Icons.Default.AddAlert,
                     iconTint = MaterialTheme.colorScheme.error,
                     position = CardPosition.TOP,
                 )
@@ -350,21 +386,53 @@ fun ExpressiveSettingsScreen(
                     position = CardPosition.MIDDLE,
                     onClick = { navController.navigate("settings/notification-display") }
                 )
-                SettingsItem(
+                SettingsNavSwitchItem(
                     title = stringResource(R.string.floatglucose),
-                    subtitle = stringResource(R.string.enable_overlay_desc),
+                    subtitle = when {
+                        !floatingOverlayAllowed -> stringResource(R.string.floating_permission_required)
+                        floatingOverlayEnabled -> stringResource(R.string.enabled_status)
+                        else -> stringResource(R.string.disabled_status)
+                    },
+                    checked = floatingOverlayEnabled,
+                    // The overlay cannot start without the system grant, so the switch
+                    // sends you to give it rather than flipping to a state it can't hold.
+                    onCheckedChange = { enabled ->
+                        if (enabled && !floatingOverlayAllowed) {
+                            context.startActivity(
+                                Intent(
+                                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:${context.packageName}")
+                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        } else {
+                            viewModel.toggleFloatingGlucose(enabled)
+                        }
+                    },
+                    onClick = { navController.navigate("settings/floating-display") },
                     icon = Icons.Default.PictureInPicture,
                     iconTint = notifColor,
-                    position = CardPosition.MIDDLE,
-                    onClick = { navController.navigate("settings/floating-display") }
+                    position = CardPosition.MIDDLE
                 )
-                SettingsItem(
+                SettingsNavSwitchItem(
                     title = stringResource(R.string.lock_screen_aod),
-                    subtitle = stringResource(R.string.customize_always_on_display),
+                    subtitle = if (aodServiceEnabled) {
+                        stringResource(R.string.accessibility_service_enabled)
+                    } else {
+                        stringResource(R.string.open_accessibility_settings)
+                    },
+                    checked = aodServiceEnabled,
+                    // The lock-screen overlay is an accessibility service: only the system
+                    // settings screen can turn it on or off.
+                    onCheckedChange = {
+                        context.startActivity(
+                            Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    },
+                    onClick = { navController.navigate("settings/aod-display") },
                     icon = Icons.Default.Visibility,
                     iconTint = notifColor,
-                    position = CardPosition.BOTTOM,
-                    onClick = { navController.navigate("settings/aod-display") }
+                    position = CardPosition.BOTTOM
                 )
             }
         }
@@ -455,7 +523,6 @@ fun ExpressiveSettingsScreen(
                 SettingsItem(
                     title = stringResource(R.string.outbound_api_title),
                     subtitle = stringResource(R.string.outbound_api_desc),
-                    showArrow = true,
                     icon = Icons.Default.CloudUpload,
                     iconTint = exchangeColor,
                     position = CardPosition.MIDDLE,
@@ -464,27 +531,31 @@ fun ExpressiveSettingsScreen(
                 SettingsItem(
                     title = stringResource(R.string.mirror),
                     subtitle = stringResource(R.string.mirror_desc),
-                    showArrow = true,
                     icon = Icons.Default.Devices,
                     iconTint = exchangeColor,
                     position = CardPosition.MIDDLE,
                     onClick = { navController.navigate("settings/mirror") }
                 )
                 // Edit 67b: Determine if LibreView is visible to adjust card positions
-                SettingsItem(
+                SettingsNavSwitchItem(
                     title = stringResource(R.string.nightscout_config),
-                    subtitle = stringResource(R.string.nightscout_desc),
-                    showArrow = true,
+                    subtitle = stringResource(
+                        if (nightscoutActive) R.string.enabled_status else R.string.disabled_status
+                    ),
+                    checked = nightscoutActive,
+                    onCheckedChange = {
+                        setNightscoutActive(context, it)
+                        nightscoutActive = it
+                    },
+                    onClick = { navController.navigate("settings/nightscout") },
                     icon = Icons.Default.CloudUpload,
                     iconTint = exchangeColor,
-                    position = CardPosition.MIDDLE,
-                    onClick = { navController.navigate("settings/nightscout") }
+                    position = CardPosition.MIDDLE
                 )
                 if (showLibreView) {
                     SettingsItem(
                         title = stringResource(R.string.libreview_config),
                         subtitle = stringResource(R.string.libreview_desc),
-                        showArrow = true,
                         icon = Icons.Default.Cloud,
                         iconTint = exchangeColor,
                         position = CardPosition.MIDDLE,
@@ -495,7 +566,6 @@ fun ExpressiveSettingsScreen(
                     SettingsItem(
                         title = stringResource(R.string.mq_account_title),
                         subtitle = stringResource(R.string.mq_account_linked_desc),
-                        showArrow = true,
                         icon = Icons.Default.Cloud,
                         iconTint = exchangeColor,
                         position = CardPosition.MIDDLE,
@@ -506,7 +576,6 @@ fun ExpressiveSettingsScreen(
                     SettingsItem(
                         title = stringResource(R.string.ottai_setup_title),
                         subtitle = stringResource(R.string.ottai_settings_desc),
-                        showArrow = true,
                         icon = Icons.Default.Sensors,
                         iconTint = exchangeColor,
                         position = CardPosition.MIDDLE,
@@ -516,38 +585,45 @@ fun ExpressiveSettingsScreen(
                 SettingsItem(
                     title = stringResource(R.string.meterlist),
                     subtitle = stringResource(R.string.glucose_meters_desc),
-                    showArrow = true,
                     icon = Icons.Default.Bloodtype,
                     iconTint = exchangeColor,
                     position = CardPosition.MIDDLE,
                     onClick = { navController.navigate("settings/glucose-meters") }
                 )
-                SettingsItem(
+                SettingsNavSwitchItem(
                     title = stringResource(R.string.insulin_pens_title),
-                    subtitle = stringResource(R.string.insulin_pens_desc),
-                    showArrow = true,
+                    subtitle = stringResource(
+                        if (insulinPensEnabled) R.string.enabled_status else R.string.disabled_status
+                    ),
+                    checked = insulinPensEnabled,
+                    onCheckedChange = { tk.glucodata.InsulinPenManager.setEnabled(it) },
+                    onClick = { navController.navigate("settings/insulin-pens") },
                     icon = Icons.Default.Vaccines,
                     iconTint = exchangeColor,
-                    position = CardPosition.MIDDLE,
-                    onClick = { navController.navigate("settings/insulin-pens") }
+                    position = CardPosition.MIDDLE
                 )
                 SettingsItem(
                     title = stringResource(R.string.watches),
                     subtitle = "WearOS, Watchdrip, GadgetBridge, Kerfstok",
-                    showArrow = true,
                     icon = Icons.Default.Devices,
                     iconTint = exchangeColor,
                     position = CardPosition.MIDDLE,
                     onClick = { navController.navigate("settings/watch") }
                 )
-                SettingsItem(
+                SettingsNavSwitchItem(
                     title = stringResource(R.string.webserver),
-                    subtitle = stringResource(R.string.web_server_desc),
-                    showArrow = true,
+                    subtitle = stringResource(
+                        if (webServerActive) R.string.enabled_status else R.string.disabled_status
+                    ),
+                    checked = webServerActive,
+                    onCheckedChange = {
+                        Natives.setusexdripwebserver(it)
+                        webServerActive = it
+                    },
+                    onClick = { navController.navigate("settings/webserver") },
                     icon = Icons.Default.Language,
                     iconTint = exchangeColor,
-                    position = CardPosition.BOTTOM,
-                    onClick = { navController.navigate("settings/webserver") }
+                    position = CardPosition.BOTTOM
                 )
             }
         }
@@ -596,7 +672,6 @@ fun ExpressiveSettingsScreen(
                         } else {
                             stringResource(R.string.sensor_handover_action_deactivate)
                         },
-                        showArrow = true,
                         icon = Icons.Default.DeleteSweep,
                         iconTint = advColor,
                         position = CardPosition.MIDDLE,
@@ -606,7 +681,6 @@ fun ExpressiveSettingsScreen(
                 SettingsItem(
                     title = stringResource(R.string.cgm_readiness_title),
                     subtitle = stringResource(R.string.cgm_readiness_settings_desc),
-                    showArrow = true,
                     icon = Icons.Default.Security,
                     iconTint = advColor,
                     position = CardPosition.MIDDLE,
@@ -615,7 +689,6 @@ fun ExpressiveSettingsScreen(
                 SettingsItem(
                     title = stringResource(R.string.debug_logs),
                     subtitle = stringResource(R.string.debug_logs_desc),
-                    showArrow = true,
                     icon = Icons.Default.BugReport,
                     iconTint = advColor,
                     position = CardPosition.BOTTOM,
@@ -947,255 +1020,6 @@ fun ExpressiveSettingsScreen(
 
 }
 
-@Composable
-private fun SettingsLeadingIcon(
-    icon: ImageVector,
-    tint: Color
-) {
-    Surface(
-        modifier = Modifier.size(40.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = tint.copy(alpha = 0.12f)
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ManualCalibrationSettingsItem(
-    calibrationEnabled: Boolean,
-    modeLabel: String,
-    onToggleEnabled: (Boolean) -> Unit,
-    onOpenCalibration: () -> Unit,
-    iconTint: Color,
-    position: CardPosition
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onOpenCalibration,
-        shape = cardShape(position),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SettingsLeadingIcon(icon = Icons.Default.WaterDrop, tint = iconTint)
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.manual_calibration),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "$modeLabel - ${if (calibrationEnabled) "active" else "paused"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                VerticalDivider(
-                    modifier = Modifier.height(30.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                StyledSwitch(
-                    checked = calibrationEnabled,
-                    onCheckedChange = onToggleEnabled
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun JournalSettingsItem(
-    journalEnabled: Boolean,
-    onToggleEnabled: (Boolean) -> Unit,
-    onOpenJournal: () -> Unit,
-    iconTint: Color,
-    position: CardPosition
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onOpenJournal,
-        shape = cardShape(position),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SettingsLeadingIcon(icon = Icons.Default.Vaccines, tint = iconTint)
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.journal_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = stringResource(if (journalEnabled) R.string.enabled_status else R.string.disabled_status),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                VerticalDivider(
-                    modifier = Modifier.height(30.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                StyledSwitch(
-                    checked = journalEnabled,
-                    onCheckedChange = onToggleEnabled
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PredictiveSimulationSettingsItem(
-    predictiveSimulationEnabled: Boolean,
-    onToggleEnabled: (Boolean) -> Unit,
-    onOpenSettings: () -> Unit,
-    iconTint: Color,
-    position: CardPosition
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onOpenSettings,
-        shape = cardShape(position),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SettingsLeadingIcon(icon = Icons.AutoMirrored.Filled.ShowChart, tint = iconTint)
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.predictive_simulation_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = stringResource(if (predictiveSimulationEnabled) R.string.enabled_status else R.string.disabled_status),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                VerticalDivider(
-                    modifier = Modifier.height(30.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                StyledSwitch(
-                    checked = predictiveSimulationEnabled,
-                    onCheckedChange = onToggleEnabled
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AlertsAndAlarmsSettingsItem(
-    alertsEnabled: Boolean,
-    onToggleEnabled: (Boolean) -> Unit,
-    onOpenSettings: () -> Unit,
-    iconTint: Color,
-    position: CardPosition
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onOpenSettings,
-        shape = cardShape(position),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SettingsLeadingIcon(icon = Icons.Default.AddAlert, tint = iconTint)
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.glucose_alerts_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = stringResource(if (alertsEnabled) R.string.global_active else R.string.global_all_alerts_disabled),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                VerticalDivider(
-                    modifier = Modifier.height(30.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                StyledSwitch(
-                    checked = alertsEnabled,
-                    onCheckedChange = onToggleEnabled
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun PredictiveSimulationSettingsScreen(
@@ -1289,7 +1113,6 @@ fun PredictiveSimulationSettingsScreen(
                                 modelProfile.blocks.size
                             )
                         },
-                        showArrow = true,
                         onClick = {
                             navController.navigate("settings/predictive-simulation/model-profile")
                         },
