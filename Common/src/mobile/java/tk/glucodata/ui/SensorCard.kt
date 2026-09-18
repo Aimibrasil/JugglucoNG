@@ -2661,7 +2661,7 @@ fun SensorCard(
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
                     ) {
-                        Column(
+                        Row(
                             modifier = Modifier
                                 // The content column starts after the 4 dp sensor rail and has
                                 // another 16 dp inset. Expand asymmetrically through both while
@@ -2675,27 +2675,22 @@ fun SensorCard(
                                 )
                                 .heightIn(min = 56.dp)
                                 .padding(start = 20.dp, end = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.auto_reset_title),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f).padding(end = 8.dp),
-                                )
-                                StyledSwitch(
-                                    checked = isAutoResetEnabled,
-                                    onCheckedChange = null,
-                                )
-                            }
+                            // Long labels (de: "Automatisches Zurücksetzen") wrap to a second
+                            // line instead of pushing the stepper onto its own row.
+                            Text(
+                                text = stringResource(R.string.auto_reset_title),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            )
                             if (isAutoResetEnabled) {
                                 Surface(
                                     shape = MaterialTheme.shapes.large,
                                     color = MaterialTheme.colorScheme.surfaceContainerLow,
-                                    modifier = Modifier.align(Alignment.End).padding(bottom = 8.dp),
+                                    modifier = Modifier.padding(end = 8.dp),
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -2748,6 +2743,10 @@ fun SensorCard(
                                     }
                                 }
                             }
+                            StyledSwitch(
+                                checked = isAutoResetEnabled,
+                                onCheckedChange = null,
+                            )
                         }
                     }
                 }
