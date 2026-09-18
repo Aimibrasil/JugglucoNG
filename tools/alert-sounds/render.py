@@ -199,7 +199,10 @@ def wav(samples):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check',action='store_true')
+    parser.add_argument('--wav-dir', default=None,
+                        help='Write WAVs here instead of Common/src/main/res/raw')
     args = parser.parse_args()
+    dest_dir = Path(args.wav_dir) if args.wav_dir else ROOT/'Common/src/main/res/raw'
     stats = {}
     for style in SCORES:
         reel = []
@@ -207,7 +210,7 @@ def main():
             name = f'alert_{style}_{cue}.wav'
             samples = render(style,cue)
             data = wav(samples)
-            dest = ROOT/'Common/src/main/res/raw'/name
+            dest = dest_dir/name
             if args.check:
                 assert dest.read_bytes()==data, f'{name}: differs from score'
             else:
