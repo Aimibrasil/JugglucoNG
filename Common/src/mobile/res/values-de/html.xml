@@ -1244,7 +1244,7 @@ liegen zu jedem Zeitpunkt des Tages.</span></span></span></span></font></font></
 	</tr>
 	<tr>
 		<td width="96" height="26" valign="top" style="border: none; padding: 0in"><p style="orphans: 2; widows: 2; background: transparent">
-			About</p>
+			Über die App</p>
 		</td>
 	</tr>
 	<tr>
@@ -1890,7 +1890,7 @@ einen US-ähnlichen Sensor.</font></p>
 der Standortberechtigung für die Suche nach einer
 Bluetooth-Geräteadresse verwendet werden kann, aber auch für die
 spätere Kontaktaufnahme mit Bluetooth-Geräten benötigt wird.</font></p>
-<p style="border: none; padding: 0in"><i><b>Bluetooth history: </b></i>Bei
+<p style="border: none; padding: 0in"><i><b>Bluetooth-Verlauf: </b></i>Bei
 Libre 0 und 2 handelt es sich beim Verlauf um Werte der Vergangenheit
 im 15-Minuten-Intervall. Bisher wurden sie nur durch Scannen
 empfangen. Wenn Sie diese Option aktivieren, werden die Verlaufswerte
@@ -2146,13 +2146,13 @@ und bearbeiten.</font></font></p>
 <p align="left" style="font-variant: normal; letter-spacing: normal; font-style: normal; font-weight: normal; line-height: 0.19in; orphans: 2; widows: 2; margin-bottom: 0.14in">
 <font face="Times New Roman"><font size="4" style="font-size: 14pt">Auf
 der linken Seite wird eine&nbsp;<font face="Cambria, serif"><font size="3" style="font-size: 13pt"><b>Liste</b></font></font>&nbsp;bestehender
-Kurzbefehle angezeigt. Nachdem Sie eine davon berührt haben, erscheint
-eine Anzeige, in der Sie die Shortcut löschen oder die Bezeichnung
+Kurzbefehle angezeigt. Nachdem Sie einen davon berührt haben, erscheint
+eine Anzeige, in der Sie den Kurzbefehl löschen oder die Bezeichnung
 oder den Wert ändern können.</font></font></p>
 <p align="left" style="font-variant: normal; letter-spacing: normal; font-style: normal; font-weight: normal; line-height: 0.19in; orphans: 2; widows: 2; margin-bottom: 0.14in">
 <font face="Times New Roman"><font size="4" style="font-size: 14pt"><font face="Cambria, serif"><font size="3" style="font-size: 13pt"><b>Mit
 </b></font></font><font face="Cambria, serif"><font size="3" style="font-size: 13pt"><b>Neu</b></font></font>&nbsp;wird
-eine neue Shortcut erstellt&nbsp;.</font></font></p>
+ein neuer Kurzbefehl erstellt&nbsp;.</font></font></p>
 <p align="left" style="font-variant: normal; letter-spacing: normal; font-style: normal; font-weight: normal; line-height: 0.19in; orphans: 2; widows: 2; margin-bottom: 0.14in">
 <font face="Times New Roman"><font size="4" style="font-size: 14pt">Änderungen
 werden erst nach Drücken der&nbsp;Schaltfläche&nbsp;<font face="Cambria, serif"><font size="3" style="font-size: 13pt"><b>Speichern</b></font></font><font face="Cambria, serif"><font size="3" style="font-size: 13pt"><b>
