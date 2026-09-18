@@ -1272,24 +1272,19 @@ fun InteractiveGlucoseChart(
         }
     }
 
-    // TRACKING INACTIVITY FOR GRAPH RESET
     var lastActiveTime by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     val currentLatestDataTimestamp by rememberUpdatedState(latestDataTimestamp)
     val currentSelectedTimeRange by rememberUpdatedState(selectedTimeRange)
+    val currentResetToLatestOnResume by rememberUpdatedState(resetToLatestOnResume)
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 isResumed = true
-
                 val currentTime = System.currentTimeMillis()
-                val latestTimestamp = currentLatestDataTimestamp
-                // Bound how long the chart may keep a frozen viewport. After 5 min away,
-                // anchor the view to "now" even if the data flow has not re-emitted yet
-                // (cold start / process death restore). Clearing lastAutoScrolledTimestamp
-                // lets the dataSeriesSignature path re-snap on the next emission.
-                if (currentTime - lastActiveTime > 5 * 60 * 1000L) {
+                if (currentResetToLatestOnResume && currentTime - lastActiveTime > 5 * 60 * 1000L) {
                     visibleDuration = (currentSelectedTimeRange?.hours?.toLong() ?: 3L) * 60 * 60 * 1000
+                    val latestTimestamp = currentLatestDataTimestamp
                     val targetCenter = if (latestTimestamp > 0L) {
                         liveCenterTimeFor(latestTimestamp, visibleDuration)
                     } else {
@@ -1299,10 +1294,9 @@ fun InteractiveGlucoseChart(
                     previewCenterTime = previewCenterTimeForWindowEnd(targetCenter + visibleDuration / 2L)
                     lastAutoScrolledTimestamp = 0L
                 }
-            }
-            else if (event == Lifecycle.Event.ON_PAUSE) {
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
                 isResumed = false
-                lastActiveTime = System.currentTimeMillis() // Save time on pause
+                lastActiveTime = System.currentTimeMillis()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

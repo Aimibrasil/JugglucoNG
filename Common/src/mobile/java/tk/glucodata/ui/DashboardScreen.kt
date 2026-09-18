@@ -315,6 +315,11 @@ fun DashboardScreen(
     val sensorName by viewModel.sensorName.collectAsStateWithLifecycle()
     val daysRemaining by viewModel.daysRemaining.collectAsStateWithLifecycle()
     val glucoseHistory by viewModel.glucoseHistory.collectAsStateWithLifecycle()
+    if (tk.glucodata.BuildConfig.DEBUG) {
+        LaunchedEffect(glucoseHistory) {
+            android.util.Log.d("DashboardHistory", "compose count=${glucoseHistory.size} latest=${glucoseHistory.lastOrNull()?.timestamp}")
+        }
+    }
     val timelineExtents by viewModel.timelineExtents.collectAsStateWithLifecycle()
     // Only once there is data to draw: with bounds alone the chart would compose
     // empty and paint its axes over nothing for the frames before the first
@@ -402,6 +407,7 @@ fun DashboardScreen(
     val currentDay by viewModel.currentDay.collectAsStateWithLifecycle()
     val predictionCalibrationRefresh by UiRefreshBus.revision.collectAsStateWithLifecycle(initialValue = 0L)
     val calibrationRevision by tk.glucodata.data.calibration.CalibrationManager.revision.collectAsStateWithLifecycle()
+    val predictionHideInitial by tk.glucodata.data.calibration.CalibrationManager.hideInitialWhenCalibrated.collectAsStateWithLifecycle()
 
     // Initialize Calibration Manager
     LaunchedEffect(Unit) {
@@ -588,7 +594,8 @@ fun DashboardScreen(
         predictionSettings,
         consumerHistory,
         viewMode,
-        predictionCalibrationRefresh,
+        calibrationRevision,
+        predictionHideInitial,
         scopedJournalEntries,
         journalPresetsById,
         unit,
@@ -618,7 +625,8 @@ fun DashboardScreen(
         multiSensorDisplay,
         journalEnabled,
         predictionSettings,
-        predictionCalibrationRefresh,
+        calibrationRevision,
+        predictionHideInitial,
         scopedJournalEntries,
         journalPresetsById,
         unit,
@@ -1592,7 +1600,7 @@ fun DashboardScreen(
                                 onDeleteReading = { point ->
                                     viewModel.deleteHistoryReading(point, sensorName)
                                 },
-                                modifier = Modifier.animateItem()
+                                modifier = Modifier
                             )
                         }
                     }
@@ -2054,7 +2062,7 @@ fun DashboardScreen(
                                 } else {
                                     null
                                 },
-                                modifier = Modifier.animateItem()
+                                modifier = Modifier
                             )
                         }
                     }
