@@ -1768,6 +1768,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_dose_pair_carbs">Дадаць вугляводы</string>
     <string name="journal_dose_suggested_insulin">Прапанавана %1$s АД</string>
     <string name="unit_insulin_value">%1$s АД</string>
+    <string name="unit_insulin_short">АД</string>
     <string name="unit_carbs_value">%1$s г</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
@@ -1962,6 +1963,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">TURN-рэтранслятар для аддаленых падключэнняў</string>
     <string name="mirror_connections">Падключэнні</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Лакальны клон</string>
+    <string name="mirror_default_hybrid_label">Гібрыдны клон</string>
     <string name="mirror_clone_master_desc">Уключыць усе захаваныя падключэнні Clone</string>
     <string name="clone_history_recovery">Аднаўленне гісторыі</string>
     <string name="clone_history_direction_send">Адправіць атрымальніку</string>

@@ -836,6 +836,14 @@ fun MirrorSettingsScreen(navController: NavController) {
 // ── Connection Card (expandable) ─────────────────────────────────────────────
 
 @Composable
+internal fun mirrorConnectionDisplayLabel(storedLabel: String?): String? =
+    localizedMirrorConnectionLabel(
+        storedLabel,
+        stringResource(R.string.mirror_default_local_label),
+        stringResource(R.string.mirror_default_hybrid_label)
+    )
+
+@Composable
 fun MirrorConnectionCard(
     mirror: MirrorItemData,
     controlsEnabled: Boolean = true,
@@ -851,12 +859,13 @@ fun MirrorConnectionCard(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var qrContent by remember { mutableStateOf<String?>(null) }
     var cardTestState by remember { mutableStateOf(ConnTestState.IDLE) }
+    val displayLabel = mirrorConnectionDisplayLabel(mirror.label)
     val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f, label = "chevron")
     LaunchedEffect(expanded) { if (!expanded) cardTestState = ConnTestState.IDLE }
 
     if (qrContent != null) {
         MirrorQrDialog(
-            title = mirror.label ?: context.getString(R.string.connection_number, mirror.index),
+            title = displayLabel ?: context.getString(R.string.connection_number, mirror.index),
             instruction = null,
             content = qrContent!!,
             onDismiss = { qrContent = null }
@@ -868,7 +877,7 @@ fun MirrorConnectionCard(
             onDismissRequest = { showDeleteConfirm = false },
             icon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
             title = { Text(stringResource(R.string.mirror_delete_connection_title)) },
-            text = { Text(stringResource(R.string.mirror_delete_connection_message, mirror.label ?: mirror.names?.firstOrNull() ?: stringResource(R.string.connection_label))) },
+            text = { Text(stringResource(R.string.mirror_delete_connection_message, displayLabel ?: mirror.names?.firstOrNull() ?: stringResource(R.string.connection_label))) },
             confirmButton = {
                 Button(
                     onClick = { onDelete(); showDeleteConfirm = false },
@@ -892,7 +901,7 @@ fun MirrorConnectionCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        mirror.label?.takeIf { it.isNotEmpty() } ?: mirror.names?.firstOrNull() ?: context.getString(R.string.connection_number, mirror.index),
+                        displayLabel?.takeIf { it.isNotEmpty() } ?: mirror.names?.firstOrNull() ?: context.getString(R.string.connection_number, mirror.index),
                         style = MaterialTheme.typography.titleMedium,
                         color = if (mirror.isDeactivated) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else Color.Unspecified
                     )
@@ -1314,7 +1323,8 @@ fun MirrorEditSheet(pos: Int, sheetState: SheetState, onDismiss: () -> Unit) {
             // Connection label
             SectionLabel(stringResource(R.string.label), modifier = Modifier.padding(horizontal = 24.dp))
             OutlinedTextField(
-                value = connectionLabel, onValueChange = { connectionLabel = it },
+                value = mirrorConnectionDisplayLabel(connectionLabel).orEmpty(),
+                onValueChange = { connectionLabel = it },
                 label = { Text(stringResource(R.string.mirror_connection_label)) },
                 supportingText = { Text(stringResource(R.string.mirror_connection_label_desc)) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), singleLine = true

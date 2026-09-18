@@ -127,6 +127,7 @@ import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -4448,6 +4449,20 @@ fun InteractiveGlucoseChart(
         val baseInterItemSpacing = 2.dp // Consistent 1dp everywhere for ranges
         val baseLabelStyle = MaterialTheme.typography.labelLarge // Richer, chunkier font (16sp) to match bigger layout
 
+        val rangeLabels = items.map { stringResource(it.labelResId, it.labelAmount) }
+        val rangeTextMeasurer = rememberTextMeasurer()
+        // Reserve the bold width for every label so changing selection cannot resize the picker.
+        val rangeLabelsWidth = with(density) {
+            rangeLabels.sumOf { label ->
+                rangeTextMeasurer.measure(
+                    text = label,
+                    style = baseLabelStyle.copy(fontWeight = FontWeight.Bold),
+                    softWrap = false,
+                    maxLines = 1
+                ).size.width
+            }.toDp()
+        }
+
         val pickerVerticalOffset = -(chartUnderlayBottomDp + (8.dp * safeExpandedProgress))
 
         // Two-phase dynamic shrink: measure the ideal pill width against the available
@@ -4478,9 +4493,8 @@ fun InteractiveGlucoseChart(
                     .padding(horizontal = baseInset),
                 contentAlignment = Alignment.Center
             ) {
-            // Estimate intrinsic width of all elements at their base (unscaled) sizes.
-            val avgTextWidth = 18.dp
-            val rangesWidth = (baseRangeHorizontalPadding * 2 + avgTextWidth) * items.size +
+            // Measure translated labels at the current font scale before sizing the picker.
+            val rangesWidth = baseRangeHorizontalPadding * 2 * items.size + rangeLabelsWidth +
                 (baseRangeClockSize + baseRangeClockGap) // selected item's icon
             val rangeGapsWidth = baseInterItemSpacing * (items.size - 1)
             // Always reserve space for the Back-to-Now button so the entire UI doesn't visually resize/jump

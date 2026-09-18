@@ -1704,6 +1704,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_dose_pair_carbs">Associer les glucides</string>
     <string name="journal_dose_suggested_insulin">%1$s U suggérées</string>
     <string name="unit_insulin_value">%1$s U</string>
+    <string name="unit_insulin_short">U</string>
     <string name="unit_carbs_value">%1$s g</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
@@ -1894,6 +1895,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">Relais TURN pour les connexions distantes</string>
     <string name="mirror_connections">Connexions</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Clone local</string>
+    <string name="mirror_default_hybrid_label">Clone hybride</string>
     <string name="mirror_clone_master_desc">Activer toutes les connexions Clone enregistrées</string>
     <string name="clone_history_recovery">Récupération de l’historique</string>
     <string name="clone_history_direction_send">Envoyer au récepteur</string>

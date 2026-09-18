@@ -193,7 +193,7 @@ internal fun CloneHistoryRecoverySheet(
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(
-                text = mirror.label?.takeIf(String::isNotBlank)
+                text = mirrorConnectionDisplayLabel(mirror.label)?.takeIf(String::isNotBlank)
                     ?: stringResource(R.string.connection_number, mirror.index),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

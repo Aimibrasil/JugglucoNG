@@ -549,7 +549,7 @@ private fun JournalMetricsPanel(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             JournalMetricCard(
                 title = stringResource(R.string.journal_metric_iob),
-                value = "${formatJournalMetric(iobUnits)} U",
+                value = stringResource(R.string.unit_insulin_value, formatJournalMetric(iobUnits)),
                 detail = activeInsulinDetail,
                 icon = Icons.Default.Vaccines,
                 type = JournalEntryType.INSULIN,
@@ -639,7 +639,7 @@ private fun JournalMetricsPanel(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             JournalMetricCard(
                 title = stringResource(R.string.journal_metric_insulin_today),
-                value = "${formatJournalMetric(insulinToday)} U",
+                value = stringResource(R.string.unit_insulin_value, formatJournalMetric(insulinToday)),
                 detail = stringResource(R.string.journal_type_insulin),
                 icon = Icons.Default.Vaccines,
                 type = JournalEntryType.INSULIN,

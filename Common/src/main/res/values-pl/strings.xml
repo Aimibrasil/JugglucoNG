@@ -1733,6 +1733,7 @@
     <string name="journal_dose_pair_carbs">Połącz węglowodany</string>
     <string name="journal_dose_suggested_insulin">Sugerowane %1$s j.</string>
     <string name="unit_insulin_value">%1$s j.</string>
+    <string name="unit_insulin_short">j.</string>
     <string name="unit_carbs_value">%1$s g</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
@@ -1923,6 +1924,8 @@
     <string name="mirror_turn_server_desc">Relay TURN dla połączeń zdalnych</string>
     <string name="mirror_connections">Połączenia</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Klon lokalny</string>
+    <string name="mirror_default_hybrid_label">Klon hybrydowy</string>
     <string name="mirror_clone_master_desc">Włącz wszystkie zapisane połączenia Clone</string>
     <string name="clone_history_recovery">Odzyskiwanie historii</string>
     <string name="clone_history_direction_send">Wyślij do odbiornika</string>

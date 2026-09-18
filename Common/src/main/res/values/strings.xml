@@ -1770,7 +1770,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="wearosinfo">Wearosinfo</string>
     <string name="wipe_sensor_data_desc">Delete sensor data from this device.</string>
     <string name="wipe_sensor_data_title">Wipe sensor data</string>
-    <string name="manual_calibration">Manual calibarion</string>
+    <string name="manual_calibration">Manual calibration</string>
 
 
 
@@ -2192,6 +2192,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_dose_pair_carbs">Pair carbs</string>
     <string name="journal_dose_suggested_insulin">%1$s U suggested</string>
     <string name="unit_insulin_value">%1$s U</string>
+    <string name="unit_insulin_short">U</string>
     <string name="unit_carbs_value">%1$s g</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
@@ -2467,6 +2468,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">TURN relay for remote connections</string>
     <string name="mirror_connections">Connections</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Local Clone</string>
+    <string name="mirror_default_hybrid_label">Hybrid Clone</string>
     <string name="mirror_clone_master_desc">Enable all saved Clone connections</string>
     <string name="clone_history_recovery">History recovery</string>
     <string name="clone_history_direction_send">Send to receiver</string>
