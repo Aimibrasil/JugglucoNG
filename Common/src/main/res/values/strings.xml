@@ -1094,6 +1094,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ottai_login_button">Sign in</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Signed in</string>
+    <string name="ottai_session_invalid">Your cloud session is no longer valid — sign in again</string>
     <string name="ottai_account_id">Account: %1$s</string>
     <string name="ottai_sensor_mac_hint">Cloud device ID (12 hex or QR)</string>
     <string name="ottai_connect_saved">Connect</string>

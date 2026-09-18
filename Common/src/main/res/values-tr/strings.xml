@@ -2149,6 +2149,7 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="ottai_login_button">Oturum aç</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Oturum açık</string>
+    <string name="ottai_session_invalid">Bulut oturumunuz artık geçerli değil – yeniden oturum açın</string>
     <string name="ottai_account_id">Hesap: %1$s</string>
     <string name="ottai_sensor_mac_hint">Bulut cihaz kimliği (12 hex veya QR)</string>
     <string name="ottai_connect_saved">Bağlan</string>

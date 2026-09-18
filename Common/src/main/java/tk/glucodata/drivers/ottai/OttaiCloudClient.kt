@@ -76,13 +76,21 @@ object OttaiCloudClient {
     // The server already considers the sensor finished. For [unbind] that is the state the caller
     // was asking for, so it counts as released. Not yet observed on-device.
     const val BIZ_END_USING = "AppDevice_EndUsing"
+    // The stored session is dead as far as the backend is concerned (http=401). Seen when a
+    // web-only JWT was persisted as the mobile session (sign-up on 2026-09-18: every
+    // /deviceBind/list answered this right after "web login ok") and when a token simply expires.
+    // Nothing the account does afterwards will succeed; the only fix is a fresh sign-in.
+    const val BIZ_TOKEN_INVALID = "AuthFailed_TokenInvalid"
 
     /**
      * A non-secret cloud failure: [text] is what the UI appends, [code] is the backend's business
      * code (see the BIZ_ constants) for the callers that act on a specific one. [code] is blank
      * for the failures we raise ourselves, before any response exists.
      */
-    data class CloudFailure(val text: String, val code: String = "")
+    data class CloudFailure(val text: String, val code: String = "") {
+        /** The backend no longer accepts the stored session; the caller must sign in again. */
+        val isTokenInvalid: Boolean get() = code.equals(BIZ_TOKEN_INVALID, ignoreCase = true)
+    }
 
     /** Last non-secret failure reason (HTTP + business code/message); null after a call that succeeded. */
     @Volatile
@@ -435,7 +443,10 @@ object OttaiCloudClient {
         // cannot be used here — email sign-in goes through the web API (see mailLogin). Password
         // is PLAINTEXT; sig arg-order = sign(apiToken, account, password). SINGLE attempt only —
         // a wrong password is a real failed-login attempt, so do NOT retry variants (lockout).
-        val apiToken = getApiToken(ctx, base, authorizationOverride)
+        // A login must not carry whatever token is still stored from an earlier session (a stale
+        // or web-only JWT): with no override, send no Authorization header at all.
+        val authorization = authorizationOverride ?: ""
+        val apiToken = getApiToken(ctx, base, authorization)
             ?: run { lastFailure = CloudFailure("apiToken failed"); return null }
         val ts = now()
         val deviceId = requestDeviceId(ctx, OttaiRegistry.SessionProfile.WATCH)
@@ -450,7 +461,7 @@ object OttaiCloudClient {
         val resp = httpPostJson(
             base + OttaiConstants.EP_ACCOUNT_LOGIN,
             body.toString(),
-            headers(ctx, ts, base, authorizationOverride),
+            headers(ctx, ts, base, authorization),
         ) ?: return null
         val data = resp.optJSONObject("data") ?: resp.optJSONObject("result") ?: return null
         val result = LoginResult(
@@ -476,6 +487,15 @@ object OttaiCloudClient {
             val ts = now()
             httpPostJson(base(ctx) + OttaiConstants.EP_LOGOUT, "{}", headers(ctx, ts, base(ctx)))
         }
+        clearSession(ctx)
+    }
+
+    /**
+     * Drop the stored account session without telling the backend. For a session the backend has
+     * already rejected ([BIZ_TOKEN_INVALID]) /user/logout would only 401 again; what matters is
+     * that the app stops presenting the account as signed in.
+     */
+    fun clearSession(ctx: Context) {
         OttaiRegistry.saveAccessToken(ctx, null)
         OttaiRegistry.saveGlucoseSecretKey(ctx, null)
         OttaiRegistry.saveUserId(ctx, null)
@@ -970,38 +990,72 @@ object OttaiCloudClient {
                 }
             }
         } ?: return null
-        val mobileBase = webBaseToMobile(webBase)
+        return upgradeWebSession(ctx, resp, password, webBase)
+    }
+
+    /**
+     * Turn a web-API login/sign-up response into the mobile session every CGM call needs.
+     *
+     * A web JWT has no device scope: the mobile API answers every /deviceBind and /device call
+     * with AuthFailed_TokenInvalid (seen end-to-end on 2026-09-18 right after a sign-up). The
+     * only session that works is accountLogin's, and accountLogin keys on the account's
+     * server-assigned random username, which only the profile endpoint exposes. So: getUser with
+     * the web JWT → username → accountLogin(username, password).
+     *
+     * The chain never falls back to persisting the web JWT: that produced a "signed in" account
+     * on which nothing worked, and users read it as email login being broken. When a step fails
+     * the account stays signed out and [lastFailure] says which step.
+     *
+     * The www host is load-balanced and a JWT issued by one node may not be known to the node
+     * serving the next request (the same race [webPostRetry] handles for apiToken), so the
+     * profile lookup and a token-rejected accountLogin are retried; a wrong password is not.
+     */
+    private fun upgradeWebSession(ctx: Context, resp: JSONObject, password: String, webBase: String): LoginResult? {
         val webToken = (resp.optJSONObject("data") ?: resp.optJSONObject("result"))
             ?.optString("accessToken").orEmptyIfNull()
-        if (webToken.isNotBlank()) {
-            // Syai's web profile omits both userName and glucoseSecretKey. Its mobile profile
-            // accepts the web JWT and exposes the server-assigned userName; accountLogin with
-            // that name then returns the mobile token and decrypt root required by device data.
+        if (webToken.isBlank()) {
+            // request() already captured the backend's business error, if any.
+            if (lastError.isBlank()) lastFailure = CloudFailure("web login returned no session")
+            return null
+        }
+        val mobileBase = webBaseToMobile(webBase)
+        // Syai's web profile omits both userName and glucoseSecretKey. Its mobile profile accepts
+        // the web JWT and exposes the server-assigned userName; Ottai's web profile does too.
+        var userName: String? = null
+        repeat(WEB_UPGRADE_ATTEMPTS) { attempt ->
             val profile = if (isSyai(webBase)) {
                 mobileGetUser(ctx, mobileBase, webToken)
             } else {
                 webGetUser(webBase, webToken)
             }
-            val userName = profile?.optString("userName").orEmptyIfNull().takeIf { it.isNotBlank() }
-            if (userName != null) {
-                passwordLogin(
-                    ctx,
-                    userName,
-                    password,
-                    mobileBase,
-                    authorizationOverride = webToken,
-                )?.takeIf { it.ok }?.let { return it }
+            userName = profile?.optString("userName").orEmptyIfNull().takeIf { it.isNotBlank() }
+            if (userName != null) return@repeat
+            if (profile != null) {
+                lastFailure = CloudFailure("account profile has no username")
+                return null
             }
+            if (attempt < WEB_UPGRADE_ATTEMPTS - 1) runCatching { Thread.sleep(WEB_UPGRADE_RETRY_MS) }
         }
-        // A Syai web JWT can validate a device but carries no material-decryption root. Persisting
-        // it would make sign-in look successful while every fresh sensor fails material loading.
-        if (isSyai(webBase)) {
-            if (lastError.isBlank()) lastFailure = CloudFailure("Syai mobile login upgrade failed")
+        val name = userName ?: run {
+            if (lastError.isBlank()) lastFailure = CloudFailure("account profile lookup failed")
             return null
         }
-        // Fallback for an Ottai web account whose profile does not expose a mobile username.
-        return persistWebLogin(ctx, resp, mobileBase, webBase)
+        // First with the web JWT as Authorization (the shape verified for Syai), then, if the
+        // mobile side rejects that token rather than the password, once with no Authorization at
+        // all (the shape the Ottai global upgrade originally shipped with). A rejected token is
+        // not a failed-login attempt, so this cannot count towards a lockout.
+        passwordLogin(ctx, name, password, mobileBase, authorizationOverride = webToken)
+            ?.takeIf { it.ok }?.let { return it }
+        if (lastFailure?.isTokenInvalid == true) {
+            passwordLogin(ctx, name, password, mobileBase, authorizationOverride = "")
+                ?.takeIf { it.ok }?.let { return it }
+        }
+        if (lastError.isBlank()) lastFailure = CloudFailure("mobile login upgrade failed")
+        return null
     }
+
+    private const val WEB_UPGRADE_ATTEMPTS = 3
+    private const val WEB_UPGRADE_RETRY_MS = 500L
 
     /** POST /user/mail/sendMail — emails a verification code, returns the requestId. type: SIGN_UP/LOGIN/RESET_PASSWORD. */
     fun sendMail(email: String, type: String = "SIGN_UP", webBase: String = WEB_BASE): String? {
@@ -1021,7 +1075,10 @@ object OttaiCloudClient {
         return resp.optJSONObject("data")?.optString("key").orEmptyIfNull().takeIf { it.isNotBlank() }
     }
 
-    /** POST /user/mail/signUp — register (email + emailed code + password + display name). Persists creds. */
+    /**
+     * POST /user/mail/signUp — register (email + emailed code + password + display name), then
+     * upgrade the fresh web session to a mobile one exactly like [mailLogin]. Persists creds.
+     */
     fun signUp(ctx: Context, email: String, password: String, profileName: String, requestId: String, validCode: String, webBase: String = WEB_BASE): LoginResult? {
         val em = email.trim()
         if (isSyai(webBase)) return syaiSignUp(ctx, em, password, requestId, validCode, webBase)
@@ -1040,7 +1097,7 @@ object OttaiCloudClient {
                 put("signature", webSign(WEB_APP, ts.toString(), requestId, em, validCode))
             }
         } ?: return null
-        return persistWebLogin(ctx, resp, webBaseToMobile(webBase), webBase)
+        return upgradeWebSession(ctx, resp, password, webBase)
     }
 
     /**
@@ -1073,37 +1130,12 @@ object OttaiCloudClient {
                 put("signature", webSign(WEB_APP_SYAI, ts.toString(), requestId, em))
             }
         } ?: return null
-        return persistWebLogin(ctx, resp, webBaseToMobile(webBase), webBase)
+        return upgradeWebSession(ctx, resp, password, webBase)
     }
 
     /** Map a web API host to the matching mobile CGM API base for subsequent validate/list calls. */
     internal fun webBaseToMobile(webBase: String): String =
         if (webBase.contains("syai")) OttaiConstants.API_BASE_SYAI else OttaiConstants.API_BASE_GLOBAL
-
-    /** Store accessToken/userId/glucoseSecretKey from a web login/signup; CGM ops use the region's mobile API. */
-    private fun persistWebLogin(ctx: Context, resp: JSONObject, mobileBase: String, webBase: String): LoginResult? {
-        val data = resp.optJSONObject("data") ?: resp.optJSONObject("result") ?: return null
-        val accessToken = data.optString("accessToken").orEmptyIfNull()
-        var glucoseSecretKey = data.optString("glucoseSecretKey").orEmptyIfNull()
-        // Some account APIs return only the JWT; try their profile before accepting a partial login.
-        if (accessToken.isNotBlank() && glucoseSecretKey.isBlank()) {
-            glucoseSecretKey = webGetUser(webBase, accessToken)?.optString("glucoseSecretKey").orEmptyIfNull()
-        }
-        val result = LoginResult(
-            userId = data.optString("userId").orEmptyIfNull(),
-            accessToken = accessToken,
-            glucoseSecretKey = glucoseSecretKey,
-        )
-        if (result.accessToken.isNotBlank()) {
-            OttaiRegistry.saveApiBase(ctx, mobileBase)
-            OttaiRegistry.saveSessionProfile(ctx, OttaiRegistry.SessionProfile.WATCH)
-            OttaiRegistry.saveAccessToken(ctx, result.accessToken)
-            if (result.glucoseSecretKey.isNotBlank()) OttaiRegistry.saveGlucoseSecretKey(ctx, result.glucoseSecretKey)
-            OttaiRegistry.saveUserId(ctx, result.userId)
-            Log.i(TAG, "${if (isSyai(webBase)) "Syai" else "Ottai"} web login ok")
-        }
-        return result
-    }
 
     /** GET /user/getUser (JWT bearer) → the user data object (glucoseSecretKey, userName, email, …). */
     private fun webGetUser(webBase: String, accessToken: String): JSONObject? {
