@@ -159,6 +159,13 @@ object AlertRuntimeManager {
         syncCurrentReadingLocked()
 
         val glucoseAlertsBlocked = calibrationReadingBarrier.blocks(lastReadingTimeMs)
+        if (!glucoseAlertsBlocked && currentGlucoseValueLocked() != null) {
+            sameDirectionSuppression.observeTrend(
+                readingTimeMs = lastDisplaySnapshot?.timeMillis ?: 0L,
+                rate = currentRateLocked(),
+                trendTrusted = tk.glucodata.TrendAccess.hasProvider()
+            )
+        }
         val standardAlertEvaluation = if (glucoseAlertsBlocked) {
             AlertRuntimeEvaluation()
         } else {
@@ -755,9 +762,7 @@ object AlertRuntimeManager {
             nowMs = nowMs,
             windowMs = windowMs,
             acknowledgedHighCoverage = acknowledgedHighCoverage,
-            isAcknowledged = { alertType ->
-                AlertStateTracker.isDismissed(alertType) || SnoozeManager.isSnoozed(alertType)
-            }
+            isAcknowledged = AlertStateTracker::wasLastFiringAcknowledged
         ) ?: return false
         val agoSeconds = ((nowMs - blocker.firedAtMs) / 1000L).coerceAtLeast(0L)
         Log.i(
