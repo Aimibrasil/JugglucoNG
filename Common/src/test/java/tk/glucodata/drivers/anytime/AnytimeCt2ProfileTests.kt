@@ -66,4 +66,23 @@ class AnytimeCt2ProfileTests {
         assertEquals(AnytimeConstants.Family.CT2, entry.family)
         assertTrue(AnytimeConstants.supportsSelfTest(entry.family))
     }
+
+    @Test
+    fun genericAdvertisedNameFallsBackToTheSerial() {
+        // Stored-address reconnect on the main build: registry keeps the generic
+        // "CGM Sensor" advert and gatt.device.name repeats it, so the SN## serial
+        // must win or the CT-14 is driven with the CT3/CT2.5 check handshake.
+        assertEquals(
+            "SN08402178",
+            AnytimeConstants.resolveHandshakeName("CGM Sensor", "CGM Sensor", "SN08402178"),
+        )
+        assertEquals(AnytimeConstants.Family.CT2, AnytimeProfileResolver.resolve(
+            AnytimeConstants.resolveHandshakeName("CGM Sensor", "", "SN08402178"),
+        ).family)
+    }
+
+    @Test
+    fun aKnownAdvertisedNameBeatsTheSerial() {
+        assertEquals("SN08-device", AnytimeConstants.resolveHandshakeName("", "SN08-device", "SN08402178"))
+    }
 }

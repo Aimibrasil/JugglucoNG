@@ -2723,12 +2723,12 @@ class AnytimeBleManager(
 
         val cachedName = SerialNumber?.let { AnytimeRegistry.loadDeviceName(Applic.app, it) }.orEmpty()
         val activeName = gatt.device?.name.orEmpty()
-        val resolvedName = cachedName.ifBlank { activeName }
+        // Reconnect from a stored address (no scan) often yields only a generic advertised
+        // name like "CGM Sensor", which resolves to UNKNOWN and silently routes a CT-14 into
+        // the generic CT3/CT2.5 check handshake. resolveHandshakeName skips it for the serial.
+        val resolvedName = AnytimeConstants.resolveHandshakeName(cachedName, activeName, SerialNumber)
         familyEntry = AnytimeProfileResolver.familyEntry(resolvedName)
-        if (familyEntry.family == AnytimeConstants.Family.UNKNOWN && activeName.isNotBlank()) {
-            familyEntry = AnytimeProfileResolver.familyEntry(activeName)
-        }
-        profile = AnytimeProfileResolver.resolve(resolvedName.ifBlank { activeName })
+        profile = AnytimeProfileResolver.resolve(resolvedName)
 
         when {
             isCt2() -> {

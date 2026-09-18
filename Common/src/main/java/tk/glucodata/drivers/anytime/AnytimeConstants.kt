@@ -509,6 +509,20 @@ object AnytimeConstants {
         return FAMILY_UNKNOWN
     }
 
+    /**
+     * Pick the handshake/family name from the candidates at connect time, in order:
+     * the registry-cached name, the live advertised name, then the serial. Returns the
+     * first candidate that resolves to a known family so a generic advertisement
+     * ("CGM Sensor") can't shadow the SN##-bearing serial; falls back to the first
+     * non-blank candidate when none match.
+     */
+    @JvmStatic
+    fun resolveHandshakeName(vararg candidates: String?): String {
+        val trimmed = candidates.map { it?.trim().orEmpty() }
+        return trimmed.firstOrNull { resolveFamily(it).family != Family.UNKNOWN }
+            ?: trimmed.firstOrNull { it.isNotBlank() }.orEmpty()
+    }
+
     @JvmStatic
     fun isAnytimeDevice(name: String?): Boolean {
         val trimmed = name?.trim().orEmpty()
