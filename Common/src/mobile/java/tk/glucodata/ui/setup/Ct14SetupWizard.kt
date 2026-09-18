@@ -254,7 +254,11 @@ private fun Ct14ScanStep(
                 val nameCandidates = listOfNotNull(scanName, record?.deviceName)
                     .mapNotNull { it.trim().takeIf(String::isNotBlank) }
 
-                val bestName = nameCandidates.firstOrNull().orEmpty()
+                // device.name can be the generic advert ("CGM Sensor"); prefer whichever
+                // candidate actually carries the CT2/CT-14 SN## name so it is the one saved.
+                val bestName = nameCandidates.firstOrNull {
+                    AnytimeConstants.resolveFamily(it).family == AnytimeConstants.Family.CT2
+                } ?: nameCandidates.firstOrNull().orEmpty()
                 val advertisesLegacy =
                     record?.serviceUuids?.any {
                         it.uuid == AnytimeConstants.SERVICE_LEGACY_CT2

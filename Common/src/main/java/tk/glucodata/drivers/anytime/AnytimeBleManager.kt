@@ -2721,14 +2721,28 @@ class AnytimeBleManager(
         postVoltagePlainControlFrames = false
         Log.i(TAG, "Starting Anytime handshake ($reason)")
 
+        // SerialNumber is the native sensor id (a MAC on CT-14), so it only helps when the
+        // name is missing. gatt.device.name is not stable: at handshake time it can be blank
+        // or the generic advert ("CGM Sensor") even though the connect callback saw SN##.
+        // mygetDeviceName() returns the name captured at connect, which is the reliable one.
         val cachedName = SerialNumber?.let { AnytimeRegistry.loadDeviceName(Applic.app, it) }.orEmpty()
         val activeName = gatt.device?.name.orEmpty()
-        // Reconnect from a stored address (no scan) often yields only a generic advertised
-        // name like "CGM Sensor", which resolves to UNKNOWN and silently routes a CT-14 into
-        // the generic CT3/CT2.5 check handshake. resolveHandshakeName skips it for the serial.
-        val resolvedName = AnytimeConstants.resolveHandshakeName(cachedName, activeName, SerialNumber)
-        familyEntry = AnytimeProfileResolver.familyEntry(resolvedName)
-        profile = AnytimeProfileResolver.resolve(resolvedName)
+        val connectedName = mygetDeviceName().orEmpty()
+        val resolvedName = AnytimeConstants.resolveHandshakeName(cachedName, connectedName, activeName, SerialNumber)
+        val nameFamily = AnytimeProfileResolver.familyEntry(resolvedName)
+        familyEntry = nameFamily
+        if (nameFamily.family != AnytimeConstants.Family.UNKNOWN) {
+            // Persist a classifying name: nothing else saves the advertised SN during normal
+            // operation, so without this a stored-address reconnect (or a reinstall) falls
+            // back to the generic advert and misroutes the handshake.
+            SerialNumber?.let { AnytimeRegistry.saveDeviceName(Applic.app, it, resolvedName) }
+        } else if (primaryServiceUuid == AnytimeConstants.SERVICE_LEGACY_CT2) {
+            // 0xFFF0 is CT2-only, so it beats a name that resolved to UNKNOWN.
+            familyEntry = AnytimeConstants.FAMILY_TABLE.first { it.family == AnytimeConstants.Family.CT2 }
+        }
+        profile = AnytimeProfileResolver.resolve(
+            if (nameFamily.family != AnytimeConstants.Family.UNKNOWN) resolvedName else familyEntry.prefix,
+        )
 
         when {
             isCt2() -> {
