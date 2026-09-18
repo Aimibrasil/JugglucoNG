@@ -75,9 +75,9 @@ class AnytimeBleManager(
 
         /**
          * Shortest rated life any Anytime chemistry carries (the shortest-rated
-         * family, endNumber 3380 × 3 min = 7.04 d). A QR-decoded figure below this cannot be a real
-         * sensor life — the vendor decodeCT returns 6 for the 15-day CT4
-         * label — so it is treated as a mis-decode and the family profile wins.
+         * family, endNumber 3380 × 3 min = 7.04 d). A QR-decoded figure below this
+         * cannot be a real sensor life, so it is treated as a mis-decode and the
+         * family profile wins.
          */
         private const val MIN_PLAUSIBLE_LIFETIME_DAYS = 7
 
@@ -474,6 +474,9 @@ class AnytimeBleManager(
                 AnytimeAlgorithm.restoreCalibratorState(id, k0, state)
             }
         }
+        AnytimeRegistry.loadCt3NativeState(context, id)?.let { encoded ->
+            AnytimeAlgorithm.restoreNativePortState(id, encoded)
+        }
         voltageFlag = AnytimeRegistry.loadVoltageFlag(context, id)
         transmitterVersion = AnytimeRegistry.loadTransmitterVersion(context, id)
         val persistedLastGlucoseId = AnytimeRegistry.loadLastGlucoseId(context, id)
@@ -728,6 +731,7 @@ class AnytimeBleManager(
         AnytimeRegistry.saveReferenceBgAppliedGlucoseId(ctx, id, lastReferenceAppliedGlucoseId)
         AnytimeRegistry.saveReferenceBgHistory(ctx, id, referenceCalibrationRecords)
         AnytimeRegistry.saveCalibratorState(ctx, id, AnytimeAlgorithm.snapshotCalibratorState(id))
+        AnytimeRegistry.saveCt3NativeState(ctx, id, AnytimeAlgorithm.snapshotNativePortState(id))
         saveCachedBatteryVolts(ctx, id, lastBatteryVolts)
         AnytimeRegistry.saveRawHistory(ctx, id, synchronized(rawAlgorithmWindow) { rawAlgorithmWindow.values.toList() })
         AnytimeRegistry.saveCt5CipherKey(ctx, id, ct5CipherKey)
@@ -2718,14 +2722,28 @@ class AnytimeBleManager(
         postVoltagePlainControlFrames = false
         Log.i(TAG, "Starting Anytime handshake ($reason)")
 
+        // SerialNumber is the native sensor id (a MAC on CT-14), so it only helps when the
+        // name is missing. gatt.device.name is not stable: at handshake time it can be blank
+        // or the generic advert ("CGM Sensor") even though the connect callback saw SN##.
+        // mygetDeviceName() returns the name captured at connect, which is the reliable one.
         val cachedName = SerialNumber?.let { AnytimeRegistry.loadDeviceName(Applic.app, it) }.orEmpty()
         val activeName = gatt.device?.name.orEmpty()
-        val resolvedName = cachedName.ifBlank { activeName }
-        familyEntry = AnytimeProfileResolver.familyEntry(resolvedName)
-        if (familyEntry.family == AnytimeConstants.Family.UNKNOWN && activeName.isNotBlank()) {
-            familyEntry = AnytimeProfileResolver.familyEntry(activeName)
+        val connectedName = mygetDeviceName().orEmpty()
+        val resolvedName = AnytimeConstants.resolveHandshakeName(cachedName, connectedName, activeName, SerialNumber)
+        val nameFamily = AnytimeProfileResolver.familyEntry(resolvedName)
+        familyEntry = nameFamily
+        if (nameFamily.family != AnytimeConstants.Family.UNKNOWN) {
+            // Persist a classifying name: nothing else saves the advertised SN during normal
+            // operation, so without this a stored-address reconnect (or a reinstall) falls
+            // back to the generic advert and misroutes the handshake.
+            SerialNumber?.let { AnytimeRegistry.saveDeviceName(Applic.app, it, resolvedName) }
+        } else if (primaryServiceUuid == AnytimeConstants.SERVICE_LEGACY_CT2) {
+            // 0xFFF0 is CT2-only, so it beats a name that resolved to UNKNOWN.
+            familyEntry = AnytimeConstants.FAMILY_TABLE.first { it.family == AnytimeConstants.Family.CT2 }
         }
-        profile = AnytimeProfileResolver.resolve(resolvedName.ifBlank { activeName })
+        profile = AnytimeProfileResolver.resolve(
+            if (nameFamily.family != AnytimeConstants.Family.UNKNOWN) resolvedName else familyEntry.prefix,
+        )
 
         when {
             isCt2() -> {
@@ -3743,14 +3761,9 @@ class AnytimeBleManager(
         }
     }
 
-    // False for CT2/CT4: their reference models run in-tree and never hand back a
-    // NATIVE result, so the vendor library must not be treated as the expected
-    // source (that would keep their readings out of Room while waiting for it).
-    private fun nativeAlgorithmExpected(): Boolean =
-        qr?.isFactoryCalibration == true &&
-            AnytimeAlgorithm.isNativeAvailable &&
-            familyEntry.family != AnytimeConstants.Family.CT2 &&
-            familyEntry.family != AnytimeConstants.Family.CT4
+    // The vendor algorithm is gone (pure-Kotlin paths only), so there is never a
+    // vendor result to wait for and nothing to recompute with a full prefix.
+    private fun nativeAlgorithmExpected(): Boolean = false
 
     private fun recomputePendingNativeReadings(context: Context?, intervalMs: Long) {
         if (!nativeAlgorithmExpected() || intervalMs <= 0L) return
@@ -5558,6 +5571,11 @@ class AnytimeBleManager(
         if (r.source == AnytimeAlgorithm.Source.MODEL) {
             return "Reference App model (no native .so) · K0=${qr?.k ?: 0f} R=${qr?.r ?: 0f}\n" +
                     "Iw=${"%.2f".format(r.iwNa)} nA · Ib=${"%.2f".format(r.ibNa)} nA · T=${"%.1f".format(r.temperatureC)}°C"
+        }
+        if (r.source == AnytimeAlgorithm.Source.NATIVE_PORT) {
+            return "CT3 native port (no vendor .so) · K0=${"%.3f".format(qr?.k ?: 0f)} R=${"%.3f".format(qr?.r ?: 0f)}\n" +
+                    "Iw=${"%.2f".format(r.iwNa)} nA · Ib=${"%.2f".format(r.ibNa)} nA · T=${"%.1f".format(r.temperatureC)}°C\n" +
+                    "Trend=${r.trend} Err=${r.errorCode} Warn=${r.warnCode}"
         }
         val voltagesLine = if (r.weVoltageMv != Int.MIN_VALUE) {
             "WE=${r.weVoltageMv}mV BE=${r.beVoltageMv}mV RE=${r.reVoltageMv}mV CE=${r.ceVoltageMv}mV B=${r.bVoltageMv}mV"
