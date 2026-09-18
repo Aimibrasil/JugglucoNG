@@ -97,14 +97,14 @@ public class JournalIobAccess {
             return null;
         StringBuilder line = new StringBuilder();
         if (showIob && !Float.isNaN(values[0])) {
-            line.append("IOB ").append(formatUnits(values[0])).append("U");
+            line.append("IOB ").append(Applic.app.getString(R.string.unit_insulin_value, formatUnits(values[0])));
             if (!Float.isNaN(values[1]) && prefs.getBoolean("dashboard_journal_eiob_display_enabled", true))
-                line.append(" · eIOB ").append(formatUnits(values[1])).append("U");
+                line.append(" · eIOB ").append(Applic.app.getString(R.string.unit_insulin_value, formatUnits(values[1])));
         }
         if (showCob && !Float.isNaN(values[2])) {
             if (line.length() > 0)
                 line.append(" · ");
-            line.append("COB ").append(formatUnits(values[2])).append("g");
+            line.append("COB ").append(Applic.app.getString(R.string.unit_carbs_value, formatUnits(values[2])));
         }
         if (line.length() == 0)
             return null;

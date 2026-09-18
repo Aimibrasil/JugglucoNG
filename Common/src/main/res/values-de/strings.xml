@@ -1836,6 +1836,7 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="journal_dose_pair_carbs">Kohlenhydrate koppeln</string>
     <string name="journal_dose_suggested_insulin">%1$s E vorgeschlagen</string>
     <string name="unit_insulin_value">%1$s E</string>
+    <string name="unit_insulin_short">E</string>
     <string name="unit_carbs_value">%1$s g</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
