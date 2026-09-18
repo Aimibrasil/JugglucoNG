@@ -446,9 +446,9 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="chart_short_title">Grafik</string>
     <string name="target_range_title">Zielbereich</string>
     <string name="chart_limits_title">Grafikbereich</string>
-    <string name="dashboard_range_hours">%1$d Std.</string>
+    <string name="dashboard_range_hours">%1$d S</string>
     <string name="dashboard_range_days">%1$d T</string>
-    <string name="sensor_age_hours_compact">%1$d h</string>
+    <string name="sensor_age_hours_compact">%1$d S</string>
     <string name="sensor_age_days_compact">%1$d T</string>
     <string name="sensor_reading_age_seconds">%1$ds</string>
     <string name="sensor_reading_age_minutes">%1$dm</string>
@@ -917,7 +917,7 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="eusibionics">Sibionics EU</string>
     <string name="expired">Abgelaufen</string>
     <string name="days_short">%1$d T</string>
-    <string name="hours_short">%1$d h</string>
+    <string name="hours_short">%1$d S</string>
     <string name="factory_reset_alert">ALLES wird entfernt. Kann nicht rückgängig gemacht werden!</string>
     <string name="factory_reset_confirm">Werkseinstellungen?</string>
     <string name="fiasp">Fiasp</string>
@@ -1148,7 +1148,7 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="calibration_model_summary_title">Modellzustand</string>
     <string name="calibration_model_selected_point">Ausgewählter Punkt</string>
     <string name="calibration_model_mid_offset">Mittlerer Versatz</string>
-    <string name="calibration_model_legend_active_desc">Für die Anpassung verwendet</string>
+    <string name="calibration_model_legend_active_desc">Im Modell</string>
     <string name="calibration_model_legend_disabled_desc">Ausgeschlossen</string>
     <string name="calibration_model_legend_fit_desc">Modelllinie</string>
     <string name="calibration_model_legend_age">Alter</string>
@@ -2563,7 +2563,7 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="stats_arrange_width">Halbe oder volle Breite</string>
     <string name="stats_window_3d">3 T</string>
     <string name="stats_window_today">Heute</string>
-    <string name="stats_window_24h">24 Std.</string>
+    <string name="stats_window_24h">24 S</string>
     <string name="stats_metric_dawn">Morgendämmerungsanstieg</string>
     <string name="stats_metric_dawn_description">Das Dawn-Phänomen, gemessen: der typische Anstieg vom nächtlichen Tief zum darauffolgenden Morgenhoch. Angegeben als Median über die Tage, damit eine schlechte Nacht ihn nicht bestimmt.</string>
     <string name="stats_metric_mage">MAGE</string>
