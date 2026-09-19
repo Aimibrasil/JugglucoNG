@@ -122,7 +122,14 @@ class SibionicsBleManager(
         private const val WRITE_RETRY_MAX_ATTEMPTS = 12
         // Connections in a row on which the sensor served pages we did not ask
         // for before the exact state is given up and replayed from the start.
-        private const val UNREQUESTED_PAGE_MAX_CONNECTIONS = 3
+        // The 2026-09-19 19:50 trace reached two in a row with a healthy sensor
+        // (it began streaming straight after auth, before our request); the
+        // replay this guards against costs far more than a few extra links.
+        private const val UNREQUESTED_PAGE_MAX_CONNECTIONS = 8
+        // The sensor drops the link itself after each backlog page (~1000
+        // samples, ~11 s); waiting the full reconnect delay on top of that made
+        // a 17 000-sample catch-up 40% idle time.
+        private const val BACKLOG_RECONNECT_DELAY_MS = 1_500L
         // A live sample landed while the source journal still has holes: let go
         // of the link so the next connection can fetch the next journal page.
         private const val JOURNAL_BACKFILL_RECONNECT_DELAY_MS = 1_000L
@@ -229,6 +236,7 @@ class SibionicsBleManager(
     @Volatile private var unrequestedPageConnections: Int = 0
     private var unrequestedPageSeenThisConnection: Boolean = false
     private var unrequestedPageCountedThisConnection: Boolean = false
+    private var unrequestedPageFirstIndex: Int = -1
     private var pendingWrite: Pair<ByteArray, String>? = null
     private var pendingWriteAttempts: Int = 0
     @Volatile private var lastLiveIndexSeen: Int = -1
@@ -718,7 +726,15 @@ class SibionicsBleManager(
                             failedDuringConnect = failedDuringConnect,
                         )
                     ) {
-                        scheduleReconnect("disconnect status=$status")
+                        // Mid-backlog the sensor ends every page by dropping the
+                        // link; the next page is waiting, so do not sit out the
+                        // full delay before asking for it.
+                        val delay = if (historyTransferActive || algorithmRehydrating) {
+                            BACKLOG_RECONNECT_DELAY_MS
+                        } else {
+                            RECONNECT_DELAY_MS
+                        }
+                        scheduleReconnect("disconnect status=$status", delay)
                     }
                 }
                 UiRefreshBus.requestStatusRefresh()
@@ -1354,6 +1370,11 @@ class SibionicsBleManager(
         advanceJournalBackfill(hasLive)
     }
 
+    private fun markUnrequestedPage(index: Int) {
+        if (!unrequestedPageSeenThisConnection) unrequestedPageFirstIndex = index
+        unrequestedPageSeenThisConnection = true
+    }
+
     private fun noteUnrequestedPage() {
         if (!unrequestedPageSeenThisConnection || unrequestedPageCountedThisConnection) return
         // Count once per connection, not once per packet of the page.
@@ -1377,10 +1398,10 @@ class SibionicsBleManager(
         }
         Log.w(
             SibionicsConstants.TAG,
-            "sensor streamed a page we did not ask for; keeping exact state and " +
-                "re-requesting idx=$expected (attempt $unrequestedPageConnections)",
+            "sensor streamed idx=$unrequestedPageFirstIndex instead of $expected; keeping exact state and " +
+                "re-requesting (attempt $unrequestedPageConnections)",
         )
-        scheduleReconnect("re-request idx=$expected")
+        scheduleReconnect("re-request idx=$expected", BACKLOG_RECONNECT_DELAY_MS)
     }
 
     private fun advanceJournalBackfill(hasLive: Boolean) {
@@ -1479,12 +1500,12 @@ class SibionicsBleManager(
             // Not a loss of state: the state behind lastIndex is still exact. The
             // page is dropped and lastIndex asked for again on the next connection;
             // noteUnrequestedPage() decides when to stop trusting the sensor.
-            unrequestedPageSeenThisConnection = true
+            markUnrequestedPage(index)
             return null
         }
         val wasRehydrating = algorithmRehydrating
         if (wasRehydrating && !acceptRehydrationIndex(index)) {
-            if (index > rehydrationExpectedIndex.coerceAtLeast(1)) unrequestedPageSeenThisConnection = true
+            if (index > rehydrationExpectedIndex.coerceAtLeast(1)) markUnrequestedPage(index)
             return null
         }
         unrequestedPageConnections = 0
