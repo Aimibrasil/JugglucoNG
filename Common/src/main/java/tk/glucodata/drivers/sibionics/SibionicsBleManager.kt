@@ -262,6 +262,9 @@ class SibionicsBleManager(
     @Volatile private var calibrationRevision: Long = 0L
     @Volatile private var rebuildAfterNextSourceSample: Boolean = false
     @Volatile private var forceInitialLocalRebuild: Boolean = false
+    @Volatile private var startupRecoveryIndex: Int = 0
+    @Volatile private var startupRecoveryRunning: Boolean = false
+    private var startupRecoveryGeneration: Long = 0L
     @Volatile private var preserveResumeStateOnRemoval: Boolean = false
 
     @Volatile private var algorithm = SibionicsAlgorithmContext(serial)
@@ -408,7 +411,10 @@ class SibionicsBleManager(
                 "restored stock algorithm state idx=$lastIndex; custom model rebuilt from journal",
             )
         } else if (lastIndex > 1) {
-            beginAlgorithmRehydration(lastIndex, "no usable saved state")
+            // An app update can invalidate the snapshot format without losing
+            // its raw inputs. Try those off the main thread before asking BLE
+            // to replay the sensor's entire lifetime.
+            startupRecoveryIndex = lastIndex
         }
         startTimeMs = SibionicsRegistry.loadStartTimeMs(context, SerialNumber)
         scheduleResetMaintenanceCheck()
@@ -478,6 +484,12 @@ class SibionicsBleManager(
             phase = Phase.IDLE
             return false
         }
+        // Preserve the false return above: shared orchestration uses it to
+        // start scanning when the device/address has not been found yet.
+        if (startupRecoveryIndex > 1) {
+            recoverStartupCheckpoint()
+            return true
+        }
         phase = Phase.CONNECTING
         setStatus(connectingStatus())
         val scheduled = super.connectDevice(delayMillis)
@@ -490,8 +502,62 @@ class SibionicsBleManager(
         return scheduled
     }
 
+    /** Called under connectDevice's monitor; no BLE session exists during recovery. */
+    private fun recoverStartupCheckpoint() {
+        if (startupRecoveryRunning || rebuildExecutor.isShutdown) return
+        startupRecoveryRunning = true
+        val recoveryGeneration = startupRecoveryGeneration
+        val nextIndex = startupRecoveryIndex
+        val generation = rebuildGeneration
+        val selection = algorithmSelection
+        val variantSnapshot = variant
+        val code = shortCode
+        val sensitivitySnapshot = sensitivity
+        setStatus(waitingForDataStatus())
+        rebuildExecutor.execute {
+            val result = runCatching {
+                val sources = SibionicsStartupRecovery.sourcesForCheckpoint(
+                    sampleJournal?.snapshot().orEmpty(), nextIndex, variantSnapshot,
+                ) ?: return@runCatching null
+                buildAlgorithmRebuild(sources, selection, variantSnapshot, code, sensitivitySnapshot)
+            }.onFailure {
+                Log.stack(SibionicsConstants.TAG, "startup journal recovery", it)
+            }.getOrNull()
+            handler.post {
+                synchronized(this@SibionicsBleManager) {
+                    if (recoveryGeneration != startupRecoveryGeneration) return@synchronized
+                    startupRecoveryRunning = false
+                    if (stop || uiPaused) return@synchronized
+                    if (generation != rebuildGeneration || selection != algorithmSelection ||
+                        variantSnapshot != variant || code != shortCode || sensitivitySnapshot != sensitivity
+                    ) {
+                        connectDevice(0)
+                        return@synchronized
+                    }
+                    startupRecoveryIndex = 0
+                    if (result != null && result.context.hasExactContinuation(nextIndex)) {
+                        synchronized(algorithmLock) {
+                            algorithm = result.context
+                            lastIndex = nextIndex
+                            lastLiveAlgorithmIndexSeen = nextIndex - 1
+                            algorithmStateDirty = true
+                            lastIndexDirty = true
+                            flushAlgorithmCheckpointIfDirty()
+                        }
+                        Log.i(SibionicsConstants.TAG, "restored algorithm from local journal idx=$nextIndex")
+                    } else {
+                        beginAlgorithmRehydration(nextIndex, "no complete local checkpoint inputs")
+                    }
+                    connectDevice(0)
+                }
+            }
+        }
+    }
+
     @Synchronized
     override fun softDisconnect() {
+        startupRecoveryGeneration++
+        startupRecoveryRunning = false
         notificationDispatcher.invalidateSession()
         uiPaused = true
         stop = true
@@ -1733,6 +1799,7 @@ class SibionicsBleManager(
     }
 
     private fun rebuildAlgorithmLocally(generation: Long) {
+        if (startupRecoveryIndex > 1) return
         if (generation != rebuildGeneration) return
         // The backfill schedules the rebuild itself once the journal is whole;
         // until then every attempt would only rediscover the same hole.
