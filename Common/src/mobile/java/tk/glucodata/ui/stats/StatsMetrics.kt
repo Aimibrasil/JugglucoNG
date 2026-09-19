@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -1058,14 +1059,25 @@ internal fun PinnedMetricChip(
                 transitionSpec = { verticalValueSwap() },
                 label = "pinnedMetricValue"
             ) { value ->
+                val valueStyle = MaterialTheme.typography.titleMedium.copy(
+                    fontFeatureSettings = "tnum",
+                    fontWeight = FontWeight.SemiBold
+                ).scalePinnedStyle(contentScale)
+                // The cell is whatever the row shares out; "100%" a couple of dp wider
+                // than that used to lose its sign to the clip. The value gives up a
+                // fraction of a point of size instead — only in the chip that needs it,
+                // and none at all when it fits, which is every other time.
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFeatureSettings = "tnum",
-                        fontWeight = FontWeight.SemiBold
-                    ).scalePinnedStyle(contentScale),
+                    style = valueStyle,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 11.sp * contentScale,
+                        maxFontSize = valueStyle.fontSize,
+                        stepSize = 0.25.sp
+                    ),
                     color = tone,
-                    maxLines = 1
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
@@ -1273,21 +1285,18 @@ internal fun PinnedStatsStrip(
             // worst-case template: a template cost the fourth chip on a screen that showed
             // all four with room to spare, which is worse than the row reflowing on the
             // rare day time in range crosses from 99% to 100%.
-            val valueNeeds = pinned.mapIndexed { index, metric ->
+            val chipNeeds = pinned.mapIndexed { index, metric ->
                 val spec = pinnedSpecs[index]
-                textWidth(spec.value, valueStyle) + PinnedMetricChipChrome +
+                maxOf(textWidth(spec.title, titleStyle), textWidth(spec.value, valueStyle)) +
+                    PinnedMetricChipChrome +
                     if (metric == StatsMetric.TIME_IN_RANGE) PinnedMetricChipTirChrome else 0.dp
-            }
-            val chipNeeds = pinned.indices.map { index ->
-                maxOf(valueNeeds[index], textWidth(pinnedSpecs[index].title, titleStyle) + PinnedMetricChipChrome)
             }
             val baseGap = 8.dp
             // The chips share the row equally, so the widest one sets the width of all.
-            fun establishedRowWidth(needs: List<Dp>, count: Int): Dp =
-                widestPillWidth + (needs.take(count).maxOrNull() ?: 0.dp) * count + baseGap * count
-
+            // This decides the default count and nothing else: the row itself lays out
+            // exactly as it always has, whatever the count.
             val shownCount = pinnedStripShownCount(pinned.size, layout.dashboardChosen) { count ->
-                establishedRowWidth(chipNeeds, count) <= maxWidth
+                widestPillWidth + (chipNeeds.take(count).maxOrNull() ?: 0.dp) * count + baseGap * count <= maxWidth
             }
             SideEffect { shownInRow = shownCount }
             val shownSpecs = pinnedSpecs.take(shownCount)
@@ -1302,13 +1311,10 @@ internal fun PinnedStatsStrip(
                     textWidth(spec.value, MaterialTheme.typography.titleMedium)
                 ) + 28.dp
             }?.coerceIn(96.dp, 124.dp) ?: 96.dp
-            // Titles may ellipsise in the established layout; values may not. When even
-            // the values would be clipped — "100%" losing its sign — the strip scales as
-            // one unit instead, the way it already does on compact layouts.
             val useEstablishedPhoneLayout = shouldUseEstablishedPinnedStatsPhoneLayout(
                 widthClass = adaptiveMetrics.widthClass,
                 layoutDensity = adaptiveMetrics.layoutDensity
-            ) && establishedRowWidth(valueNeeds, shownCount) <= maxWidth
+            )
 
             if (useEstablishedPhoneLayout) {
                 // Preserve the dashboard's established phone composition: the window pill
