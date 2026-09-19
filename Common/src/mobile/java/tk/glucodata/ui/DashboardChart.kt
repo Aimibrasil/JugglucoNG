@@ -4208,6 +4208,19 @@ fun InteractiveGlucoseChart(
 
             // --- CALIBRATION TOOLTIPS ---
             // Show permanent tooltips for calibration points in visible range (respects mode)
+            // Keep the timestamp glyph on the same baseline as the Canvas-drawn x-axis labels.
+            // The old implementation positioned the whole chip from the bottom of the chart and
+            // compensated with a guessed dp lift, so the chip's internal Text baseline drifted.
+            val chartTimeLabelBaselinePx = (
+                constraints.maxHeight.toFloat() -
+                    chartUnderlayBottomPx -
+                    previewWindowReservedPx -
+                    labelsLiftPx -
+                    28f
+                ).coerceAtLeast(0f)
+            val calibrationTimestampTextMeasurer = rememberTextMeasurer()
+            val calibrationTimestampTextStyle = MaterialTheme.typography.labelSmall
+            val calibrationTimestampChipHeightPx = with(LocalDensity.current) { 24.dp.toPx() }
             val viewportStartTooltip = overlayViewportStart
             val viewportEndTooltip = overlayViewportEnd
             val visibleCalibrationsTooltip = visibleCalibrations.filter {
@@ -4228,6 +4241,22 @@ fun InteractiveGlucoseChart(
                 val calValueStr = remember(cal.userValue, unit, calibrationLabelLocale) {
                     String.format(calibrationLabelLocale, if (unit.contains("mmol", true)) "%.1f" else "%.0f", cal.userValue)
                 }
+                val calibrationTimestampTextLayout = remember(
+                    calTimeStr,
+                    calibrationTimestampTextStyle
+                ) {
+                    calibrationTimestampTextMeasurer.measure(
+                        text = calTimeStr,
+                        style = calibrationTimestampTextStyle,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+                val calibrationTimestampTextBaselineOffsetPx =
+                    (calibrationTimestampChipHeightPx - calibrationTimestampTextLayout.size.height) / 2f +
+                        calibrationTimestampTextLayout.firstBaseline
+                val calibrationTimestampChipTopPx =
+                    chartTimeLabelBaselinePx - calibrationTimestampTextBaselineOffsetPx
 
                 // Top: Value chip with waterdrop icon (clickable to edit)
                 Surface(
@@ -4273,12 +4302,12 @@ fun InteractiveGlucoseChart(
                 // Bottom: Time chip
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
+                        .align(Alignment.TopStart)
                         .zIndex(1f) // Below scrubbing tooltip
                         .offset {
                             androidx.compose.ui.unit.IntOffset(
                                 x = calXOffset.toInt(),
-                                y = 0.dp.roundToPx() - (chartUnderlayBottomIntPx + previewWindowReservedIntPx)
+                                y = calibrationTimestampChipTopPx.roundToInt()
                             )
                         }
                         .graphicsLayer { translationX = -size.width / 2f }
