@@ -89,25 +89,6 @@ class StatsLayoutTests {
     }
 
     @Test
-    fun theDefaultFourthChipOnlyShowsWhenItFits() {
-        assertEquals(4, pinnedStripShownCount(4, chosen = false) { true })
-        assertEquals(3, pinnedStripShownCount(4, chosen = false) { it <= 3 })
-    }
-
-    @Test
-    fun theDefaultIsNeverTrimmedBelowThree() {
-        // Below three the strip scales instead, so a row nothing fits in still shows three.
-        assertEquals(3, pinnedStripShownCount(4, chosen = false) { false })
-        assertEquals(3, pinnedStripShownCount(3, chosen = false) { false })
-        assertEquals(2, pinnedStripShownCount(2, chosen = false) { false })
-    }
-
-    @Test
-    fun aChosenListIsShownWholeWhetherItFitsOrNot() {
-        assertEquals(4, pinnedStripShownCount(4, chosen = true) { false })
-    }
-
-    @Test
     fun theDefaultIsNotChosenUntilTheUserEdits() {
         assertFalse(StatsLayoutState().dashboardChosen)
     }
