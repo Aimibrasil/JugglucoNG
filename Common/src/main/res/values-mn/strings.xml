@@ -1704,6 +1704,7 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="unit_insulin_value">%1$s U</string>
     <string name="unit_insulin_short">U</string>
     <string name="unit_carbs_value">%1$s г</string>
+    <string name="unit_carbs_short">г</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
     <string name="dashboard_iob_full">Идэвхтэй инсулин %1$s</string>
@@ -1730,6 +1731,8 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="journal_metric_activity_today">Өнөөдрийн идэвх</string>
     <string name="journal_no_active_insulin">Идэвхтэй инсулин байхгүй</string>
     <string name="journal_active_now_percent">%1$d%% идэвхтэй</string>
+    <string name="journal_cob_value">COB %1$s</string>
+    <string name="dashboard_cob_full">Идэвхтэй нүүрс ус %1$s</string>
     <string name="journal_metric_iob">IOB</string>
     <string name="journal_metric_eiob">eIOB %1$s U</string>
     <string name="journal_eiob_display_title">Бодит IOB (eIOB)</string>

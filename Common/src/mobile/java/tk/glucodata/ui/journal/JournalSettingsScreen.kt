@@ -1074,18 +1074,18 @@ private fun JournalFoodRow(
                 ) {
                     FoodMetricChip(
                         label = stringResource(R.string.carbo).trimTrailingLabel(),
-                        value = "${formatFoodNumber(food.carbsGrams)} g",
+                        value = stringResource(R.string.unit_carbs_value, formatFoodNumber(food.carbsGrams)),
                         tint = tint
                     )
                     if (foodMacrosEnabled) {
                         FoodMetricChip(
                             label = stringResource(R.string.journal_food_protein),
-                            value = "${formatFoodNumber(food.proteinGrams ?: 0f)} g",
+                            value = stringResource(R.string.unit_carbs_value, formatFoodNumber(food.proteinGrams ?: 0f)),
                             tint = tint
                         )
                         FoodMetricChip(
                             label = stringResource(R.string.journal_food_fat),
-                            value = "${formatFoodNumber(food.fatGrams ?: 0f)} g",
+                            value = stringResource(R.string.unit_carbs_value, formatFoodNumber(food.fatGrams ?: 0f)),
                             tint = tint
                         )
                     }
@@ -1403,7 +1403,7 @@ private fun JournalFoodSheet(
                             draft = draft.copy(carbsText = adjustFoodNumberDraft(draft.carbsText, delta, step = 5f))
                         },
                         label = stringResource(R.string.carbo).trimTrailingLabel(),
-                        suffix = "g",
+                        suffix = stringResource(R.string.unit_carbs_short),
                         accentColor = Color(draft.accentColor)
                     )
                     if (foodMacrosEnabled) {
@@ -1414,7 +1414,7 @@ private fun JournalFoodSheet(
                                 draft = draft.copy(proteinText = adjustFoodNumberDraft(draft.proteinText, delta, step = 5f))
                             },
                             label = stringResource(R.string.journal_food_protein),
-                            suffix = "g",
+                            suffix = stringResource(R.string.unit_carbs_short),
                             accentColor = Color(draft.accentColor)
                         )
                         JournalFoodEditorField(
@@ -1424,7 +1424,7 @@ private fun JournalFoodSheet(
                                 draft = draft.copy(fatText = adjustFoodNumberDraft(draft.fatText, delta, step = 5f))
                             },
                             label = stringResource(R.string.journal_food_fat),
-                            suffix = "g",
+                            suffix = stringResource(R.string.unit_carbs_short),
                             accentColor = Color(draft.accentColor)
                         )
                     }

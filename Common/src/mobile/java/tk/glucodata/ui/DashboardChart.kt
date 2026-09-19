@@ -701,6 +701,7 @@ fun DashboardChartSection(
     peerPredictionSeries: Map<String, List<GlucosePredictionSeries>> = emptyMap(),
     journalMarkers: List<JournalChartMarker> = emptyList(),
     activeInsulinSummary: JournalActiveInsulinSummary? = null,
+    activeCarbsGrams: Float? = null,
     stateDoseHint: StateDoseHint? = null,
     activeInsulinFromRemote: Boolean = false,
     showEiob: Boolean = true,
@@ -754,6 +755,7 @@ fun DashboardChartSection(
                         peerPredictionSeries = peerPredictionSeries,
                         journalMarkers = journalMarkers,
                         activeInsulinSummary = activeInsulinSummary,
+                        activeCarbsGrams = activeCarbsGrams,
                         stateDoseHint = stateDoseHint,
                         activeInsulinFromRemote = activeInsulinFromRemote,
                         showEiob = showEiob,
@@ -829,6 +831,7 @@ fun InteractiveGlucoseChart(
     peerPredictionSeries: Map<String, List<GlucosePredictionSeries>> = emptyMap(),
     journalMarkers: List<JournalChartMarker> = emptyList(),
     activeInsulinSummary: JournalActiveInsulinSummary? = null,
+    activeCarbsGrams: Float? = null,
     stateDoseHint: StateDoseHint? = null,
     activeInsulinFromRemote: Boolean = false,
     showEiob: Boolean = true,
@@ -3659,7 +3662,7 @@ fun InteractiveGlucoseChart(
                     }
                 }
 
-            if (activeInsulinSummary != null || stateDoseHint != null) {
+            if (activeInsulinSummary != null || activeCarbsGrams != null || stateDoseHint != null) {
                 val summary = activeInsulinSummary
                 val unitsLabel = { units: Float ->
                     if (units % 1f < 0.05f) {
@@ -3803,6 +3806,18 @@ fun InteractiveGlucoseChart(
                                     }
                                 }
                             }
+                        }
+                        activeCarbsGrams?.let { grams ->
+                            val carbsValue = stringResource(R.string.unit_carbs_value, unitsLabel(grams))
+                            Text(
+                                text = if (isActiveInsulinExpanded) {
+                                    stringResource(R.string.dashboard_cob_full, carbsValue)
+                                } else {
+                                    stringResource(R.string.journal_cob_value, carbsValue)
+                                },
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                         // The hint, or — collapsed and with nothing to suggest — how long the
                         // insulin still runs. Not both on one collapsed line: the hint already

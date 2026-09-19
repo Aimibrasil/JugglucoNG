@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,6 +47,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import tk.glucodata.R
 import tk.glucodata.data.journal.JournalEntryType
 import tk.glucodata.ui.ChartViewportSnapshot
@@ -80,6 +83,7 @@ fun JournalEntryType.journalActionIcon(): ImageVector = when (this) {
 fun JournalFloatingActionMenu(
     visible: Boolean,
     selectedTimestamp: Long,
+    onDismissRequest: () -> Unit,
     viewportSnapshot: ChartViewportSnapshot?,
     onTypeSelected: (JournalEntryType) -> Unit,
     menuTopOffset: Dp = 86.dp,
@@ -116,70 +120,84 @@ fun JournalFloatingActionMenu(
     val menuScale = 0.82f + (0.18f * menuProgress)
 
     if (anchorFraction != null && (visible || menuProgress > 0.01f)) {
-        BoxWithConstraints(
-            modifier = modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = menuProgress.coerceIn(0f, 1f) }
-        ) {
-            val density = LocalDensity.current
-            val resolvedAnchorFraction = anchorFraction ?: return@BoxWithConstraints
-            val containerWidthPx = with(density) { maxWidth.toPx() }
-            val containerHeightPx = with(density) { maxHeight.toPx() }
-            val menuWidthPx = with(density) { 176.dp.toPx() }
-            val edgePaddingPx = with(density) { 12.dp.toPx() }
-            val anchorGapPx = with(density) { 14.dp.toPx() }
-            val menuTopPx = with(density) { menuTopOffset.toPx() }
-            val menuHeightPx = with(density) { (252.dp + (menuItemSpacing * 4)).toPx() }
-            val menuYOffsetPx = with(density) { menuYOffset.toPx() }
-            val rowTravelPx = with(density) { 18.dp.toPx() }
-            val itemLiftPx = with(density) { 16.dp.toPx() }
-            val anchorX = containerWidthPx * resolvedAnchorFraction
-            val placeMenuLeft = resolvedAnchorFraction > 0.56f
-            val desiredX = if (placeMenuLeft) {
-                anchorX - menuWidthPx - anchorGapPx
-            } else {
-                anchorX + anchorGapPx
-            }
-            val clampedX = desiredX.coerceIn(
-                edgePaddingPx,
-                (containerWidthPx - menuWidthPx - edgePaddingPx).coerceAtLeast(edgePaddingPx)
-            )
-            val clampedY = menuTopPx.coerceIn(
-                edgePaddingPx,
-                (containerHeightPx - menuHeightPx).coerceAtLeast(edgePaddingPx)
-            )
-
-            Column(
-                modifier = Modifier
-                    .offset {
-                        androidx.compose.ui.unit.IntOffset(
-                            x = clampedX.roundToInt(),
-                            y = clampedY.roundToInt()
-                        )
-                    }
-                    .graphicsLayer {
-                        alpha = menuProgress
-                        scaleX = menuScale
-                        scaleY = menuScale
-                        translationY = menuYOffsetPx + (12.dp.toPx() * (1f - menuProgress))
-                    }
-                    .width(176.dp),
-                horizontalAlignment = if (placeMenuLeft) Alignment.End else Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(menuItemSpacing)
+        BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+            val popupWidth = maxWidth
+            val popupHeight = maxHeight
+            Popup(
+                onDismissRequest = onDismissRequest,
+                properties = PopupProperties(focusable = true)
             ) {
-                actionTypes.forEachIndexed { index, actionType ->
-                    val itemProgress = ((menuProgress - (index * 0.08f)) / 0.92f).coerceIn(0f, 1f)
-                    JournalActionMenuRow(
-                        actionType = actionType,
-                        placeIconAfterLabel = placeMenuLeft,
-                        itemProgress = itemProgress,
-                        rowTravelPx = rowTravelPx,
-                        itemLiftPx = itemLiftPx,
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            onTypeSelected(actionType)
-                        }
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .size(popupWidth, popupHeight)
+                        .graphicsLayer { alpha = menuProgress.coerceIn(0f, 1f) }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onDismissRequest
+                        )
+                ) {
+                    val density = LocalDensity.current
+                    val resolvedAnchorFraction = anchorFraction
+                    val containerWidthPx = with(density) { maxWidth.toPx() }
+                    val containerHeightPx = with(density) { maxHeight.toPx() }
+                    val menuWidthPx = with(density) { 176.dp.toPx() }
+                    val edgePaddingPx = with(density) { 12.dp.toPx() }
+                    val anchorGapPx = with(density) { 14.dp.toPx() }
+                    val menuTopPx = with(density) { menuTopOffset.toPx() }
+                    val menuHeightPx = with(density) { (252.dp + (menuItemSpacing * 4)).toPx() }
+                    val menuYOffsetPx = with(density) { menuYOffset.toPx() }
+                    val rowTravelPx = with(density) { 18.dp.toPx() }
+                    val itemLiftPx = with(density) { 16.dp.toPx() }
+                    val anchorX = containerWidthPx * resolvedAnchorFraction
+                    val placeMenuLeft = resolvedAnchorFraction > 0.56f
+                    val desiredX = if (placeMenuLeft) {
+                        anchorX - menuWidthPx - anchorGapPx
+                    } else {
+                        anchorX + anchorGapPx
+                    }
+                    val clampedX = desiredX.coerceIn(
+                        edgePaddingPx,
+                        (containerWidthPx - menuWidthPx - edgePaddingPx).coerceAtLeast(edgePaddingPx)
                     )
+                    val clampedY = menuTopPx.coerceIn(
+                        edgePaddingPx,
+                        (containerHeightPx - menuHeightPx).coerceAtLeast(edgePaddingPx)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .offset {
+                                androidx.compose.ui.unit.IntOffset(
+                                    x = clampedX.roundToInt(),
+                                    y = clampedY.roundToInt()
+                                )
+                            }
+                            .graphicsLayer {
+                                alpha = menuProgress
+                                scaleX = menuScale
+                                scaleY = menuScale
+                                translationY = menuYOffsetPx + (12.dp.toPx() * (1f - menuProgress))
+                            }
+                            .width(176.dp),
+                        horizontalAlignment = if (placeMenuLeft) Alignment.End else Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(menuItemSpacing)
+                    ) {
+                        actionTypes.forEachIndexed { index, actionType ->
+                            val itemProgress = ((menuProgress - (index * 0.08f)) / 0.92f).coerceIn(0f, 1f)
+                            JournalActionMenuRow(
+                                actionType = actionType,
+                                placeIconAfterLabel = placeMenuLeft,
+                                itemProgress = itemProgress,
+                                rowTravelPx = rowTravelPx,
+                                itemLiftPx = itemLiftPx,
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    onTypeSelected(actionType)
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -213,19 +231,12 @@ fun JournalExpandableFab(
     val menuProgress = menuReveal.value
     val rowTravelPx = with(density) { 18.dp.toPx() }
     val itemLiftPx = with(density) { 18.dp.toPx() }
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
+    Box(modifier = modifier) {
         if (expanded || menuProgress > 0.01f) {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.graphicsLayer {
-                    alpha = menuProgress.coerceIn(0f, 1f)
-                    translationY = 8.dp.toPx() * (1f - menuProgress)
-                }
+            JournalFabMenuPopup(
+                menuProgress = menuProgress,
+                onDismissRequest = { onExpandedChange(false) },
+                modifier = Modifier.align(Alignment.TopEnd)
             ) {
                 actionTypes.forEachIndexed { index, actionType ->
                     val itemProgress = ((menuProgress - (index * 0.07f)) / 0.72f).coerceIn(0f, 1f)
