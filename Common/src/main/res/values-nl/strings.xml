@@ -2503,7 +2503,6 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="stats_metric_streak_meta">dagen op 70%+</string>
     <string name="stats_pinned_add">Toevoegen</string>
     <string name="stats_pinned_pick_title">Op Dashboard tonen</string>
-    <string name="stats_pinned_hidden_for_space">Er passen er maar %1$d naast elkaar op dit scherm. De rest blijft vastgezet en verschijnt in liggende stand.</string>
     <string name="stats_pinned_remove">Van Dashboard verwijderen</string>
     <string name="stats_pinned_already">vastgezet</string>
     <string name="stats_pinned_remove_short">Verwijderen</string>

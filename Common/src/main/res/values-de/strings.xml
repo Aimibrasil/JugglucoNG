@@ -2581,7 +2581,6 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="stats_metric_streak_meta">Tage mit 70%+</string>
     <string name="stats_pinned_add">Hinzufügen</string>
     <string name="stats_pinned_pick_title">Auf der Startseite zeigen</string>
-    <string name="stats_pinned_hidden_for_space">Auf diesem Bildschirm passen nur %1$d nebeneinander. Die übrigen bleiben angeheftet und erscheinen im Querformat.</string>
     <string name="stats_pinned_remove">Von der Startseite entfernen</string>
     <string name="stats_pinned_already">angeheftet</string>
     <string name="stats_pinned_remove_short">Entfernen</string>

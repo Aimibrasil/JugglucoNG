@@ -2494,7 +2494,6 @@
     <string name="stats_metric_streak_meta">dni po 70%+</string>
     <string name="stats_pinned_add">Dodaj</string>
     <string name="stats_pinned_pick_title">Pokaż na Pulpicie</string>
-    <string name="stats_pinned_hidden_for_space">Na tym ekranie mieści się tylko %1$d. Pozostałe są nadal przypięte i pojawią się w orientacji poziomej.</string>
     <string name="stats_pinned_remove">Usuń z Pulpitu</string>
     <string name="stats_pinned_already">przypięte</string>
     <string name="stats_pinned_remove_short">Usuń</string>

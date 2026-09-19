@@ -2466,7 +2466,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="stats_metric_streak_meta">jours à 70%+</string>
     <string name="stats_pinned_add">Ajouter</string>
     <string name="stats_pinned_pick_title">Afficher sur le Tableau de bord</string>
-    <string name="stats_pinned_hidden_for_space">Seuls %1$d tiennent sur cet écran. Les autres restent épinglés et s\'affichent en mode paysage.</string>
     <string name="stats_pinned_remove">Retirer du Tableau de bord</string>
     <string name="stats_pinned_already">épinglé</string>
     <string name="stats_pinned_remove_short">Retirer</string>

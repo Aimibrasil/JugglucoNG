@@ -1185,11 +1185,20 @@ internal fun PinnedStatsStrip(
 
     // -1 means the picker is choosing a metric for a new slot.
     var editingSlot by remember { mutableStateOf<Int?>(null) }
-    // How many of the pinned metrics the single row managed to fit, for the picker.
+    // How many of the pinned metrics the row is showing. An untouched default may be
+    // trimmed to fit; the first edit adopts exactly what is on screen as the user's list
+    // (see [StatsLayoutStore.adoptDashboardDefault]), so nothing pinned is ever hidden
+    // from the picker or turns up unbidden after a reorder.
     var shownInRow by remember { mutableIntStateOf(pinned.size) }
     val dragState = rememberMetricDragState(
         order = pinned,
-        onReordered = StatsLayoutStore::setDashboardMetrics
+        onReordered = { order ->
+            if (StatsLayoutStore.state.value.dashboardChosen) {
+                StatsLayoutStore.setDashboardMetrics(order)
+            } else {
+                StatsLayoutStore.adoptDashboardDefault(order.take(shownInRow))
+            }
+        }
     )
 
     val onCycleWindow: () -> Unit = {
@@ -1224,7 +1233,10 @@ internal fun PinnedStatsStrip(
                     contentScale = contentScale,
                     onClick = {
                         // A long press that became a drag must not also open the picker.
-                        if (dragState.dragging == null) editingSlot = index
+                        if (dragState.dragging == null) {
+                            StatsLayoutStore.adoptDashboardDefault(pinned.take(shownInRow))
+                            editingSlot = index
+                        }
                     }
                 )
             }
@@ -1274,11 +1286,9 @@ internal fun PinnedStatsStrip(
             fun establishedRowWidth(needs: List<Dp>, count: Int): Dp =
                 widestPillWidth + (needs.take(count).maxOrNull() ?: 0.dp) * count + baseGap * count
 
-            val shownCount = pinnedStripShownCount(pinned.size) { count ->
+            val shownCount = pinnedStripShownCount(pinned.size, layout.dashboardChosen) { count ->
                 establishedRowWidth(chipNeeds, count) <= maxWidth
             }
-            // The picker must say so when it hides one, or "full" with three chips on
-            // screen looks like a bug — because it is one, unless explained.
             SideEffect { shownInRow = shownCount }
             val shownSpecs = pinnedSpecs.take(shownCount)
             val cells = cellsFor(shownCount)
@@ -1356,8 +1366,7 @@ internal fun PinnedStatsStrip(
         }
     } else {
         // Landscape: two rows of two, so the strip is as tall as the left column is
-        // narrow rather than squeezing four cells across it. Everything pinned is shown;
-        // this is where a fourth chip the portrait row had no room for turns up.
+        // narrow rather than squeezing four cells across it. Room for everything pinned.
         val cells = cellsFor(pinned.size)
         SideEffect { shownInRow = pinned.size }
         val perRow = ((cells.size + rows - 1) / rows).coerceAtLeast(1)
@@ -1387,7 +1396,6 @@ internal fun PinnedStatsStrip(
         PinnedMetricPickerSheet(
             current = pinned.getOrNull(slot),
             alreadyPinned = pinned,
-            hiddenForSpace = (pinned.size - shownInRow).coerceAtLeast(0),
             summary = pinnedState.summary,
             targets = pinnedState.targets,
             unit = pinnedState.unit,
@@ -1460,7 +1468,6 @@ internal fun shouldUseEstablishedPinnedStatsPhoneLayout(
 private fun PinnedMetricPickerSheet(
     current: StatsMetric?,
     alreadyPinned: List<StatsMetric>,
-    hiddenForSpace: Int,
     summary: StatsSummary,
     targets: StatsTargets,
     unit: GlucoseUnit,
@@ -1543,18 +1550,6 @@ private fun PinnedMetricPickerSheet(
                         }
                     }
                 }
-            }
-            if (hiddenForSpace > 0) {
-                // Everything pinned is still pinned; the row just ran out of width.
-                Text(
-                    text = stringResource(
-                        R.string.stats_pinned_hidden_for_space,
-                        alreadyPinned.size - hiddenForSpace
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp)
-                )
             }
 
             Column(

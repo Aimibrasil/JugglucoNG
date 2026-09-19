@@ -2476,7 +2476,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="stats_metric_streak_meta">天达到 70%+</string>
     <string name="stats_pinned_add">添加</string>
     <string name="stats_pinned_pick_title">显示在主页</string>
-    <string name="stats_pinned_hidden_for_space">此屏幕只能并排显示 %1$d 个。其余仍保持固定，横屏时显示。</string>
     <string name="stats_pinned_remove">从主页移除</string>
     <string name="stats_pinned_already">已固定</string>
     <string name="stats_pinned_remove_short">移除</string>
