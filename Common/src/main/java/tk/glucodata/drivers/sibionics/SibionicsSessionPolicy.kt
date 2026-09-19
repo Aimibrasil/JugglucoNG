@@ -55,6 +55,32 @@ internal object SibionicsSessionPolicy {
     ): Boolean =
         (historyTransferActive || isRehydrating) && deferredForMs <= maxDeferralMs
 
+    /**
+     * The sensor answered with a page we did not ask for — a data-request write
+     * that never left the phone leaves it streaming from its own cursor. The
+     * exact algorithm state behind `lastIndex` is untouched by that, so the page
+     * is dropped and the same index is asked for again. Only a sensor that keeps
+     * refusing the index for [maxAttempts] consecutive connections justifies
+     * throwing the state away and replaying from the beginning.
+     */
+    fun shouldAbandonExactStateForUnrequestedPages(
+        consecutiveUnrequestedConnections: Int,
+        maxAttempts: Int,
+    ): Boolean = consecutiveUnrequestedConnections >= maxAttempts
+
+    /**
+     * Index to put in the next data-request. While the source journal is being
+     * backfilled behind a live algorithm, connections alternate between the
+     * journal gap and the live cursor so readings keep flowing during the
+     * transfer; a gap at or past the live cursor is not a gap.
+     */
+    fun dataRequestIndex(
+        lastIndex: Int,
+        journalGapIndex: Int,
+        backfillTurn: Boolean,
+    ): Int =
+        if (backfillTurn && journalGapIndex in 1 until lastIndex) journalGapIndex else lastIndex.coerceAtLeast(0)
+
     fun shouldUseAdvertisementRecovery(
         failedDuringConnect: Boolean,
         isStopped: Boolean,
