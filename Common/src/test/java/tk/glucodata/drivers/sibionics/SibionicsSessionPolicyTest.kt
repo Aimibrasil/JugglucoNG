@@ -240,4 +240,76 @@ class SibionicsSessionPolicyTest {
         )
     }
 
+    // 2026-09-19 trace: a data-request write refused as busy left the sensor
+    // streaming from its own cursor (idx 14983 against an exact cursor of 5558);
+    // treating that as lost state restarted a 23 000-sample replay every time.
+    @Test
+    fun oneUnrequestedPageKeepsTheExactState() {
+        assertFalse(
+            SibionicsSessionPolicy.shouldAbandonExactStateForUnrequestedPages(
+                consecutiveUnrequestedConnections = 1,
+                maxAttempts = 3,
+            ),
+        )
+        assertFalse(
+            SibionicsSessionPolicy.shouldAbandonExactStateForUnrequestedPages(
+                consecutiveUnrequestedConnections = 2,
+                maxAttempts = 3,
+            ),
+        )
+    }
+
+    @Test
+    fun aSensorThatKeepsRefusingTheIndexIsReplayedFromTheStart() {
+        assertTrue(
+            SibionicsSessionPolicy.shouldAbandonExactStateForUnrequestedPages(
+                consecutiveUnrequestedConnections = 3,
+                maxAttempts = 3,
+            ),
+        )
+    }
+
+    @Test
+    fun withoutAJournalGapTheRequestFollowsTheExactCursor() {
+        assertEquals(
+            5558,
+            SibionicsSessionPolicy.dataRequestIndex(lastIndex = 5558, journalGapIndex = -1, backfillTurn = true),
+        )
+        assertEquals(
+            5558,
+            SibionicsSessionPolicy.dataRequestIndex(lastIndex = 5558, journalGapIndex = -1, backfillTurn = false),
+        )
+    }
+
+    @Test
+    fun journalBackfillAlternatesBetweenTheGapAndTheLiveCursor() {
+        assertEquals(
+            1,
+            SibionicsSessionPolicy.dataRequestIndex(lastIndex = 23_010, journalGapIndex = 1, backfillTurn = true),
+        )
+        assertEquals(
+            23_010,
+            SibionicsSessionPolicy.dataRequestIndex(lastIndex = 23_010, journalGapIndex = 1, backfillTurn = false),
+        )
+    }
+
+    @Test
+    fun aGapAtOrPastTheLiveCursorIsNotBackfilled() {
+        assertEquals(
+            100,
+            SibionicsSessionPolicy.dataRequestIndex(lastIndex = 100, journalGapIndex = 100, backfillTurn = true),
+        )
+        assertEquals(
+            100,
+            SibionicsSessionPolicy.dataRequestIndex(lastIndex = 100, journalGapIndex = 400, backfillTurn = true),
+        )
+    }
+
+    @Test
+    fun aFreshSensorRequestsFromZeroWhateverTheTurn() {
+        assertEquals(
+            0,
+            SibionicsSessionPolicy.dataRequestIndex(lastIndex = 0, journalGapIndex = -1, backfillTurn = true),
+        )
+    }
 }

@@ -18,6 +18,7 @@ import tk.glucodata.data.journal.CloneJournalIdentity
 import tk.glucodata.data.journal.JournalFoodEntity
 import tk.glucodata.data.journal.JournalInsulinPresetEntity
 import tk.glucodata.data.journal.JournalPendingDeleteEntity
+import tk.glucodata.drivers.sibionics.SibionicsSourceJournalBackup
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -217,6 +218,7 @@ object ExportPackageExporter {
             history.optJSONArray("pendingJournalDeletes")?.let { source ->
                 requireFullyParsed("pending Nightscout deletes", source, pendingDeletes.size)
             }
+            validateSensorSourceJournals(history.optJSONObject("sensorSourceJournals"))
         }
 
         val calibrationsSection = payload.optJSONObject("calibrations")
@@ -517,12 +519,60 @@ object ExportPackageExporter {
                 JSONArray().also { array ->
                     pendingJournalDeletes.forEach { array.put(it.toJson()) }
                 }
-            ) to HistorySummary(
+            )
+            // Raw sensor samples the Sibionics driver rebuilds its history from.
+            // Not range-limited: a rebuild needs the journal whole from idx=1, and a
+            // restore without it re-downloads the sensor's entire life over BLE.
+            .put("sensorSourceJournals", buildSensorSourceJournals(context)) to HistorySummary(
             readings = readings.size,
             journalEntries = journalEntries.size,
             journalFoods = foods.size,
             insulinPresets = insulinPresets.size
         )
+    }
+
+    private fun buildSensorSourceJournals(context: Context): JSONObject {
+        val result = JSONObject()
+        SibionicsSourceJournalBackup.collect(context.filesDir).forEach { (relativePath, file) ->
+            result.put(
+                relativePath,
+                JSONObject()
+                    .put("byteCount", file.length())
+                    .put("base64", android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP))
+            )
+        }
+        return result
+    }
+
+    /** Returns the number of source samples the local journals did not already hold. */
+    private fun importSensorSourceJournals(context: Context, journals: JSONObject?): Int {
+        if (journals == null) return 0
+        var imported = 0
+        val names = journals.keys()
+        while (names.hasNext()) {
+            val relativePath = names.next()
+            val entry = journals.optJSONObject(relativePath) ?: continue
+            val encoded = entry.optString("base64").takeIf { it.isNotBlank() } ?: continue
+            val bytes = android.util.Base64.decode(encoded, android.util.Base64.DEFAULT)
+            imported += SibionicsSourceJournalBackup.restore(context.filesDir, relativePath, bytes)
+        }
+        return imported
+    }
+
+    private fun validateSensorSourceJournals(journals: JSONObject?) {
+        if (journals == null) return
+        val names = journals.keys()
+        while (names.hasNext()) {
+            val relativePath = names.next()
+            require(SibionicsSourceJournalBackup.isJournalPath(relativePath)) {
+                "Backup contains an unsupported sensor journal: $relativePath"
+            }
+            val entry = journals.optJSONObject(relativePath)
+                ?: error("Invalid sensor journal entry: $relativePath")
+            val encoded = entry.optString("base64")
+            require(encoded.isNotBlank()) { "Sensor journal data is missing: $relativePath" }
+            android.util.Base64.decode(encoded, android.util.Base64.DEFAULT)
+        }
     }
 
     private suspend fun buildCalibrationSection(context: Context): Pair<JSONObject, Int> {
@@ -625,6 +675,9 @@ object ExportPackageExporter {
             }
             tk.glucodata.NightscoutUploadWake.afterJournalChange()
         }
+        // Merged into the on-disk journals; a driver already running for that
+        // sensor reads the merged file on its next start.
+        importSensorSourceJournals(context, history.optJSONObject("sensorSourceJournals"))
 
         // Serial to key the dashboard on: the newest reading's serial (already
         // normalized to "imported" by toHistoryReadings() when the file had none).
