@@ -125,6 +125,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -2310,6 +2312,7 @@ fun InteractiveGlucoseChart(
                     }
                 }
         ) {
+            android.os.Trace.beginSection("DashboardPlot.compose")
             // Smooth zoom animation (DO NOT TOUCH)
             val animatedVisibleDuration by animateFloatAsState(
                 targetValue = visibleDuration.toFloat(),
@@ -2491,6 +2494,8 @@ fun InteractiveGlucoseChart(
                             androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
                     }
             ) {
+                android.os.Trace.beginSection("DashboardPlot.draw")
+                try {
                 val width = size.width
                 val rightPaddingPx = if (hasPredictionOverlay) 0f else (16.dp.toPx() * safeExpandedProgress)
                 val dataWidth = (width - rightPaddingPx).coerceAtLeast(1f)
@@ -2661,8 +2666,11 @@ fun InteractiveGlucoseChart(
                                 reusablePeerPath.rewind()
                                 var first = true
                                 var hasPath = false
-                                for (point in run.points) {
-                                    if (point.timestamp < searchStart - cullMargin || point.timestamp > searchEnd + cullMargin) continue
+                                val points = run.points
+                                val fromIndex = points.firstIndexAtOrAfter(searchStart - cullMargin)
+                                val toIndex = points.firstIndexAfter(searchEnd + cullMargin)
+                                for (index in fromIndex until toIndex) {
+                                    val point = points[index]
                                     val px = timeToDataX(point.timestamp)
                                     val py = valToY(point.value)
                                     if (!px.isFinite() || !py.isFinite()) { first = true; continue }
@@ -2687,8 +2695,11 @@ fun InteractiveGlucoseChart(
                             val peerRun = ChartLineRun()
                             var hasPath = false
                             var first = true
-                            for (point in run.points) {
-                                if (point.timestamp < searchStart - cullMargin || point.timestamp > searchEnd + cullMargin) continue
+                            val points = run.points
+                            val fromIndex = points.firstIndexAtOrAfter(searchStart - cullMargin)
+                            val toIndex = points.firstIndexAfter(searchEnd + cullMargin)
+                            for (index in fromIndex until toIndex) {
+                                val point = points[index]
                                 val px = timeToDataX(point.timestamp)
                                 val py = valToY(point.value)
                                 if (!px.isFinite() || !py.isFinite()) { first = true; continue }
@@ -3413,6 +3424,7 @@ fun InteractiveGlucoseChart(
                              }
                     }
                 }
+                } finally { android.os.Trace.endSection() }
             }
 
             // --- INFO CARD ---
@@ -4202,11 +4214,20 @@ fun InteractiveGlucoseChart(
                 it.timestamp in viewportStartTooltip..viewportEndTooltip
             }
 
+            val calibrationLabelLocale = java.util.Locale.getDefault()
+            val calibrationLabelTimeZone = java.util.TimeZone.getDefault()
             visibleCalibrationsTooltip.forEach { cal ->
                 val calXFraction = (cal.timestamp - viewportStartTooltip).toFloat() / overlayDuration
                 val calXOffset = (overlayDataWidthPx * calXFraction).coerceIn(0f, overlayDataWidthPx)
-                val calTimeFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-                val calTimeStr = calTimeFormat.format(java.util.Date(cal.timestamp))
+                // Collapse/scroll changes pixel positions every frame, not these labels.
+                val calTimeStr = remember(cal.timestamp, calibrationLabelLocale, calibrationLabelTimeZone) {
+                    java.text.SimpleDateFormat("HH:mm", calibrationLabelLocale).apply {
+                        timeZone = calibrationLabelTimeZone
+                    }.format(java.util.Date(cal.timestamp))
+                }
+                val calValueStr = remember(cal.userValue, unit, calibrationLabelLocale) {
+                    String.format(calibrationLabelLocale, if (unit.contains("mmol", true)) "%.1f" else "%.0f", cal.userValue)
+                }
 
                 // Top: Value chip with waterdrop icon (clickable to edit)
                 Surface(
@@ -4242,7 +4263,7 @@ fun InteractiveGlucoseChart(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = String.format(java.util.Locale.getDefault(), if (unit.contains("mmol", true)) "%.1f" else "%.0f", cal.userValue),
+                            text = calValueStr,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -4432,6 +4453,7 @@ fun InteractiveGlucoseChart(
                     currentVisibleDuration = visibleDuration
                 )
             }
+            android.os.Trace.endSection()
         }
 
         // --- ZOOM BUTTONS (Expressive Connected Group) ---
@@ -4467,15 +4489,17 @@ fun InteractiveGlucoseChart(
         val rangeLabels = items.map { stringResource(it.labelResId, it.labelAmount) }
         val rangeTextMeasurer = rememberTextMeasurer()
         // Reserve the bold width for every label so changing selection cannot resize the picker.
-        val rangeLabelsWidth = with(density) {
-            rangeLabels.sumOf { label ->
-                rangeTextMeasurer.measure(
-                    text = label,
-                    style = baseLabelStyle.copy(fontWeight = FontWeight.Bold),
-                    softWrap = false,
-                    maxLines = 1
-                ).size.width
-            }.toDp()
+        val rangeLabelsWidth = remember(rangeLabels, baseLabelStyle, rangeTextMeasurer, density) {
+            with(density) {
+                rangeLabels.sumOf { label ->
+                    rangeTextMeasurer.measure(
+                        text = label,
+                        style = baseLabelStyle.copy(fontWeight = FontWeight.Bold),
+                        softWrap = false,
+                        maxLines = 1
+                    ).size.width
+                }.toDp()
+            }
         }
 
         val pickerVerticalOffset = -(chartUnderlayBottomDp + (8.dp * safeExpandedProgress))
@@ -4536,7 +4560,6 @@ fun InteractiveGlucoseChart(
                 }
             }
 
-            val scaledLabelStyle = baseLabelStyle.copy(fontSize = baseLabelStyle.fontSize * safeUniformScale)
 
             // Button gaps: always consistent (never conditional on adjacent selection)
             val buttonGap = scaled(baseOuterButtonGap)
@@ -4677,7 +4700,23 @@ fun InteractiveGlucoseChart(
 
                             Text(
                                 text = stringResource(range.labelResId, range.labelAmount),
-                                style = scaledLabelStyle,
+                                style = baseLabelStyle,
+                                // The picker changes scale throughout collapse. Keep glyph
+                                // layout stable; scale the layer and its occupied bounds instead.
+                                modifier = Modifier.layout { measurable, constraints ->
+                                    val label = measurable.measure(Constraints())
+                                    val width = (label.width * safeUniformScale).roundToInt()
+                                        .coerceIn(constraints.minWidth, constraints.maxWidth)
+                                    val height = (label.height * safeUniformScale).roundToInt()
+                                        .coerceIn(constraints.minHeight, constraints.maxHeight)
+                                    layout(width, height) {
+                                        label.placeWithLayer(0, 0) {
+                                            scaleX = safeUniformScale
+                                            scaleY = safeUniformScale
+                                            transformOrigin = TransformOrigin(0f, 0f)
+                                        }
+                                    }
+                                },
                                 color = contentColor,
                                 softWrap = false,
                                 maxLines = 1,
