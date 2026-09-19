@@ -125,6 +125,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -4543,7 +4545,6 @@ fun InteractiveGlucoseChart(
                 }
             }
 
-            val scaledLabelStyle = baseLabelStyle.copy(fontSize = baseLabelStyle.fontSize * safeUniformScale)
 
             // Button gaps: always consistent (never conditional on adjacent selection)
             val buttonGap = scaled(baseOuterButtonGap)
@@ -4684,7 +4685,23 @@ fun InteractiveGlucoseChart(
 
                             Text(
                                 text = stringResource(range.labelResId, range.labelAmount),
-                                style = scaledLabelStyle,
+                                style = baseLabelStyle,
+                                // The picker changes scale throughout collapse. Keep glyph
+                                // layout stable; scale the layer and its occupied bounds instead.
+                                modifier = Modifier.layout { measurable, constraints ->
+                                    val label = measurable.measure(Constraints())
+                                    val width = (label.width * safeUniformScale).roundToInt()
+                                        .coerceIn(constraints.minWidth, constraints.maxWidth)
+                                    val height = (label.height * safeUniformScale).roundToInt()
+                                        .coerceIn(constraints.minHeight, constraints.maxHeight)
+                                    layout(width, height) {
+                                        label.placeWithLayer(0, 0) {
+                                            scaleX = safeUniformScale
+                                            scaleY = safeUniformScale
+                                            transformOrigin = TransformOrigin(0f, 0f)
+                                        }
+                                    }
+                                },
                                 color = contentColor,
                                 softWrap = false,
                                 maxLines = 1,
