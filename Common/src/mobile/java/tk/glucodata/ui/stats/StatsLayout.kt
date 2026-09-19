@@ -255,8 +255,8 @@ object StatsLayoutStore {
 
     /**
      * Settles the shipped default to the three or four that fit the strip. Done once,
-     * on the strip's first sight of the row; a no-op once settled or edited, so the
-     * list never changes under the user afterwards.
+     * from the row as actually laid out; a no-op once settled or edited, so the list
+     * never changes under the user afterwards.
      */
     fun settleDashboardDefault(fitting: List<StatsMetric>) {
         if (_state.value.dashboardChosen) return
@@ -387,20 +387,6 @@ object StatsLayoutStore {
             .mapNotNull { name -> runCatching { parse(name.trim()) }.getOrNull() }
             .toSet()
     }
-}
-
-/**
- * How many of the shipped default the strip settles on.
- *
- * Only for a list not yet settled or edited — a chosen list is shown whole. Trailing
- * metrics are dropped one at a time until [fits] says the row lays out at its natural
- * size, but never below [StatsLayoutStore.MIN_DASHBOARD_METRICS_SHOWN].
- */
-internal fun pinnedStripShownCount(pinnedCount: Int, chosen: Boolean, fits: (Int) -> Boolean): Int {
-    if (chosen) return pinnedCount
-    var count = pinnedCount
-    while (count > StatsLayoutStore.MIN_DASHBOARD_METRICS_SHOWN && !fits(count)) count--
-    return count
 }
 
 /**
