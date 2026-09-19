@@ -901,9 +901,8 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
         // Applied unless the driver has already folded the user's calibration
         // into the value itself — see LiveCalibrationPolicy. Managing its own
         // Room rows is not the same thing.
-        final boolean shouldApplyGenericLiveCalibration = this instanceof ManagedBluetoothSensorDriver managed
-                ? LiveCalibrationPolicy.appliesGenericCalibration(true, managed.integratesUserCalibration(isRawMode))
-                : LiveCalibrationPolicy.appliesGenericCalibration(false, false);
+        final boolean shouldApplyGenericLiveCalibration = LiveCalibrationPolicy.appliesGenericCalibration(
+                this instanceof ManagedBluetoothSensorDriver managed && managed.integratesUserCalibration(isRawMode));
         boolean shouldUseRawAsPrimary = shouldUseRawAsPrimary(viewMode);
         boolean hasPreferredRawLane = Float.isFinite(preferredRawMgdl) && preferredRawMgdl > 0f;
         boolean shouldStoreRawLane = hasPreferredRawLane || shouldStoreRawLane(viewMode);

@@ -15,10 +15,11 @@ package tk.glucodata
  * while the calibrated line on screen read 5.9.
  *
  * The only reason to leave a live value alone is the driver already having
- * calibrated it. Storing its own rows is not that reason.
+ * calibrated it. Storing its own rows is not that reason. Native drivers
+ * never integrate, so they always pass `false` here.
  */
 object LiveCalibrationPolicy {
     @JvmStatic
-    fun appliesGenericCalibration(managedDriver: Boolean, integratesUserCalibration: Boolean): Boolean =
-        !managedDriver || !integratesUserCalibration
+    fun appliesGenericCalibration(integratesUserCalibration: Boolean): Boolean =
+        !integratesUserCalibration
 }
