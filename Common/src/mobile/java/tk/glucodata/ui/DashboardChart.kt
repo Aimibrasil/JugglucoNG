@@ -2658,8 +2658,11 @@ fun InteractiveGlucoseChart(
                                 reusablePeerPath.rewind()
                                 var first = true
                                 var hasPath = false
-                                for (point in run.points) {
-                                    if (point.timestamp < searchStart - cullMargin || point.timestamp > searchEnd + cullMargin) continue
+                                val points = run.points
+                                val fromIndex = points.firstIndexAtOrAfter(searchStart - cullMargin)
+                                val toIndex = points.firstIndexAfter(searchEnd + cullMargin)
+                                for (index in fromIndex until toIndex) {
+                                    val point = points[index]
                                     val px = timeToDataX(point.timestamp)
                                     val py = valToY(point.value)
                                     if (!px.isFinite() || !py.isFinite()) { first = true; continue }
@@ -2684,8 +2687,11 @@ fun InteractiveGlucoseChart(
                             val peerRun = ChartLineRun()
                             var hasPath = false
                             var first = true
-                            for (point in run.points) {
-                                if (point.timestamp < searchStart - cullMargin || point.timestamp > searchEnd + cullMargin) continue
+                            val points = run.points
+                            val fromIndex = points.firstIndexAtOrAfter(searchStart - cullMargin)
+                            val toIndex = points.firstIndexAfter(searchEnd + cullMargin)
+                            for (index in fromIndex until toIndex) {
+                                val point = points[index]
                                 val px = timeToDataX(point.timestamp)
                                 val py = valToY(point.value)
                                 if (!px.isFinite() || !py.isFinite()) { first = true; continue }
