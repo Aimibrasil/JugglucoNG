@@ -56,8 +56,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -1197,20 +1195,9 @@ internal fun PinnedStatsStrip(
 
     // -1 means the picker is choosing a metric for a new slot.
     var editingSlot by remember { mutableStateOf<Int?>(null) }
-    // How many of the pinned metrics the row is showing. An untouched default may be
-    // trimmed to fit; the first edit adopts exactly what is on screen as the user's list
-    // (see [StatsLayoutStore.adoptDashboardDefault]), so nothing pinned is ever hidden
-    // from the picker or turns up unbidden after a reorder.
-    var shownInRow by remember { mutableIntStateOf(pinned.size) }
     val dragState = rememberMetricDragState(
         order = pinned,
-        onReordered = { order ->
-            if (StatsLayoutStore.state.value.dashboardChosen) {
-                StatsLayoutStore.setDashboardMetrics(order)
-            } else {
-                StatsLayoutStore.adoptDashboardDefault(order.take(shownInRow))
-            }
-        }
+        onReordered = StatsLayoutStore::setDashboardMetrics
     )
 
     val onCycleWindow: () -> Unit = {
@@ -1245,10 +1232,7 @@ internal fun PinnedStatsStrip(
                     contentScale = contentScale,
                     onClick = {
                         // A long press that became a drag must not also open the picker.
-                        if (dragState.dragging == null) {
-                            StatsLayoutStore.adoptDashboardDefault(pinned.take(shownInRow))
-                            editingSlot = index
-                        }
+                        if (dragState.dragging == null) editingSlot = index
                     }
                 )
             }
@@ -1281,24 +1265,34 @@ internal fun PinnedStatsStrip(
                 fontFeatureSettings = "tnum",
                 fontWeight = FontWeight.SemiBold
             )
-            // What each chip needs to draw its value and title whole. Live values, not a
-            // worst-case template: a template cost the fourth chip on a screen that showed
-            // all four with room to spare, which is worse than the row reflowing on the
-            // rare day time in range crosses from 99% to 100%.
+            // What each chip needs to draw its value and title whole. The value gets a
+            // little less than it measures because it auto-sizes: a few dp short costs
+            // it a fraction of a point nobody can see, where a title a few dp short
+            // would be ellipsised, which everybody can.
             val chipNeeds = pinned.mapIndexed { index, metric ->
                 val spec = pinnedSpecs[index]
-                maxOf(textWidth(spec.title, titleStyle), textWidth(spec.value, valueStyle)) +
-                    PinnedMetricChipChrome +
+                maxOf(
+                    textWidth(spec.title, titleStyle),
+                    textWidth(spec.value, valueStyle) - PinnedMetricValueShrink
+                ) + PinnedMetricChipChrome +
                     if (metric == StatsMetric.TIME_IN_RANGE) PinnedMetricChipTirChrome else 0.dp
             }
             val baseGap = 8.dp
             // The chips share the row equally, so the widest one sets the width of all.
-            // This decides the default count and nothing else: the row itself lays out
-            // exactly as it always has, whatever the count.
+            // This settles the default once — three or four — and then it is simply the
+            // user's list, shown whole. Measured text comes out a couple of dp wider
+            // than the same text laid out in the row (on a 448 dp phone the pill
+            // measured 82 dp and rendered at 80), and a test exact to the dp settled on
+            // three where all four showed whole.
             val shownCount = pinnedStripShownCount(pinned.size, layout.dashboardChosen) { count ->
-                widestPillWidth + (chipNeeds.take(count).maxOrNull() ?: 0.dp) * count + baseGap * count <= maxWidth
+                widestPillWidth + (chipNeeds.take(count).maxOrNull() ?: 0.dp) * count + baseGap * count <=
+                    maxWidth + PinnedStripMeasureSlack
             }
-            SideEffect { shownInRow = shownCount }
+            if (!layout.dashboardChosen) {
+                LaunchedEffect(shownCount) {
+                    StatsLayoutStore.settleDashboardDefault(pinned.take(shownCount))
+                }
+            }
             val shownSpecs = pinnedSpecs.take(shownCount)
             val cells = cellsFor(shownCount)
 
@@ -1372,9 +1366,9 @@ internal fun PinnedStatsStrip(
         }
     } else {
         // Landscape: two rows of two, so the strip is as tall as the left column is
-        // narrow rather than squeezing four cells across it. Room for everything pinned.
+        // narrow rather than squeezing four cells across it. Room for everything pinned,
+        // so an unsettled default is shown whole and left for portrait to settle.
         val cells = cellsFor(pinned.size)
-        SideEffect { shownInRow = pinned.size }
         val perRow = ((cells.size + rows - 1) / rows).coerceAtLeast(1)
         Column(
             modifier = modifier.fillMaxWidth(),
@@ -1452,6 +1446,20 @@ private val PinnedMetricChipTirChrome = 12.dp
 
 /** [PinnedWindowPill] beyond its label: padding both sides, the gap and the chevron. */
 private val PinnedWindowPillChrome = 31.dp
+
+/**
+ * How much narrower than it measures a chip's value may be and still read as whole,
+ * because [PinnedMetricChip] auto-sizes it: three dp on a 45 dp "100%" is a shrink of
+ * about a point, below what the eye picks up next to its neighbours.
+ */
+private val PinnedMetricValueShrink = 3.dp
+
+/**
+ * Text measured in isolation comes out a little wider than the same text laid out in
+ * the row's pixel-snapped cells. Two dp, from a 448 dp phone where the widest pill
+ * measured 82 dp and rendered at 80.
+ */
+private val PinnedStripMeasureSlack = 2.dp
 
 internal fun shouldUseEstablishedPinnedStatsPhoneLayout(
     widthClass: AdaptiveWindowWidthClass,

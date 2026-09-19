@@ -106,11 +106,10 @@ enum class StatsMetric(@param:StringRes val titleResId: Int) {
          * the one they most often open the app to check. It sits next to the mean it is
          * fitted from rather than at the end, so the strip reads level, estimate, spread.
          *
-         * Four is the default, not a floor or a ceiling on what the user may pin. Until
-         * the user touches the list, the strip shows only as many of these as fit at
-         * their natural size — on a narrow screen, or with a large font, that is the
-         * first three. The first edit makes whatever is on screen the user's list, and
-         * from then on the strip shows everything pinned, scaling if it has to.
+         * Four is the default where four fit across the strip at their natural size; on
+         * a narrow screen, or with a large font, the default is the first three. The
+         * strip settles which on first sight of the row, once, and from then on the
+         * list is simply the user's: shown whole, and theirs to add to or trim.
          */
         val PINNED_BY_DEFAULT = listOf(TIME_IN_RANGE, AVERAGE, GMI, CV)
 
@@ -131,9 +130,9 @@ data class StatsLayoutState(
     val wideMetrics: Set<StatsMetric> = emptySet(),
     val dashboardMetrics: List<StatsMetric> = StatsMetric.PINNED_BY_DEFAULT,
     /**
-     * False while [dashboardMetrics] is still the shipped default, which the strip may
-     * trim to fit; true once the user has pinned, unpinned or reordered anything, after
-     * which the list is theirs and every entry is shown.
+     * False until the shipped default has been settled to the three or four that fit
+     * the strip; true from then on, and on any edit, after which the list is the user's
+     * and every entry is shown.
      */
     val dashboardChosen: Boolean = false
 ) {
@@ -177,9 +176,9 @@ object StatsLayoutStore {
     const val MAX_DASHBOARD_METRICS = 4
 
     /**
-     * The untouched default never trims below three. Three was the default for long
-     * enough that every phone layout is built around it, and going lower would mean
-     * dropping one of the three that answer the questions the chart does not.
+     * The default never settles below three. Three was the default for long enough
+     * that every phone layout is built around it, and going lower would mean dropping
+     * one of the three that answer the questions the chart does not.
      */
     const val MIN_DASHBOARD_METRICS_SHOWN = 3
 
@@ -255,14 +254,13 @@ object StatsLayoutStore {
     }
 
     /**
-     * The first edit turns the default into the user's list. What they saw is what they
-     * get: a strip that had trimmed the default to three commits those three, so the
-     * picker they open shows three pinned and a free slot rather than four pinned with
-     * one nowhere on screen. No-op once the list is theirs.
+     * Settles the shipped default to the three or four that fit the strip. Done once,
+     * on the strip's first sight of the row; a no-op once settled or edited, so the
+     * list never changes under the user afterwards.
      */
-    fun adoptDashboardDefault(shown: List<StatsMetric>) {
+    fun settleDashboardDefault(fitting: List<StatsMetric>) {
         if (_state.value.dashboardChosen) return
-        setDashboardMetrics(shown)
+        setDashboardMetrics(fitting)
     }
 
     /** Replaces the metric in one slot, or drops the slot when [metric] is null. */
@@ -333,8 +331,7 @@ object StatsLayoutStore {
     /**
      * Layouts saved before the flag existed have no record of whether the pins were
      * chosen; a list that differs from the default plainly was, and one that matches it
-     * is treated as the default — the worst case is a strip trimmed to three until the
-     * user's next edit, at which point it is settled for good.
+     * is settled like a fresh default the next time the strip is seen.
      */
     private fun readChosen(store: SharedPreferences, pinned: List<StatsMetric>): Boolean =
         store.getBoolean(KEY_DASHBOARD_CHOSEN, pinned.isNotEmpty() && pinned != StatsMetric.PINNED_BY_DEFAULT)
@@ -393,12 +390,11 @@ object StatsLayoutStore {
 }
 
 /**
- * How many of the default pinned metrics a single-row strip shows.
+ * How many of the shipped default the strip settles on.
  *
- * Only for a list the user has not touched — a chosen list is shown whole. Trailing
+ * Only for a list not yet settled or edited — a chosen list is shown whole. Trailing
  * metrics are dropped one at a time until [fits] says the row lays out at its natural
- * size, but never below [StatsLayoutStore.MIN_DASHBOARD_METRICS_SHOWN]: at that point
- * the strip scales as a whole instead of hiding anything more.
+ * size, but never below [StatsLayoutStore.MIN_DASHBOARD_METRICS_SHOWN].
  */
 internal fun pinnedStripShownCount(pinnedCount: Int, chosen: Boolean, fits: (Int) -> Boolean): Int {
     if (chosen) return pinnedCount
