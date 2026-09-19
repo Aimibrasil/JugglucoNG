@@ -3769,7 +3769,7 @@ fun InteractiveGlucoseChart(
                         .widthIn(max = activeInsulinMaxWidth)
                         .zIndex(1.6f)
                         .clip(activeInsulinShape)
-                        .clickable(enabled = summary != null) { isActiveInsulinExpanded = !isActiveInsulinExpanded },
+                        .clickable(enabled = summary != null || activeCarbsGrams != null) { isActiveInsulinExpanded = !isActiveInsulinExpanded },
                     shape = activeInsulinShape,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
                     tonalElevation = 0.dp,
