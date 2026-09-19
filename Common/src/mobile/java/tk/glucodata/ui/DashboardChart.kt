@@ -2307,6 +2307,7 @@ fun InteractiveGlucoseChart(
                     }
                 }
         ) {
+            android.os.Trace.beginSection("DashboardPlot.compose")
             // Smooth zoom animation (DO NOT TOUCH)
             val animatedVisibleDuration by animateFloatAsState(
                 targetValue = visibleDuration.toFloat(),
@@ -2488,6 +2489,8 @@ fun InteractiveGlucoseChart(
                             androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
                     }
             ) {
+                android.os.Trace.beginSection("DashboardPlot.draw")
+                try {
                 val width = size.width
                 val rightPaddingPx = if (hasPredictionOverlay) 0f else (16.dp.toPx() * safeExpandedProgress)
                 val dataWidth = (width - rightPaddingPx).coerceAtLeast(1f)
@@ -3416,6 +3419,7 @@ fun InteractiveGlucoseChart(
                              }
                     }
                 }
+                } finally { android.os.Trace.endSection() }
             }
 
             // --- INFO CARD ---
@@ -4423,6 +4427,7 @@ fun InteractiveGlucoseChart(
                     currentVisibleDuration = visibleDuration
                 )
             }
+            android.os.Trace.endSection()
         }
 
         // --- ZOOM BUTTONS (Expressive Connected Group) ---
