@@ -1003,8 +1003,8 @@ internal fun PinnedMetricChip(
     contentScale: Float = 1f,
     /**
      * Told, once both texts have laid out, whether the chip came out whole: title not
-     * ellipsised, value neither clipped nor auto-shrunk. The strip settles its default
-     * on this. Null when nobody is asking.
+     * ellipsised, value not clipped. The strip settles its default on this. Null when
+     * nobody is asking.
      */
     onLaidOut: ((whole: Boolean) -> Unit)? = null
 ) {
@@ -1094,12 +1094,12 @@ internal fun PinnedMetricChip(
                     color = tone,
                     maxLines = 1,
                     softWrap = false,
-                    // The reported style carries the size auto-size settled on, so a
-                    // value that had to shrink is not whole even though nothing clipped.
-                    onTextLayout = {
-                        valueWhole = !it.hasVisualOverflow &&
-                            it.layoutInput.style.fontSize == valueStyle.fontSize
-                    }
+                    // Whole means nothing clipped. Auto-size exists so the value never
+                    // does; the fraction of a point it may give up is not a fit failure.
+                    // (Comparing the reported font size to the nominal one is not an
+                    // option: auto-size hands back its size converted from pixels, which
+                    // never equals 16.sp exactly, and settled every default on three.)
+                    onTextLayout = { valueWhole = !it.hasVisualOverflow }
                 )
             }
         }
