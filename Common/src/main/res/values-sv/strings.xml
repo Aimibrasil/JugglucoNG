@@ -658,6 +658,7 @@
     <string name="custom_low">Anpassad lag</string>
     <string name="custom_sound_selected">Anpassat ljud valt</string>
     <string name="default_snooze">Standard-snooze</string>
+    <string name="alert_reset_defaults">Återställ standard</string>
     <string name="delete_custom_alert">Ta bort anpassad varning</string>
     <string name="duration_label">Varaktighet</string>
     <string name="end">Slut</string>
@@ -833,6 +834,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="libre3_nfc_command_activate_desc">Tvinga kommandot A0 Aktivera under skanningen</string>
     <string name="libre3_nfc_command_switch_receiver">A8 Byt mottagare</string>
     <string name="libre3_nfc_command_switch_receiver_desc">Tvinga kommandot A8 Byt mottagare under skanningen</string>
+    <string name="libre3_activation_legacy_fallback">Libre 3-aktiveringen med öppen källkod kunde inte verifieras; den beprövade metoden används.</string>
     <string name="libreview_account_ready">Konto-ID klart</string>
     <string name="libreview_account_missing">Konto-ID saknas</string>
     <string name="libreview_account_missing_desc">Ange dina uppgifter och hämta konto-ID för Libre 3-sensorer</string>
@@ -1892,6 +1894,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">TURN-relay för fjärranslutningar</string>
     <string name="mirror_connections">Anslutningar</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Lokal klon</string>
+    <string name="mirror_default_hybrid_label">Hybridklon</string>
     <string name="mirror_clone_master_desc">Aktivera alla sparade Clone-anslutningar</string>
     <string name="clone_history_recovery">Återställ historik</string>
     <string name="clone_history_direction_send">Skicka till mottagaren</string>
@@ -2122,6 +2126,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ottai_login_button">Logga in</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Inloggad</string>
+    <string name="ottai_session_invalid">Din molnsession är inte längre giltig – logga in igen</string>
     <string name="ottai_account_id">Konto: %1$s</string>
     <string name="ottai_sensor_mac_hint">Moln-enhets-ID (12 hex eller QR)</string>
     <string name="ottai_connect_saved">Anslut</string>
@@ -2312,6 +2317,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="glucose_palette_saturation">Mättnad</string>
     <string name="glucose_palette_brightness">Ljusstyrka</string>
     <string name="notification_charts_section">Diagram</string>
+    <string name="notification_chart_pause_screen_off">Pausa diagrammet när skärmen är av</string>
+    <string name="notification_chart_pause_screen_off_summary">Ritas om när skärmen slås på. Diagrammet kan vara dolt en kort stund.</string>
     <string name="notification_status_line_section">Statusrad</string>
     <string name="display_colors_title">Visning</string>
     <string name="display_colors_desc">Färger, översiktsvärden och diagram</string>

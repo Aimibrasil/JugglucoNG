@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -53,8 +54,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -1056,14 +1059,25 @@ internal fun PinnedMetricChip(
                 transitionSpec = { verticalValueSwap() },
                 label = "pinnedMetricValue"
             ) { value ->
+                val valueStyle = MaterialTheme.typography.titleMedium.copy(
+                    fontFeatureSettings = "tnum",
+                    fontWeight = FontWeight.SemiBold
+                ).scalePinnedStyle(contentScale)
+                // The cell is whatever the row shares out; "100%" a couple of dp wider
+                // than that used to lose its sign to the clip. The value gives up a
+                // fraction of a point of size instead — only in the chip that needs it,
+                // and none at all when it fits, which is every other time.
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFeatureSettings = "tnum",
-                        fontWeight = FontWeight.SemiBold
-                    ).scalePinnedStyle(contentScale),
+                    style = valueStyle,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 11.sp * contentScale,
+                        maxFontSize = valueStyle.fontSize,
+                        stepSize = 0.25.sp
+                    ),
                     color = tone,
-                    maxLines = 1
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
@@ -1139,7 +1153,7 @@ internal enum class PinnedWindow(@get:StringRes val labelResId: Int, private val
 fun hasPinnedStats(): Boolean {
     val context = LocalContext.current
     LaunchedEffect(context) { StatsLayoutStore.ensureLoaded(context) }
-    val layout by StatsLayoutStore.state.collectAsState()
+    val layout by StatsLayoutStore.state.collectAsStateWithLifecycle()
     return layout.dashboardMetrics.isNotEmpty()
 }
 
@@ -1168,23 +1182,35 @@ internal fun PinnedStatsStrip(
 ) {
     val context = LocalContext.current
     LaunchedEffect(context) { StatsLayoutStore.ensureLoaded(context) }
-    val layout by StatsLayoutStore.state.collectAsState()
+    val layout by StatsLayoutStore.state.collectAsStateWithLifecycle()
     val pinned = layout.dashboardMetrics
+    if (pinned.isEmpty()) return
     val statsViewModel: StatsViewModel = rememberStatsViewModel()
     var window by windowState
     // Tells the view model how far back to read. Without this the strip showed numbers
     // for whatever range the statistics screen was last left on, whatever the pill said.
     LaunchedEffect(window) { statsViewModel.setPinnedWindow(window) }
-    val pinnedState by statsViewModel.pinnedState.collectAsState()
-    if (pinned.isEmpty() || pinnedState.summary.readingCount == 0) return
+    val pinnedState by statsViewModel.pinnedState.collectAsStateWithLifecycle()
+    if (pinnedState.summary.readingCount == 0) return
     val adaptiveMetrics = rememberAdaptiveWindowMetrics()
     val view = LocalView.current
 
     // -1 means the picker is choosing a metric for a new slot.
     var editingSlot by remember { mutableStateOf<Int?>(null) }
+    // How many of the pinned metrics the row is showing. An untouched default may be
+    // trimmed to fit; the first edit adopts exactly what is on screen as the user's list
+    // (see [StatsLayoutStore.adoptDashboardDefault]), so nothing pinned is ever hidden
+    // from the picker or turns up unbidden after a reorder.
+    var shownInRow by remember { mutableIntStateOf(pinned.size) }
     val dragState = rememberMetricDragState(
         order = pinned,
-        onReordered = StatsLayoutStore::setDashboardMetrics
+        onReordered = { order ->
+            if (StatsLayoutStore.state.value.dashboardChosen) {
+                StatsLayoutStore.setDashboardMetrics(order)
+            } else {
+                StatsLayoutStore.adoptDashboardDefault(order.take(shownInRow))
+            }
+        }
     )
 
     val onCycleWindow: () -> Unit = {
@@ -1198,7 +1224,9 @@ internal fun PinnedStatsStrip(
     val pinnedSpecs = pinned.map { metric ->
         metricSpec(metric, pinnedState.summary, pinnedState.targets, pinnedState.unit)
     }
-    val cells = buildList<@Composable (Modifier, Float) -> Unit> {
+    // The single-row strip may show fewer than are pinned; slot indices stay those of the
+    // full list, so the picker and drag reorder keep working on what the user pinned.
+    fun cellsFor(shown: Int) = buildList<@Composable (Modifier, Float) -> Unit> {
         add { cellModifier, contentScale ->
             PinnedWindowPill(
                 label = windowLabel,
@@ -1207,7 +1235,7 @@ internal fun PinnedStatsStrip(
                 contentScale = contentScale
             )
         }
-        pinned.forEachIndexed { index, metric ->
+        pinned.take(shown).forEachIndexed { index, metric ->
             val spec = pinnedSpecs[index]
             add { cellModifier, contentScale ->
                 PinnedMetricChip(
@@ -1217,7 +1245,10 @@ internal fun PinnedStatsStrip(
                     contentScale = contentScale,
                     onClick = {
                         // A long press that became a drag must not also open the picker.
-                        if (dragState.dragging == null) editingSlot = index
+                        if (dragState.dragging == null) {
+                            StatsLayoutStore.adoptDashboardDefault(pinned.take(shownInRow))
+                            editingSlot = index
+                        }
                     }
                 )
             }
@@ -1239,16 +1270,47 @@ internal fun PinnedStatsStrip(
                 ).size.width.toDp()
             }
 
+            // Measured against the widest window label rather than the current one, so
+            // cycling the pill from "Today" to "3d" never changes how many chips fit.
+            val pillLabelStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+            val widestPillWidth = PinnedWindow.entries
+                .map { stringResource(it.labelResId) }
+                .maxOf { textWidth(it, pillLabelStyle) } + PinnedWindowPillChrome
+            val titleStyle = MaterialTheme.typography.labelSmall
+            val valueStyle = MaterialTheme.typography.titleMedium.copy(
+                fontFeatureSettings = "tnum",
+                fontWeight = FontWeight.SemiBold
+            )
+            // What each chip needs to draw its value and title whole. Live values, not a
+            // worst-case template: a template cost the fourth chip on a screen that showed
+            // all four with room to spare, which is worse than the row reflowing on the
+            // rare day time in range crosses from 99% to 100%.
+            val chipNeeds = pinned.mapIndexed { index, metric ->
+                val spec = pinnedSpecs[index]
+                maxOf(textWidth(spec.title, titleStyle), textWidth(spec.value, valueStyle)) +
+                    PinnedMetricChipChrome +
+                    if (metric == StatsMetric.TIME_IN_RANGE) PinnedMetricChipTirChrome else 0.dp
+            }
+            val baseGap = 8.dp
+            // The chips share the row equally, so the widest one sets the width of all.
+            // This decides the default count and nothing else: the row itself lays out
+            // exactly as it always has, whatever the count.
+            val shownCount = pinnedStripShownCount(pinned.size, layout.dashboardChosen) { count ->
+                widestPillWidth + (chipNeeds.take(count).maxOrNull() ?: 0.dp) * count + baseGap * count <= maxWidth
+            }
+            SideEffect { shownInRow = shownCount }
+            val shownSpecs = pinnedSpecs.take(shownCount)
+            val cells = cellsFor(shownCount)
+
             val compactWindowCellWidth = (
                 textWidth(windowLabel, MaterialTheme.typography.labelMedium) + 31.dp
             ).coerceAtLeast(62.dp)
-            val metricCellWidth = pinnedSpecs.maxOfOrNull { spec ->
+            val metricCellWidth = shownSpecs.maxOfOrNull { spec ->
                 maxOf(
                     textWidth(spec.title, MaterialTheme.typography.labelSmall),
                     textWidth(spec.value, MaterialTheme.typography.titleMedium)
                 ) + 28.dp
             }?.coerceIn(96.dp, 124.dp) ?: 96.dp
-            val baseGap = 8.dp
             val useEstablishedPhoneLayout = shouldUseEstablishedPinnedStatsPhoneLayout(
                 widthClass = adaptiveMetrics.widthClass,
                 layoutDensity = adaptiveMetrics.layoutDensity
@@ -1279,7 +1341,7 @@ internal fun PinnedStatsStrip(
                 // range-picker-like content width. Scale the composition as one unit when
                 // even that preferred width does not fit.
                 val preferredWidth = compactWindowCellWidth +
-                    metricCellWidth * pinnedSpecs.size +
+                    metricCellWidth * shownSpecs.size +
                     baseGap * (cells.size - 1).coerceAtLeast(0)
                 val contentScale = if (preferredWidth > 0.dp) {
                     (maxWidth / preferredWidth).coerceIn(0.64f, 1f)
@@ -1288,7 +1350,7 @@ internal fun PinnedStatsStrip(
                 }
                 val cellWidths = buildList {
                     add(compactWindowCellWidth)
-                    repeat(pinnedSpecs.size) { add(metricCellWidth) }
+                    repeat(shownSpecs.size) { add(metricCellWidth) }
                 }
 
                 Row(
@@ -1310,7 +1372,9 @@ internal fun PinnedStatsStrip(
         }
     } else {
         // Landscape: two rows of two, so the strip is as tall as the left column is
-        // narrow rather than squeezing four cells across it.
+        // narrow rather than squeezing four cells across it. Room for everything pinned.
+        val cells = cellsFor(pinned.size)
+        SideEffect { shownInRow = pinned.size }
         val perRow = ((cells.size + rows - 1) / rows).coerceAtLeast(1)
         Column(
             modifier = modifier.fillMaxWidth(),
@@ -1379,6 +1443,15 @@ internal fun PinnedStatsStrip(
         )
     }
 }
+
+/** Horizontal padding of [PinnedMetricChip], both sides. */
+private val PinnedMetricChipChrome = 20.dp
+
+/** The time-in-range bar and the gap before it, on top of [PinnedMetricChipChrome]. */
+private val PinnedMetricChipTirChrome = 12.dp
+
+/** [PinnedWindowPill] beyond its label: padding both sides, the gap and the chevron. */
+private val PinnedWindowPillChrome = 31.dp
 
 internal fun shouldUseEstablishedPinnedStatsPhoneLayout(
     widthClass: AdaptiveWindowWidthClass,

@@ -81,7 +81,10 @@ def save_or_check(path: Path, data: bytes, check: bool):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--wav-dir', default=None,
+                        help='Write WAVs here instead of Common/src/main/res/raw')
     args = parser.parse_args()
+    dest_dir = Path(args.wav_dir) if args.wav_dir else ROOT / 'Common/src/main/res/raw'
     references = json.loads((HERE / 'original-reference.json').read_text())
     assert set(references) == set(CUES)
     metrics = {}
@@ -96,7 +99,7 @@ def main():
             remastered = master(pcm, cue)
             data = encode(remastered)
             name = f'alert_juggluco_{cue}.wav'
-            save_or_check(ROOT / 'Common/src/main/res/raw' / name, data, args.check)
+            save_or_check(dest_dir / name, data, args.check)
             metrics[name] = measure(remastered, data)
             reel.extend((remastered, np.zeros(RATE, dtype='<i2')))
         save_or_check(HERE / 'juggluco-preview.wav', encode(np.concatenate(reel)), args.check)

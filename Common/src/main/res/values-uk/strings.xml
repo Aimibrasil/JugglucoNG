@@ -670,6 +670,7 @@
     <string name="custom_low">Користувацьке низьке</string>
     <string name="custom_sound_selected">Вибрано користувацький звук</string>
     <string name="default_snooze">Відкладання за замовчуванням</string>
+    <string name="alert_reset_defaults">Скинути до стандартних</string>
     <string name="delete_custom_alert">Видалити користувацьке сповіщення</string>
     <string name="duration_label">Тривалість</string>
     <string name="end">Кінець</string>
@@ -845,6 +846,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="libre3_nfc_command_activate_desc">Примусово надсилати команду A0 Активувати під час сканування</string>
     <string name="libre3_nfc_command_switch_receiver">A8 Перемкнути приймач</string>
     <string name="libre3_nfc_command_switch_receiver_desc">Примусово надсилати команду A8 Перемкнути приймач під час сканування</string>
+    <string name="libre3_activation_legacy_fallback">Не вдалося перевірити активацію Libre 3 з відкритим кодом; використовується перевірений метод.</string>
     <string name="libreview_account_ready">ID акаунта готовий</string>
     <string name="libreview_account_missing">ID акаунта відсутній</string>
     <string name="libreview_account_missing_desc">Введіть облікові дані та запросіть ID акаунта для сенсорів Libre 3</string>
@@ -1971,6 +1973,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">TURN-реле для віддалених підключень</string>
     <string name="mirror_connections">Підключення</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Локальний клон</string>
+    <string name="mirror_default_hybrid_label">Гібридний клон</string>
     <string name="mirror_clone_master_desc">Увімкнути всі збережені підключення Clone</string>
     <string name="clone_history_recovery">Відновлення історії</string>
     <string name="clone_history_direction_send">Надіслати одержувачу</string>
@@ -2195,6 +2199,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ottai_login_button">Увійти</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Вхід виконано</string>
+    <string name="ottai_session_invalid">Хмарна сесія більше не дійсна – увійдіть знову</string>
     <string name="ottai_account_id">Обліковий запис: %1$s</string>
     <string name="ottai_sensor_mac_hint">Хмарний ID пристрою (12 hex або QR)</string>
     <string name="ottai_connect_saved">Підключити</string>
@@ -2384,6 +2389,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="glucose_palette_saturation">Насиченість</string>
     <string name="glucose_palette_brightness">Яскравість</string>
     <string name="notification_charts_section">Графіки</string>
+    <string name="notification_chart_pause_screen_off">Призупиняти графік, коли екран вимкнено</string>
+    <string name="notification_chart_pause_screen_off_summary">Графік перемальовується після ввімкнення екрана. Він може ненадовго зникнути.</string>
     <string name="notification_status_line_section">Рядок стану</string>
     <string name="display_colors_title">Екран</string>
     <string name="display_colors_desc">Кольори, дані на головній і графіки</string>

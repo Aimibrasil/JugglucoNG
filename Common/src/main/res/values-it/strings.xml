@@ -531,6 +531,7 @@
     <string name="custom_low">Personalizzato basso</string>
     <string name="custom_sound_selected">Suono personalizzato selezionato</string>
     <string name="default_snooze">Snooze predefinito</string>
+    <string name="alert_reset_defaults">Ripristina predefiniti</string>
     <string name="delete_custom_alert">Elimina avviso personalizzato</string>
     <string name="duration_label">Durata</string>
     <string name="end">Fine</string>
@@ -746,6 +747,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="libre3_nfc_command_activate_desc">Forza il comando A0 Attiva durante la scansione</string>
     <string name="libre3_nfc_command_switch_receiver">A8 Cambia ricevitore</string>
     <string name="libre3_nfc_command_switch_receiver_desc">Forza il comando A8 Cambia ricevitore durante la scansione</string>
+    <string name="libre3_activation_legacy_fallback">Non è stato possibile verificare l’attivazione open source di Libre 3; verrà usato il metodo collaudato.</string>
     <string name="libreview_account_ready">ID account pronto</string>
     <string name="libreview_account_missing">ID account mancante</string>
     <string name="libreview_account_missing_desc">Inserisci le credenziali e richiedi l\'ID account per i sensori Libre 3</string>
@@ -1882,6 +1884,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">Relay TURN per connessioni remote</string>
     <string name="mirror_connections">Connessioni</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Clone locale</string>
+    <string name="mirror_default_hybrid_label">Clone ibrido</string>
     <string name="mirror_clone_master_desc">Attiva tutte le connessioni Clone salvate</string>
     <string name="clone_history_recovery">Recupero della cronologia</string>
     <string name="clone_history_direction_send">Invia al ricevitore</string>
@@ -2112,6 +2116,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ottai_login_button">Accedi</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Accesso effettuato</string>
+    <string name="ottai_session_invalid">La sessione cloud non è più valida: accedi di nuovo</string>
     <string name="ottai_account_id">Account: %1$s</string>
     <string name="ottai_sensor_mac_hint">ID dispositivo cloud (12 esadecimali o QR)</string>
     <string name="ottai_connect_saved">Connetti</string>
@@ -2302,6 +2307,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="glucose_palette_saturation">Saturazione</string>
     <string name="glucose_palette_brightness">Luminosità</string>
     <string name="notification_charts_section">Grafici</string>
+    <string name="notification_chart_pause_screen_off">Sospendi il grafico a schermo spento</string>
+    <string name="notification_chart_pause_screen_off_summary">Il grafico viene ridisegnato quando lo schermo si accende. Potrebbe restare nascosto per un istante.</string>
     <string name="notification_status_line_section">Riga di stato</string>
     <string name="display_colors_title">Schermo</string>
     <string name="display_colors_desc">Colori, valori della dashboard e grafici</string>

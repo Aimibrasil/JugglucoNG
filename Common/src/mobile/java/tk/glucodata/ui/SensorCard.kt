@@ -2677,12 +2677,14 @@ fun SensorCard(
                                 .padding(start = 20.dp, end = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            // Long labels (de: "Automatisches Zurücksetzen") wrap to a second
+                            // line instead of pushing the stepper onto its own row.
                             Text(
                                 text = stringResource(R.string.auto_reset_title),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                modifier = Modifier.weight(1f),
+                                maxLines = 2,
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
                             )
                             if (isAutoResetEnabled) {
                                 Surface(

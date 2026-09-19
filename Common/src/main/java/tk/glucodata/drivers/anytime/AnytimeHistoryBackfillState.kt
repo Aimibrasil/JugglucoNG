@@ -228,6 +228,7 @@ internal class AnytimeHistoryRoomImportBuffer {
 
     private fun sourcePriority(source: AnytimeAlgorithm.Source): Int = when (source) {
         AnytimeAlgorithm.Source.NATIVE -> 3
+        AnytimeAlgorithm.Source.NATIVE_PORT -> 3
         AnytimeAlgorithm.Source.MODEL -> 2
         AnytimeAlgorithm.Source.LINEAR -> 1
     }

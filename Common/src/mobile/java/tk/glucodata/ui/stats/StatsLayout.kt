@@ -101,15 +101,25 @@ enum class StatsMetric(@param:StringRes val titleResId: Int) {
          *
          * Mean, variability and time in range are the trio every consensus report leads
          * with, and each answers a question the dashboard chart does not: where the level
-         * sits, how steady it is, and how much of the window was on target.
+         * sits, how steady it is, and how much of the window was on target. A1c (GMI) is
+         * the fourth: the number most people are asked about at every clinic visit, and
+         * the one they most often open the app to check. It sits next to the mean it is
+         * fitted from rather than at the end, so the strip reads level, estimate, spread.
          *
-         * A1c (GMI) is deliberately not here. It is a regression fitted to mean glucose
-         * over fourteen days or more; over the strip's default window it is the mean
-         * wearing a percent sign, and it swings hour to hour in a way that reads as noise.
-         * It is one tap away for anyone running the strip at 30 or 90 days, where it means
-         * something.
+         * Four is the default, not a floor or a ceiling on what the user may pin. Until
+         * the user touches the list, the strip shows only as many of these as fit at
+         * their natural size — on a narrow screen, or with a large font, that is the
+         * first three. The first edit makes whatever is on screen the user's list, and
+         * from then on the strip shows everything pinned, scaling if it has to.
          */
-        val PINNED_BY_DEFAULT = listOf(TIME_IN_RANGE, AVERAGE, CV)
+        val PINNED_BY_DEFAULT = listOf(TIME_IN_RANGE, AVERAGE, GMI, CV)
+
+        /**
+         * What shipped pinned before GMI joined the default. Someone who still has
+         * exactly this list never chose it, so the upgrade hands them the new default;
+         * anyone who has changed the list at all keeps what they picked.
+         */
+        internal val LEGACY_PINNED_DEFAULT = listOf(TIME_IN_RANGE, AVERAGE, CV)
     }
 }
 
@@ -119,7 +129,13 @@ data class StatsLayoutState(
     val metricOrder: List<StatsMetric> = StatsMetric.DEFAULT_ORDER,
     val hiddenMetrics: Set<StatsMetric> = StatsMetric.HIDDEN_BY_DEFAULT,
     val wideMetrics: Set<StatsMetric> = emptySet(),
-    val dashboardMetrics: List<StatsMetric> = StatsMetric.PINNED_BY_DEFAULT
+    val dashboardMetrics: List<StatsMetric> = StatsMetric.PINNED_BY_DEFAULT,
+    /**
+     * False while [dashboardMetrics] is still the shipped default, which the strip may
+     * trim to fit; true once the user has pinned, unpinned or reordered anything, after
+     * which the list is theirs and every entry is shown.
+     */
+    val dashboardChosen: Boolean = false
 ) {
     val visibleCards: List<StatsCard> get() = cardOrder.filterNot { it in hiddenCards }
     val visibleMetrics: List<StatsMetric> get() = metricOrder.filterNot { it in hiddenMetrics }
@@ -148,8 +164,24 @@ object StatsLayoutStore {
     private const val LAYOUT_VERSION = 5
     private const val KEY_DASHBOARD = "stats_layout_dashboard_metrics"
 
-    /** The dashboard starts with three metrics, but users can pin one more. */
+    /**
+     * Bumped when [StatsMetric.PINNED_BY_DEFAULT] changes. Kept apart from
+     * [LAYOUT_VERSION] on purpose: a new pinned default is no reason to throw away the
+     * card and metric order someone arranged on the statistics screen.
+     */
+    private const val KEY_DASHBOARD_VERSION = "stats_layout_dashboard_version"
+    private const val DASHBOARD_VERSION = 2
+    private const val KEY_DASHBOARD_CHOSEN = "stats_layout_dashboard_chosen"
+
+    /** Four fit a phone in portrait when the font is not enlarged; that is the ceiling. */
     const val MAX_DASHBOARD_METRICS = 4
+
+    /**
+     * The untouched default never trims below three. Three was the default for long
+     * enough that every phone layout is built around it, and going lower would mean
+     * dropping one of the three that answer the questions the chart does not.
+     */
+    const val MIN_DASHBOARD_METRICS_SHOWN = 3
 
     private val _state = MutableStateFlow(StatsLayoutState())
     val state: StateFlow<StatsLayoutState> = _state.asStateFlow()
@@ -207,7 +239,8 @@ object StatsLayoutStore {
                     (state.dashboardMetrics + metric).distinct()
                 } else {
                     state.dashboardMetrics - metric
-                }
+                },
+                dashboardChosen = true
             )
         }
         return true
@@ -215,7 +248,21 @@ object StatsLayoutStore {
 
     /** Whole pinned list at once, for reordering and for slot edits. */
     fun setDashboardMetrics(order: List<StatsMetric>) = update { current ->
-        current.copy(dashboardMetrics = order.distinct().take(MAX_DASHBOARD_METRICS))
+        current.copy(
+            dashboardMetrics = order.distinct().take(MAX_DASHBOARD_METRICS),
+            dashboardChosen = true
+        )
+    }
+
+    /**
+     * The first edit turns the default into the user's list. What they saw is what they
+     * get: a strip that had trimmed the default to three commits those three, so the
+     * picker they open shows three pinned and a free slot rather than four pinned with
+     * one nowhere on screen. No-op once the list is theirs.
+     */
+    fun adoptDashboardDefault(shown: List<StatsMetric>) {
+        if (_state.value.dashboardChosen) return
+        setDashboardMetrics(shown)
     }
 
     /** Replaces the metric in one slot, or drops the slot when [metric] is null. */
@@ -231,7 +278,7 @@ object StatsLayoutStore {
             next.remove(metric)
             if (slot in next.indices) next[slot] = metric else next.add(metric)
         }
-        current.copy(dashboardMetrics = next.distinct().take(MAX_DASHBOARD_METRICS))
+        current.copy(dashboardMetrics = next.distinct().take(MAX_DASHBOARD_METRICS), dashboardChosen = true)
     }
 
     fun resetLayout() = update { StatsLayoutState() }
@@ -247,6 +294,8 @@ object StatsLayoutStore {
             ?.putString(KEY_METRIC_WIDE, next.wideMetrics.joinToString(",") { it.name })
             ?.putString(KEY_DASHBOARD, next.dashboardMetrics.joinToString(",") { it.name })
             ?.putInt(KEY_VERSION, LAYOUT_VERSION)
+            ?.putInt(KEY_DASHBOARD_VERSION, DASHBOARD_VERSION)
+            ?.putBoolean(KEY_DASHBOARD_CHOSEN, next.dashboardChosen)
             ?.apply()
     }
 
@@ -259,7 +308,8 @@ object StatsLayoutStore {
             // since a version bump is exactly the moment the defaults changed.
             val stored = readPinned(store)
             return defaults.copy(
-                dashboardMetrics = stored.takeIf { it.isNotEmpty() } ?: defaults.dashboardMetrics
+                dashboardMetrics = stored.takeIf { it.isNotEmpty() } ?: defaults.dashboardMetrics,
+                dashboardChosen = readChosen(store, stored)
             )
         }
         return StatsLayoutState(
@@ -275,17 +325,41 @@ object StatsLayoutStore {
                 defaults.dashboardMetrics
             } else {
                 readPinned(store)
-            }
+            },
+            dashboardChosen = readChosen(store, readPinned(store))
         )
     }
 
-    private fun readPinned(store: SharedPreferences): List<StatsMetric> =
-        store.getString(KEY_DASHBOARD, null)
+    /**
+     * Layouts saved before the flag existed have no record of whether the pins were
+     * chosen; a list that differs from the default plainly was, and one that matches it
+     * is treated as the default — the worst case is a strip trimmed to three until the
+     * user's next edit, at which point it is settled for good.
+     */
+    private fun readChosen(store: SharedPreferences, pinned: List<StatsMetric>): Boolean =
+        store.getBoolean(KEY_DASHBOARD_CHOSEN, pinned.isNotEmpty() && pinned != StatsMetric.PINNED_BY_DEFAULT)
+
+    private fun readPinned(store: SharedPreferences): List<StatsMetric> {
+        val stored = store.getString(KEY_DASHBOARD, null)
             .orEmpty()
             .split(',')
             .mapNotNull { name -> runCatching { StatsMetric.valueOf(name.trim()) }.getOrNull() }
             .distinct()
             .take(MAX_DASHBOARD_METRICS)
+        return migratePinned(stored, store.getInt(KEY_DASHBOARD_VERSION, 1))
+    }
+
+    /**
+     * One-shot: a list that is still the old default was never chosen, so it follows the
+     * default forward. Once the new version is written, the same three metrics are a
+     * choice — someone who unpins GMI must not find it back on the next launch.
+     */
+    internal fun migratePinned(stored: List<StatsMetric>, storedVersion: Int): List<StatsMetric> =
+        if (storedVersion < DASHBOARD_VERSION && stored == StatsMetric.LEGACY_PINNED_DEFAULT) {
+            StatsMetric.PINNED_BY_DEFAULT
+        } else {
+            stored
+        }
 
     /**
      * Stored order wins for everything it names; anything added to the enum since the
@@ -316,6 +390,21 @@ object StatsLayoutStore {
             .mapNotNull { name -> runCatching { parse(name.trim()) }.getOrNull() }
             .toSet()
     }
+}
+
+/**
+ * How many of the default pinned metrics a single-row strip shows.
+ *
+ * Only for a list the user has not touched — a chosen list is shown whole. Trailing
+ * metrics are dropped one at a time until [fits] says the row lays out at its natural
+ * size, but never below [StatsLayoutStore.MIN_DASHBOARD_METRICS_SHOWN]: at that point
+ * the strip scales as a whole instead of hiding anything more.
+ */
+internal fun pinnedStripShownCount(pinnedCount: Int, chosen: Boolean, fits: (Int) -> Boolean): Int {
+    if (chosen) return pinnedCount
+    var count = pinnedCount
+    while (count > StatsLayoutStore.MIN_DASHBOARD_METRICS_SHOWN && !fits(count)) count--
+    return count
 }
 
 /**

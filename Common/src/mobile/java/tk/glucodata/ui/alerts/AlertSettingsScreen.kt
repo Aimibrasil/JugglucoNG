@@ -64,7 +64,6 @@ import tk.glucodata.ui.theme.displayLargeExpressive
 import tk.glucodata.ui.theme.labelLargeExpressive
 import tk.glucodata.ui.util.ConnectedButtonGroup
 import tk.glucodata.logic.CustomAlertManager
-import java.util.UUID
 import kotlinx.coroutines.delay
 
 /**
@@ -125,22 +124,10 @@ fun AlertSettingsScreen(
         val baseName = if (type == CustomAlertType.HIGH) context.getString(R.string.custom_high) else context.getString(R.string.custom_low)
         val newName = "$baseName ${existingCount + 1}"
         
-        // Default values respecting isMmol
-        val threshold = if (type == CustomAlertType.HIGH) {
-            if (isMmol) 10.0f else 180f
-        } else {
-            if (isMmol) 3.9f else 70f
-        }
-        
         val newAlert = CustomAlertConfig(
-            id = UUID.randomUUID().toString(),
             name = newName,
-            type = type,
-            threshold = threshold,
-            startTimeMinutes = 0,
-            endTimeMinutes = 1440, // All day by default
-            enabled = true
-        )
+            type = type
+        ).resetToDefaults(isMmol)
         saveCustomAlerts(customAlerts + newAlert)
     }
 
@@ -782,6 +769,8 @@ fun CustomAlertCard(
                     // Render common settings
                     CommonAlertSettings(
                         config = genericConfig,
+                        onReset = { onUpdate(alert.resetToDefaults(isMmol)) },
+                        isModified = alert.isModifiedFromDefaults(isMmol),
                         onConfigChange = { newConfig ->
                             val updated = alert.copy(
                                 enabled = newConfig.enabled,
@@ -1141,6 +1130,8 @@ private fun AlertSettingsExpanded(
             onConfigChange = onConfigChange,
             onPickSound = { onPickSound() },
             onTest = onTest,
+            onReset = { onConfigChange(config.resetToDefaults(isMmol)) },
+            isModified = config.isModifiedFromDefaults(isMmol),
             headerContent = {
                 // === Delta-counter Section (FALLING_FAST / RISING_FAST) ===
                 if (config.type == AlertType.FALLING_FAST || config.type == AlertType.RISING_FAST) {

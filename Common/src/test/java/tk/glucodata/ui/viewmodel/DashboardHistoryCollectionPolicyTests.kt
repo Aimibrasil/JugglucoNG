@@ -28,6 +28,18 @@ class DashboardHistoryCollectionPolicyTests {
         )
     }
 
+    @Test
+    fun restartedDashboardPublishesTheCurrentSnapshotWithoutWaiting() {
+        // History rows are presented as a snapshot, without replay animation.
+        // A retained frame must not delay the latest database snapshot.
+        assertFalse(
+            DashboardHistoryCollectionPolicy.shouldCoalesceEmission(
+                DashboardViewModel.CollectionMode.DASHBOARD,
+                hasSeenHistoryEmission = false,
+            )
+        )
+    }
+
     // ── history recovery ──────────────────────────────────────────────────────
 
     private companion object {

@@ -746,6 +746,7 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="custom_low">Aangepast laag</string>
     <string name="custom_sound_selected">Aangepast geluid geselecteerd</string>
     <string name="default_snooze">Standaard snooze</string>
+    <string name="alert_reset_defaults">Standaardwaarden herstellen</string>
     <string name="delete_custom_alert">Aangepaste waarschuwing verwijderen</string>
     <string name="duration_label">Duur</string>
     <string name="end">Einde</string>
@@ -901,6 +902,7 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="libre3_nfc_command_activate_desc">Forceer tijdens het scannen de opdracht A0 Activeren</string>
     <string name="libre3_nfc_command_switch_receiver">A8 Ontvanger wisselen</string>
     <string name="libre3_nfc_command_switch_receiver_desc">Forceer tijdens het scannen de opdracht A8 Ontvanger wisselen</string>
+    <string name="libre3_activation_legacy_fallback">De opensource-activatie van Libre 3 kon niet worden geverifieerd; de beproefde methode wordt gebruikt.</string>
     <string name="libreview_account_ready">Account-ID gereed</string>
     <string name="libreview_account_missing">Account-ID ontbreekt</string>
     <string name="libreview_account_missing_desc">Voer je gegevens in en vraag de account-ID voor Libre 3-sensoren aan</string>
@@ -1935,6 +1937,8 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="mirror_turn_server_desc">TURN-relay voor externe verbindingen</string>
     <string name="mirror_connections">Verbindingen</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Lokale kloon</string>
+    <string name="mirror_default_hybrid_label">Hybride kloon</string>
     <string name="mirror_clone_master_desc">Alle opgeslagen Clone-verbindingen inschakelen</string>
     <string name="clone_history_recovery">Geschiedenis herstellen</string>
     <string name="clone_history_direction_send">Naar ontvanger verzenden</string>
@@ -2165,6 +2169,7 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="ottai_login_button">Aanmelden</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Aangemeld</string>
+    <string name="ottai_session_invalid">Uw cloudsessie is niet meer geldig – meld u opnieuw aan</string>
     <string name="ottai_account_id">Account: %1$s</string>
     <string name="ottai_sensor_mac_hint">Cloud-apparaat-ID (12 hex of QR)</string>
     <string name="ottai_connect_saved">Verbinden</string>
@@ -2355,6 +2360,8 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="glucose_palette_saturation">Verzadiging</string>
     <string name="glucose_palette_brightness">Helderheid</string>
     <string name="notification_charts_section">Grafieken</string>
+    <string name="notification_chart_pause_screen_off">Grafiek pauzeren als het scherm uit is</string>
+    <string name="notification_chart_pause_screen_off_summary">Wordt opnieuw getekend zodra het scherm aangaat. De grafiek kan kort verborgen zijn.</string>
     <string name="notification_status_line_section">Statusregel</string>
     <string name="display_colors_title">Weergave</string>
     <string name="display_colors_desc">Kleuren, dashboardwaarden en grafieken</string>

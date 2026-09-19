@@ -670,6 +670,7 @@
     <string name="custom_low">自定义低值</string>
     <string name="custom_sound_selected">已选择自定义铃声</string>
     <string name="default_snooze">默认稍后提醒</string>
+    <string name="alert_reset_defaults">恢复默认设置</string>
     <string name="delete_custom_alert">删除自定义警报</string>
     <string name="duration_label">持续时间</string>
     <string name="end">结束</string>
@@ -845,6 +846,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="libre3_nfc_command_activate_desc">在扫描期间强制发送 A0 激活命令</string>
     <string name="libre3_nfc_command_switch_receiver">A8 切换接收器</string>
     <string name="libre3_nfc_command_switch_receiver_desc">在扫描期间强制发送 A8 切换接收器命令</string>
+    <string name="libre3_activation_legacy_fallback">无法验证开源 Libre 3 激活方式；正在使用经过验证的方法。</string>
     <string name="libreview_account_ready">账户 ID 已就绪</string>
     <string name="libreview_account_missing">缺少账户 ID</string>
     <string name="libreview_account_missing_desc">输入凭据并为 Libre 3 传感器获取账户 ID</string>
@@ -1908,6 +1910,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">用于远程连接的 TURN 中继</string>
     <string name="mirror_connections">连接</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">本地克隆</string>
+    <string name="mirror_default_hybrid_label">混合克隆</string>
     <string name="mirror_clone_master_desc">启用所有已保存的 Clone 连接</string>
     <string name="clone_history_recovery">历史记录恢复</string>
     <string name="clone_history_direction_send">发送至接收端</string>
@@ -2138,6 +2142,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ottai_login_button">登录</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">已登录</string>
+    <string name="ottai_session_invalid">云端会话已失效，请重新登录</string>
     <string name="ottai_account_id">账户：%1$s</string>
     <string name="ottai_sensor_mac_hint">云端设备 ID（12 位十六进制或二维码）</string>
     <string name="ottai_connect_saved">连接</string>
@@ -2328,6 +2333,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="glucose_palette_saturation">饱和度</string>
     <string name="glucose_palette_brightness">亮度</string>
     <string name="notification_charts_section">图表</string>
+    <string name="notification_chart_pause_screen_off">屏幕关闭时暂停图表</string>
+    <string name="notification_chart_pause_screen_off_summary">屏幕亮起时重新绘制。图表可能会短暂隐藏。</string>
     <string name="notification_status_line_section">状态行</string>
     <string name="display_colors_title">显示</string>
     <string name="display_colors_desc">颜色、仪表板数值和图表</string>

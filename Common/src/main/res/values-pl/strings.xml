@@ -733,6 +733,7 @@
     <string name="custom_low">Niestandardowy niski</string>
     <string name="custom_sound_selected">Wybrano niestandardowy dzwiek</string>
     <string name="default_snooze">Domyslne odlozenie</string>
+    <string name="alert_reset_defaults">Przywróć domyślne</string>
     <string name="delete_custom_alert">Usun niestandardowy alarm</string>
     <string name="duration_label">Czas trwania</string>
     <string name="end">Koniec</string>
@@ -890,6 +891,7 @@
     <string name="libre3_nfc_command_activate_desc">Wymuś polecenie A0 Aktywuj podczas skanowania</string>
     <string name="libre3_nfc_command_switch_receiver">A8 Przełącz odbiornik</string>
     <string name="libre3_nfc_command_switch_receiver_desc">Wymuś polecenie A8 Przełącz odbiornik podczas skanowania</string>
+    <string name="libre3_activation_legacy_fallback">Nie udało się zweryfikować aktywacji Libre 3 typu open source; używana jest sprawdzona metoda.</string>
     <string name="libreview_account_ready">Identyfikator konta gotowy</string>
     <string name="libreview_account_missing">Brak identyfikatora konta</string>
     <string name="libreview_account_missing_desc">Wprowadź dane logowania i pobierz identyfikator konta dla sensorów Libre 3</string>
@@ -1927,6 +1929,8 @@
     <string name="mirror_turn_server_desc">Relay TURN dla połączeń zdalnych</string>
     <string name="mirror_connections">Połączenia</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Klon lokalny</string>
+    <string name="mirror_default_hybrid_label">Klon hybrydowy</string>
     <string name="mirror_clone_master_desc">Włącz wszystkie zapisane połączenia Clone</string>
     <string name="clone_history_recovery">Odzyskiwanie historii</string>
     <string name="clone_history_direction_send">Wyślij do odbiornika</string>
@@ -2157,6 +2161,7 @@
     <string name="ottai_login_button">Zaloguj</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Zalogowano</string>
+    <string name="ottai_session_invalid">Sesja w chmurze wygasła – zaloguj się ponownie</string>
     <string name="ottai_account_id">Konto: %1$s</string>
     <string name="ottai_sensor_mac_hint">ID urządzenia w chmurze (12 znaków hex lub QR)</string>
     <string name="ottai_connect_saved">Połącz</string>
@@ -2346,6 +2351,8 @@
     <string name="glucose_palette_saturation">Nasycenie</string>
     <string name="glucose_palette_brightness">Jasność</string>
     <string name="notification_charts_section">Wykresy</string>
+    <string name="notification_chart_pause_screen_off">Wstrzymaj wykres przy wyłączonym ekranie</string>
+    <string name="notification_chart_pause_screen_off_summary">Wykres jest odświeżany po włączeniu ekranu. Może być przez chwilę niewidoczny.</string>
     <string name="notification_status_line_section">Wiersz stanu</string>
     <string name="display_colors_title">Wyświetlanie</string>
     <string name="display_colors_desc">Kolory, wartości pulpitu i wykresy</string>

@@ -77,42 +77,61 @@ class BundledAlertSoundsTests {
         }
     }
 
+    private fun rawDir() =
+        listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
+
+    private fun toolsFile(name: String) =
+        listOf(File("../tools/alert-sounds/$name"),
+            File("tools/alert-sounds/$name")).first { it.isFile }
+
+    private fun sha256(bytes: ByteArray) =
+        MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+
     @Test
-    fun originalCollectionsKeepTheirPreviouslyPublishedAudio() {
-        val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
-        val measurements = listOf(
-            File("../tools/alert-sounds/measurements.json"),
-            File("tools/alert-sounds/measurements.json")
-        ).first { it.isFile }
-        val original = JSONObject(measurements.readText())
-        assertEquals(27, original.length())
-        original.keys().forEach { filename ->
-            val bytes = File(raw, filename).readBytes()
-            val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
-                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-            assertEquals(filename, original.getJSONObject(filename).getString("sha256"), digest)
+    fun committedAssetsMatchManifestHashes() {
+        val raw = rawDir()
+        val manifest = JSONObject(toolsFile("asset-manifest.json").readText())
+        val assets = manifest.getJSONObject("assets")
+        assertEquals(54, assets.length())
+        assets.keys().forEach { name ->
+            val entry = assets.getJSONObject(name)
+            val file = File(raw, entry.getString("file"))
+            assertTrue("$name: ${entry.getString("file")} missing", file.isFile)
+            assertTrue("$name: suspiciously small", file.length() > 10000)
+            assertEquals(name, entry.getString("sha256"), sha256(file.readBytes()))
+        }
+        val legacy = manifest.getJSONObject("legacy")
+        assertEquals(9, legacy.length())
+        legacy.keys().forEach { name ->
+            val entry = legacy.getJSONObject(name)
+            val file = File(raw, entry.getString("file"))
+            assertTrue("$name: legacy ${entry.getString("file")} missing", file.isFile)
+            assertEquals(name, entry.getString("sha256"), sha256(file.readBytes()))
         }
     }
 
     @Test
-    fun extendedCollectionsMatchOriginalDurationsAndHaveHeadroom() {
-        val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
-        val references = listOf(File("../tools/alert-sounds/original-reference.json"),
-            File("tools/alert-sounds/original-reference.json")).first { it.isFile }
-        val original = JSONObject(references.readText())
-        listOf("timber", "ember", "juggluco").forEach { style ->
-            original.keys().forEach { cue ->
-                val bytes = File(raw, "alert_${style}_${cue}.wav").readBytes()
-                val pcm = java.nio.ByteBuffer.wrap(bytes, 44, bytes.size-44)
-                    .order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
-                assertEquals("$style $cue duration", original.getJSONObject(cue).getInt("frames"), pcm.remaining())
-                assertEquals(0, pcm.get(0).toInt())
-                assertEquals(0, pcm.get(pcm.limit()-1).toInt())
-                var peak = 0
-                while (pcm.hasRemaining()) peak = maxOf(peak, kotlin.math.abs(pcm.get().toInt()))
-                assertTrue("$style $cue headroom", peak in 1..23200)
+    fun manifestFramesMatchReferences() {
+        val manifest = JSONObject(toolsFile("asset-manifest.json").readText())
+        val assets = manifest.getJSONObject("assets")
+        val original = JSONObject(toolsFile("original-reference.json").readText())
+        var durationMatched = 0
+        assets.keys().forEach { name ->
+            val entry = assets.getJSONObject(name)
+            // Internal consistency: frames agree with the recorded duration.
+            assertEquals(name, Math.round(entry.getDouble("seconds") * 48000).toInt(),
+                entry.getInt("frames"))
+            // The duration-matched collections keep the exact reference frames.
+            val cue = name.substringAfter("alert_").substringAfter('_')
+            if (name.startsWith("alert_timber_") || name.startsWith("alert_ember_") ||
+                name.startsWith("alert_juggluco_")) {
+                assertEquals(name, original.getJSONObject(cue).getInt("frames"),
+                    entry.getInt("frames"))
+                durationMatched++
             }
         }
+        assertEquals(27, durationMatched)
     }
 
     @Test
@@ -143,21 +162,21 @@ class BundledAlertSoundsTests {
     }
 
     @Test
-    fun everyNamedUriHasARealPcmWaveResource() {
-        val raw = listOf(File("src/main/res/raw"), File("Common/src/main/res/raw")).first { it.isDirectory }
+    fun everyNamedUriHasACommittedManifestAsset() {
+        val manifest = JSONObject(toolsFile("asset-manifest.json").readText())
+        val assets = manifest.getJSONObject("assets")
         val names = BundledAlertSounds.styles.flatMap { style ->
             AlertType.entries.map { BundledAlertSounds.uri(packageName, style, it.id).substringAfterLast('/') }
         }.toSet()
         assertEquals(54, names.size)
         names.forEach { name ->
-            val bytes = File(raw, "$name.wav").readBytes()
-            assertEquals("RIFF", String(bytes, 0, 4, Charsets.US_ASCII))
-            assertEquals("WAVE", String(bytes, 8, 4, Charsets.US_ASCII))
-            assertEquals("fmt ", String(bytes, 12, 4, Charsets.US_ASCII))
-            assertEquals(1, bytes[20].toInt()) // Uncompressed PCM
-            assertEquals(1, bytes[22].toInt()) // Mono
-            assertEquals(16, bytes[34].toInt()) // 16-bit
-            assertTrue(bytes.size > 48000)
+            assertTrue("$name has no manifest entry", assets.has(name))
+            val entry = assets.getJSONObject(name)
+            // Bundled sounds resolve by resource name: the committed file keeps
+            // that stem with its container extension.
+            assertEquals("$name.m4a", entry.getString("file"))
+            assertTrue("$name missing from res/raw", File(rawDir(), entry.getString("file")).isFile)
         }
+        assertEquals(54, assets.length())
     }
 }

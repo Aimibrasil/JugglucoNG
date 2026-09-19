@@ -1601,17 +1601,9 @@ fun RecentReadingsCard(
     content: @Composable (Int, GlucosePoint) -> Unit // Rendering the row with Index
 ) {
     if (recentReadings.isNotEmpty()) {
-        // Do not animate rows on initial dashboard open.
-        // Only animate truly new readings that arrive afterward.
-        val seenTimestamps = remember { mutableSetOf<Long>() }
-        var initialized by remember { mutableStateOf(false) }
-
-        if (!initialized) {
-            seenTimestamps.clear()
-            seenTimestamps.addAll(recentReadings.map { it.timestamp })
-            initialized = true
-        }
-
+        // This is a snapshot of recent history, including readings received
+        // while hidden. Keep one stable subtree per reading: entrance wrappers
+        // replayed missed rows and were removed on the very next recomposition.
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -1623,22 +1615,8 @@ fun RecentReadingsCard(
         ) {
             Column {
                 recentReadings.forEachIndexed { index, item ->
-                    key(item.timestamp) {
-                        val isNewReading = !seenTimestamps.contains(item.timestamp)
-                        val shouldAnimateNewReading = isNewReading
-                        if (isNewReading) {
-                            seenTimestamps.add(item.timestamp)
-                        }
-                        if (shouldAnimateNewReading) {
-                            AnimatedVisibility(
-                                visibleState = remember { MutableTransitionState(false).apply { targetState = true } },
-                                enter = expandVertically(expandFrom = Alignment.Top) + fadeIn()
-                            ) {
-                                content(index, item)
-                            }
-                        } else {
-                            content(index, item)
-                        }
+                    key(item.sensorSerial, item.timestamp) {
+                        content(index, item)
                     }
                 }
                 if (onViewHistory != null) {
@@ -1824,7 +1802,7 @@ fun CalibrationsCard(
     
     // EMPTY STATE: No card shown at all - just the button floating (Full Width, Tonal)
     if (calibrations.isEmpty()) {
-        if (!showEmptyAction) {
+        if (!showEmptyAction || !isCalibrationEnabled) {
             return
         }
         androidx.compose.material3.FilledTonalButton(
@@ -1892,22 +1870,22 @@ fun CalibrationsCard(
 //                     Spacer(modifier = Modifier.weight(8.dp))
                  }
 
-                 // Right: Calibrate
-                 androidx.compose.material3.Button(
+                // Right: Calibrate (always shown while the card is populated;
+                // disabled state still reflects isCalibrationEnabled)
+                androidx.compose.material3.Button(
                     onClick = onAddCalibration,
                     enabled = isCalibrationEnabled,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(
-                        topStart = 4.dp, 
+                        topStart = 4.dp,
                         bottomStart = 4.dp,
-                        topEnd = 12.dp, 
+                        topEnd = 12.dp,
                         bottomEnd = 12.dp
                     ),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
-//                    elevation = androidx.compose.material3.ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.WaterDrop,

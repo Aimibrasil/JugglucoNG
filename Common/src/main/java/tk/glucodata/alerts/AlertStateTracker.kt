@@ -18,6 +18,10 @@ object AlertStateTracker {
     // Last time an alert of this type was triggered (ms)
     private val lastTriggerTime = mutableMapOf<AlertType, Long>()
     private val cooldownUntilTime = mutableMapOf<AlertType, Long>()
+
+    // Acknowledgement of the last delivery outlives its episode and snooze.
+    // Only a new real firing replaces it; the directional window owns expiry/reversal.
+    private val lastFiringAcknowledged = mutableMapOf<AlertType, Boolean>()
     
     // User explicitly dismissed this alert for the current episode.
     // It stays suppressed until the condition clears and resetState() is called.
@@ -88,6 +92,7 @@ object AlertStateTracker {
             return false
         }
         dismissedAlerts.remove(type)
+        lastFiringAcknowledged[type] = false
         lastTriggerTime[type] = System.currentTimeMillis()
         cooldownUntilTime[type] = lastTriggerTime.getValue(type) + effectiveRearmCooldownMs(config)
         SmsWatchdog.onAlertFired(type.id)
@@ -110,6 +115,7 @@ object AlertStateTracker {
             return false
         }
         dismissedAlerts.add(type)
+        lastFiringAcknowledged.replace(type, true)
         SmsWatchdog.onAlertAcknowledged(type.id)
         // Acknowledged: a quiet window's silenced episode must not break through now.
         QuietWindow.clearSilencedEpisode(type.id)
@@ -140,6 +146,18 @@ object AlertStateTracker {
     /** True once [onAlertDismissed] took this episode, until [resetState]. */
     @Synchronized
     fun isDismissed(type: AlertType): Boolean = type in dismissedAlerts
+
+    /** Whether the last real firing was acknowledged for the cross-family quiet period. */
+    @Synchronized
+    internal fun wasLastFiringAcknowledged(type: AlertType): Boolean = lastFiringAcknowledged[type] == true
+
+    /** Called for an accepted alarm snooze, never for a preemptive snooze. */
+    @Synchronized
+    internal fun onAlertSnoozed(type: AlertType) {
+        if (!manualTests.isActive(type)) {
+            lastFiringAcknowledged.replace(type, true)
+        }
+    }
 
     /**
      * Reset state for an alert type.

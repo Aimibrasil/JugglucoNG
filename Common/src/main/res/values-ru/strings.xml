@@ -764,6 +764,7 @@
     <string name="libre3_nfc_command_activate_desc">Принудительно отправлять команду A0 Активировать во время сканирования</string>
     <string name="libre3_nfc_command_switch_receiver">A8 Переключить приемник</string>
     <string name="libre3_nfc_command_switch_receiver_desc">Принудительно отправлять команду A8 Переключить приемник во время сканирования</string>
+    <string name="libre3_activation_legacy_fallback">Не удалось проверить активацию Libre 3 с открытым исходным кодом; используется проверенный метод.</string>
     <string name="libreview_account_ready">ID аккаунта готов</string>
     <string name="libreview_account_missing">ID аккаунта отсутствует</string>
     <string name="libreview_account_missing_desc">Введите учетные данные и запросите ID аккаунта для сенсоров Libre 3</string>
@@ -781,6 +782,7 @@
     <string name="custom_low">Пользовательский низкий</string>
     <string name="custom_sound_selected">Выбран пользовательский звук</string>
     <string name="default_snooze">Отложить по умолчанию</string>
+    <string name="alert_reset_defaults">Сбросить до стандартных</string>
     <string name="delete_custom_alert">Удалить пользовательское оповещение</string>
     <string name="duration_label">Длительность</string>
     <string name="end">Конец</string>
@@ -1939,6 +1941,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="mirror_turn_server_desc">TURN-ретранслятор для удаленных подключений</string>
     <string name="mirror_connections">Соединения</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Локальный клон</string>
+    <string name="mirror_default_hybrid_label">Гибридный клон</string>
     <string name="mirror_clone_master_desc">Включить все сохранённые подключения Clone</string>
     <string name="clone_history_recovery">Восстановление истории</string>
     <string name="clone_history_direction_send">Отправить получателю</string>
@@ -2166,6 +2170,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ottai_login_button">Войти</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Вход выполнен</string>
+    <string name="ottai_session_invalid">Облачная сессия больше не действительна – войдите снова</string>
     <string name="ottai_account_id">Аккаунт: %1$s</string>
     <string name="ottai_sensor_mac_hint">Облачный ID устройства (12 hex или QR)</string>
     <string name="ottai_connect_saved">Подключить</string>
@@ -2367,6 +2372,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="glucose_palette_saturation">Насыщенность</string>
     <string name="glucose_palette_brightness">Яркость</string>
     <string name="notification_charts_section">Графики</string>
+    <string name="notification_chart_pause_screen_off">Приостанавливать график при выключенном экране</string>
+    <string name="notification_chart_pause_screen_off_summary">График перерисовывается при включении экрана. Он может ненадолго исчезнуть.</string>
     <string name="notification_status_line_section">Строка состояния</string>
     <string name="display_colors_title">Экран</string>
     <string name="display_colors_desc">Цвета, данные на главной и графики</string>

@@ -731,6 +731,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="libre3_nfc_command_activate_desc">Xoog u yeelo amarka A0 inta lagu jiro sawirka</string>
     <string name="libre3_nfc_command_switch_receiver">A8 Qaadaha beddelka</string>
     <string name="libre3_nfc_command_switch_receiver_desc">Ku qas amarka qaataha Beddelka A8 inta lagu jiro sawirka</string>
+    <string name="libre3_activation_legacy_fallback">Hawlgelinta il-furan ee Libre 3 lama xaqiijin karin; habkii la tijaabiyey ayaa la isticmaalayaa.</string>
     <string name="libreview_account_ready">Aqoonsiga xisaabta oo diyaar ah</string>
     <string name="libreview_account_missing">Aqoonsiga xisaabta maqan</string>
     <string name="libreview_account_missing_desc">Geli waraaqaha aqoonsiga oo codso aqoonsiga Koontada ee dareemayaasha Libre 3</string>
@@ -1040,6 +1041,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="ottai_login_button">Soo gal</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Saxiixday</string>
+    <string name="ottai_session_invalid">Fadhigii daruurta hadda shaqayn maayo – mar kale gal</string>
     <string name="ottai_account_id">Akoon: %1$s</string>
     <string name="ottai_sensor_mac_hint">Aqoonsiga aaladda Cloud (12 hex ama QR)</string>
     <string name="ottai_connect_saved">Ku xidhnow</string>
@@ -1308,6 +1310,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="custom_low">Caadi ahaan Hoose</string>
     <string name="custom_sound_selected">Codka gaarka ah ayaa la doortay</string>
     <string name="default_snooze">Hakinta caadiga ah</string>
+    <string name="alert_reset_defaults">Ku celi caadiga ah</string>
     <string name="delete_custom_alert">Tirtir digniinta gaarka ah</string>
     <string name="duration_label">Muddada</string>
     <string name="end">Dhammaad</string>
@@ -2213,6 +2216,8 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="mirror_turn_server_desc">U rog gudbinta isku xirka fog</string>
     <string name="mirror_connections">Xiriirinta</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Nuqul maxalli ah</string>
+    <string name="mirror_default_hybrid_label">Nuqul isku-dhafan</string>
     <string name="mirror_clone_master_desc">Daar dhammaan xiriirrada Clone ee la kaydiyay</string>
     <string name="clone_history_recovery">Soo celinta taariikhda</string>
     <string name="clone_history_direction_send">U dir qaataha</string>
@@ -2505,6 +2510,8 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="glucose_palette_saturation">Dheregsanaanta</string>
     <string name="glucose_palette_brightness">Iftiinka</string>
     <string name="notification_charts_section">Jaantusyada</string>
+    <string name="notification_chart_pause_screen_off">Hakadi jaantuska marka shaashaddu dansan tahay</string>
+    <string name="notification_chart_pause_screen_off_summary">Dib ayaa loo sawiraa marka shaashaddu shidanto. Jaantusku muddo kooban ayuu qarsoomi karaa.</string>
     <string name="notification_status_line_section">Xariiqda xaaladda</string>
     <string name="display_colors_title">Muuqaalka</string>
     <string name="wear_direct_sensor_watch_desc">Saacaddu waxay raadisaa dareemaha waxayna la wareegtaa Bluetooth ka dib akhriska ugu horreeya ee la aqbalo.</string>

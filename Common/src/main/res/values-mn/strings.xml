@@ -684,6 +684,7 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="libre3_nfc_command_activate_desc">Скан хийх явцад A0 Идэвхжүүлэх командыг албадан ашиглах</string>
     <string name="libre3_nfc_command_switch_receiver">A8 Хүлээн авагчийг солих</string>
     <string name="libre3_nfc_command_switch_receiver_desc">Скан хийх явцад A8 Хүлээн авагчийг солих командыг албадан ашиглах</string>
+    <string name="libre3_activation_legacy_fallback">Libre 3-ын нээлттэй эхийн идэвхжүүлэлтийг баталгаажуулж чадсангүй; өмнөх баталгаатай аргыг ашиглаж байна.</string>
     <string name="libreview_account_ready">Account ID бэлэн</string>
     <string name="libreview_account_missing">Account ID дутуу байна</string>
     <string name="libreview_account_missing_desc">Нэвтрэх мэдээллээ оруулж, Libre 3 мэдрэгчийн Account ID-г хүснэ үү</string>
@@ -1106,6 +1107,7 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="custom_low">Өөрийн бага утга</string>
     <string name="custom_sound_selected">Өөрийн дууг сонгосон</string>
     <string name="default_snooze">Үндсэн түр зогсолт (snooze)</string>
+    <string name="alert_reset_defaults">Үндсэн тохиргоонд буцаах</string>
     <string name="delete_custom_alert">Өөрийн дохиог устгах</string>
     <string name="duration_label">Үргэлжлэх хугацаа</string>
     <string name="end">Төгсгөл</string>
@@ -1920,6 +1922,8 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="mirror_turn_server_desc">TURN relay for remote connections</string>
     <string name="mirror_connections">Connections</string>
     <string name="mirror_clone_master">Clone</string>
+    <string name="mirror_default_local_label">Дотоод клон</string>
+    <string name="mirror_default_hybrid_label">Хосолмол клон</string>
     <string name="mirror_clone_master_desc">Хадгалсан бүх Clone холболтыг идэвхжүүлэх</string>
     <string name="clone_history_recovery">Түүх сэргээх</string>
     <string name="clone_history_direction_send">Хүлээн авагч руу илгээх</string>
@@ -2141,6 +2145,7 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="ottai_login_button">Нэвтрэх</string>
     <string name="ottai_login_request_suffix">\nreq=...%1$s</string>
     <string name="ottai_already_signed_in">Нэвтэрсэн</string>
+    <string name="ottai_session_invalid">Таны клауд сесс хүчингүй болсон – дахин нэвтэрнэ үү</string>
     <string name="ottai_account_id">Бүртгэл: %1$s</string>
     <string name="ottai_sensor_mac_hint">Cloud төхөөрөмжийн ID (12 hex эсвэл QR)</string>
     <string name="ottai_connect_saved">Холбох</string>
@@ -2424,6 +2429,8 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="glucose_palette_saturation">Өнгөний ханалт</string>
     <string name="glucose_palette_brightness">Гэрэлтэлт</string>
     <string name="notification_charts_section">Графикууд</string>
+    <string name="notification_chart_pause_screen_off">Дэлгэц унтарсан үед графикийг түр зогсоох</string>
+    <string name="notification_chart_pause_screen_off_summary">Дэлгэц асахад графикийг дахин зурна. График түр зуур харагдахгүй байж болно.</string>
     <string name="notification_status_line_section">Төлөвийн мөр</string>
     <string name="display_colors_title">Дэлгэц</string>
     <string name="display_colors_desc">Өнгө, хяналтын самбарын утга болон график</string>

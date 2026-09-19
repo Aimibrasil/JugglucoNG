@@ -323,7 +323,11 @@ private fun AnytimeScanStep(
                 val nameCandidates = listOfNotNull(scanName, record?.deviceName)
                     .mapNotNull { it.trim().takeIf(String::isNotBlank) }
 
-                val bestName = nameCandidates.firstOrNull().orEmpty()
+                // Prefer the candidate that classifies as an Anytime family over a generic
+                // advert, so the persisted device name is the SN## one.
+                val bestName = nameCandidates.firstOrNull {
+                    AnytimeConstants.resolveFamily(it).family != AnytimeConstants.Family.UNKNOWN
+                } ?: nameCandidates.firstOrNull().orEmpty()
                 val advertisesPrimary =
                     record?.serviceUuids?.any {
                         it.uuid == AnytimeConstants.SERVICE_PRIMARY ||

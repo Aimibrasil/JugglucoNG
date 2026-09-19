@@ -1373,30 +1373,21 @@ private fun JournalDoseAssistCard(
                         JournalDoseMetric(
                             label = stringResource(
                                 R.string.journal_dose_food_component,
-                                stringResource(
-                                    R.string.unit_insulin_value,
-                                    suggestion?.foodInsulinUnits?.let(::formatInsulinComponent) ?: "—"
-                                )
+                                stringResource(R.string.unit_insulin_value, suggestion?.foodInsulinUnits?.let(::formatInsulinComponent) ?: "—")
                             )
                         )
                         if (suggestion != null && suggestion.correctionInsulinUnits > 0f) {
                             JournalDoseMetric(
                                 label = stringResource(
                                     R.string.journal_dose_correction_component,
-                                    stringResource(
-                                        R.string.unit_insulin_value,
-                                        formatInsulinComponent(suggestion.correctionInsulinUnits)
-                                    )
+                                    stringResource(R.string.unit_insulin_value, formatInsulinComponent(suggestion.correctionInsulinUnits))
                                 )
                             )
                         }
                         if (suggestion != null && suggestion.activeInsulinCreditUnits > 0f) {
                             JournalDoseMetric(
                                 label = "${stringResource(R.string.IOB)} -" +
-                                        stringResource(
-                                            R.string.unit_insulin_value,
-                                            formatInsulinComponent(suggestion.activeInsulinCreditUnits)
-                                        )
+                                        stringResource(R.string.unit_insulin_value, formatInsulinComponent(suggestion.activeInsulinCreditUnits))
                             )
                         }
                         draft.doseGlucoseMgDl?.let { glucose ->
@@ -3426,7 +3417,7 @@ private fun describeJournalEntry(
                     Applic.app.getString(R.string.minutes_short_format, it.durationMinutes)
                 )
             }
-            listOfNotNull(amount.takeIf { it.isNotBlank() }?.let { Applic.app.getString(R.string.unit_insulin_value, it) }, window, entry.note).joinToString(" · ")
+            listOfNotNull(Applic.app.getString(R.string.unit_insulin_value, amount).takeIf { amount.isNotBlank() }, window, entry.note).joinToString(" · ")
         }
 
         JournalEntryType.CARBS -> {
