@@ -466,10 +466,6 @@ class SibionicsBleManager(
     override fun connectDevice(delayMillis: Long): Boolean {
         if (stop) return false
         uiPaused = false
-        if (startupRecoveryIndex > 1) {
-            recoverStartupCheckpoint()
-            return true
-        }
         if (advertisementRecovery.isActive) {
             Log.d(SibionicsConstants.TAG, "connect coalesced during advertisement recovery serial=$SerialNumber")
             return true
@@ -487,6 +483,12 @@ class SibionicsBleManager(
         if (mActiveBluetoothDevice == null) {
             phase = Phase.IDLE
             return false
+        }
+        // Preserve the false return above: shared orchestration uses it to
+        // start scanning when the device/address has not been found yet.
+        if (startupRecoveryIndex > 1) {
+            recoverStartupCheckpoint()
+            return true
         }
         phase = Phase.CONNECTING
         setStatus(connectingStatus())
