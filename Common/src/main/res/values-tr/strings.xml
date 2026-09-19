@@ -2488,6 +2488,7 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="stats_metric_streak_meta">gün %%70+</string>
     <string name="stats_pinned_add">Ekle</string>
     <string name="stats_pinned_pick_title">Panoda göster</string>
+    <string name="stats_pinned_hidden_for_space">Bu ekrana yalnızca %1$d sığıyor. Diğerleri sabitli kalır ve yatay modda görünür.</string>
     <string name="stats_pinned_remove">Panodan kaldır</string>
     <string name="stats_pinned_already">sabit</string>
     <string name="stats_pinned_remove_short">Kaldır</string>

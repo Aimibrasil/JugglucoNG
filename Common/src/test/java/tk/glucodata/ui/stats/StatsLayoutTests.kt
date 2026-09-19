@@ -103,14 +103,6 @@ class StatsLayoutTests {
     }
 
     @Test
-    fun chipWidthIsMeasuredAgainstTheWidestValueOfItsShape() {
-        assertEquals("00.0%", widestValueLike("99%"))
-        assertEquals("00.0%", widestValueLike("100%"))
-        assertEquals("00.0", widestValueLike("5.9"))
-        assertEquals("00.0", widestValueLike("180"))
-    }
-
-    @Test
     fun fourRowsShowBeforeTheDisclosure() {
         val rows = packMetricRows(StatsLayoutState().visibleMetrics, emptySet())
         val head = rows.take(StatsMetric.DEFAULT_VISIBLE_ROWS)

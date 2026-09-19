@@ -2460,6 +2460,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="stats_metric_streak_meta">dagar på 70%+</string>
     <string name="stats_pinned_add">Lägg till</string>
     <string name="stats_pinned_pick_title">Visa på Översikt</string>
+    <string name="stats_pinned_hidden_for_space">Bara %1$d får plats på den här skärmen. Resten är fortfarande fästa och visas i liggande läge.</string>
     <string name="stats_pinned_remove">Ta bort från Översikt</string>
     <string name="stats_pinned_already">fäst</string>
     <string name="stats_pinned_remove_short">Ta bort</string>

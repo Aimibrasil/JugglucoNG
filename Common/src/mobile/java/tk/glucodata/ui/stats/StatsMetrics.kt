@@ -55,6 +55,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -1183,6 +1185,8 @@ internal fun PinnedStatsStrip(
 
     // -1 means the picker is choosing a metric for a new slot.
     var editingSlot by remember { mutableStateOf<Int?>(null) }
+    // How many of the pinned metrics the single row managed to fit, for the picker.
+    var shownInRow by remember { mutableIntStateOf(pinned.size) }
     val dragState = rememberMetricDragState(
         order = pinned,
         onReordered = StatsLayoutStore::setDashboardMetrics
@@ -1253,34 +1257,29 @@ internal fun PinnedStatsStrip(
                 fontFeatureSettings = "tnum",
                 fontWeight = FontWeight.SemiBold
             )
-            // What each chip needs to draw its value and title whole, by the same rule as
-            // the pill: against the widest value the metric can show, so the count does
-            // not flicker when 99% becomes 100%.
+            // What each chip needs to draw its value and title whole. Live values, not a
+            // worst-case template: a template cost the fourth chip on a screen that showed
+            // all four with room to spare, which is worse than the row reflowing on the
+            // rare day time in range crosses from 99% to 100%.
             val valueNeeds = pinned.mapIndexed { index, metric ->
                 val spec = pinnedSpecs[index]
-                maxOf(
-                    textWidth(spec.value, valueStyle),
-                    textWidth(widestValueLike(spec.value), valueStyle)
-                ) + PinnedMetricChipChrome + if (metric == StatsMetric.TIME_IN_RANGE) {
-                    PinnedMetricChipTirChrome
-                } else {
-                    0.dp
-                }
+                textWidth(spec.value, valueStyle) + PinnedMetricChipChrome +
+                    if (metric == StatsMetric.TIME_IN_RANGE) PinnedMetricChipTirChrome else 0.dp
             }
             val chipNeeds = pinned.indices.map { index ->
                 maxOf(valueNeeds[index], textWidth(pinnedSpecs[index].title, titleStyle) + PinnedMetricChipChrome)
             }
             val baseGap = 8.dp
             // The chips share the row equally, so the widest one sets the width of all.
-            // A couple of dp of slack covers the pixel rounding between measuring text
-            // here and laying it out in weighted cells; a glyph clipped by one pixel is
-            // exactly the cut-off percent sign this is meant to rule out.
             fun establishedRowWidth(needs: List<Dp>, count: Int): Dp =
-                widestPillWidth + (needs.take(count).maxOrNull() ?: 0.dp) * count + baseGap * count + 2.dp
+                widestPillWidth + (needs.take(count).maxOrNull() ?: 0.dp) * count + baseGap * count
 
             val shownCount = pinnedStripShownCount(pinned.size) { count ->
                 establishedRowWidth(chipNeeds, count) <= maxWidth
             }
+            // The picker must say so when it hides one, or "full" with three chips on
+            // screen looks like a bug — because it is one, unless explained.
+            SideEffect { shownInRow = shownCount }
             val shownSpecs = pinnedSpecs.take(shownCount)
             val cells = cellsFor(shownCount)
 
@@ -1360,6 +1359,7 @@ internal fun PinnedStatsStrip(
         // narrow rather than squeezing four cells across it. Everything pinned is shown;
         // this is where a fourth chip the portrait row had no room for turns up.
         val cells = cellsFor(pinned.size)
+        SideEffect { shownInRow = pinned.size }
         val perRow = ((cells.size + rows - 1) / rows).coerceAtLeast(1)
         Column(
             modifier = modifier.fillMaxWidth(),
@@ -1387,6 +1387,7 @@ internal fun PinnedStatsStrip(
         PinnedMetricPickerSheet(
             current = pinned.getOrNull(slot),
             alreadyPinned = pinned,
+            hiddenForSpace = (pinned.size - shownInRow).coerceAtLeast(0),
             summary = pinnedState.summary,
             targets = pinnedState.targets,
             unit = pinnedState.unit,
@@ -1438,15 +1439,6 @@ private val PinnedMetricChipTirChrome = 12.dp
 /** [PinnedWindowPill] beyond its label: padding both sides, the gap and the chevron. */
 private val PinnedWindowPillChrome = 31.dp
 
-/**
- * The widest string a value with this shape can become, for measuring what a chip needs
- * without the answer changing every time the number does. Digits are tabular in the
- * chip, so only the count of them matters: percentages top out at "100%" or "36.5%",
- * levels at "10.2" or "250".
- */
-internal fun widestValueLike(value: String): String =
-    if (value.endsWith('%')) "00.0%" else "00.0"
-
 internal fun shouldUseEstablishedPinnedStatsPhoneLayout(
     widthClass: AdaptiveWindowWidthClass,
     layoutDensity: AdaptiveLayoutDensity
@@ -1468,6 +1460,7 @@ internal fun shouldUseEstablishedPinnedStatsPhoneLayout(
 private fun PinnedMetricPickerSheet(
     current: StatsMetric?,
     alreadyPinned: List<StatsMetric>,
+    hiddenForSpace: Int,
     summary: StatsSummary,
     targets: StatsTargets,
     unit: GlucoseUnit,
@@ -1550,6 +1543,18 @@ private fun PinnedMetricPickerSheet(
                         }
                     }
                 }
+            }
+            if (hiddenForSpace > 0) {
+                // Everything pinned is still pinned; the row just ran out of width.
+                Text(
+                    text = stringResource(
+                        R.string.stats_pinned_hidden_for_space,
+                        alreadyPinned.size - hiddenForSpace
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp)
+                )
             }
 
             Column(
