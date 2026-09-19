@@ -607,7 +607,7 @@ fun JournalEntrySheet(
                                 draft = draft.copy(amountText = adjustDecimalDraft(draft.amountText, delta, step = 0.5f))
                             },
                             label = stringResource(R.string.journal_type_insulin),
-                            suffix = "U",
+                            suffix = stringResource(R.string.unit_insulin_short),
                             prominent = true
                         )
                     }
@@ -661,7 +661,7 @@ fun JournalEntrySheet(
                                 draft = draft.copy(amountText = adjustDecimalDraft(draft.amountText, delta, step = 5f))
                             },
                             label = stringResource(R.string.journal_type_food),
-                            suffix = "g",
+                            suffix = stringResource(R.string.unit_carbs_short),
                             prominent = true
                         )
                     }
@@ -1373,21 +1373,30 @@ private fun JournalDoseAssistCard(
                         JournalDoseMetric(
                             label = stringResource(
                                 R.string.journal_dose_food_component,
-                                "${suggestion?.foodInsulinUnits?.let(::formatInsulinComponent) ?: "—"} U"
+                                stringResource(
+                                    R.string.unit_insulin_value,
+                                    suggestion?.foodInsulinUnits?.let(::formatInsulinComponent) ?: "—"
+                                )
                             )
                         )
                         if (suggestion != null && suggestion.correctionInsulinUnits > 0f) {
                             JournalDoseMetric(
                                 label = stringResource(
                                     R.string.journal_dose_correction_component,
-                                    "${formatInsulinComponent(suggestion.correctionInsulinUnits)} U"
+                                    stringResource(
+                                        R.string.unit_insulin_value,
+                                        formatInsulinComponent(suggestion.correctionInsulinUnits)
+                                    )
                                 )
                             )
                         }
                         if (suggestion != null && suggestion.activeInsulinCreditUnits > 0f) {
                             JournalDoseMetric(
                                 label = "${stringResource(R.string.IOB)} -" +
-                                        "${formatInsulinComponent(suggestion.activeInsulinCreditUnits)} U"
+                                        stringResource(
+                                            R.string.unit_insulin_value,
+                                            formatInsulinComponent(suggestion.activeInsulinCreditUnits)
+                                        )
                             )
                         }
                         draft.doseGlucoseMgDl?.let { glucose ->
@@ -1480,7 +1489,7 @@ private fun JournalDoseAssistCard(
                     } else {
                         stringResource(R.string.journal_type_food)
                     },
-                    suffix = if (draft.type == JournalEntryType.CARBS) "U" else "g"
+                    suffix = if (draft.type == JournalEntryType.CARBS) stringResource(R.string.unit_insulin_short) else stringResource(R.string.unit_carbs_short)
                 )
             }
         }
@@ -2134,7 +2143,7 @@ internal fun JournalFoodCompositionDetails(
                                 innerTextField()
                             }
                             Text(
-                                text = "g",
+                                text = stringResource(R.string.unit_carbs_short),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -2314,14 +2323,14 @@ private fun JournalMacroFields(
             onValueChange = onProteinChange,
             onStep = { delta -> onProteinChange(adjustDecimalDraft(proteinText, delta, step = 5f)) },
             label = stringResource(R.string.journal_food_protein),
-            suffix = "g"
+            suffix = stringResource(R.string.unit_carbs_short)
         )
         JournalStepperField(
             value = fatText,
             onValueChange = onFatChange,
             onStep = { delta -> onFatChange(adjustDecimalDraft(fatText, delta, step = 5f)) },
             label = stringResource(R.string.journal_food_fat),
-            suffix = "g"
+            suffix = stringResource(R.string.unit_carbs_short)
         )
     }
 }
@@ -2746,7 +2755,7 @@ private fun journalInlineChipContent(
     }
     return when (entry.type) {
         JournalEntryType.INSULIN -> {
-            val amount = entry.amount?.let { "${formatFloatForEditor(it)} U" }
+            val amount = entry.amount?.let { Applic.app.getString(R.string.unit_insulin_value, formatFloatForEditor(it)) }
             val label = insulinPreset?.displayName.cleanJournalChipText()
                 ?: entry.title.cleanJournalChipText()
                 ?: journalMarkerDetail(entry, insulinPreset, unit)
@@ -2757,7 +2766,7 @@ private fun journalInlineChipContent(
         }
 
         JournalEntryType.CARBS -> {
-            val amount = entry.amount?.let { "${formatFloatForEditor(it)} g" }
+            val amount = entry.amount?.let { Applic.app.getString(R.string.unit_carbs_value, formatFloatForEditor(it)) }
             val label = food?.displayName.cleanJournalChipText()
                 ?: entry.title.cleanJournalChipText()
                     ?.takeUnless(::isGenericCarbsChipTitle)
@@ -3417,7 +3426,7 @@ private fun describeJournalEntry(
                     Applic.app.getString(R.string.minutes_short_format, it.durationMinutes)
                 )
             }
-            listOfNotNull("$amount U".takeIf { amount.isNotBlank() }, window, entry.note).joinToString(" · ")
+            listOfNotNull(amount.takeIf { it.isNotBlank() }?.let { Applic.app.getString(R.string.unit_insulin_value, it) }, window, entry.note).joinToString(" · ")
         }
 
         JournalEntryType.CARBS -> {
@@ -3431,7 +3440,7 @@ private fun describeJournalEntry(
             val fat = entry.fatGrams?.takeIf { it > 0f }?.let {
                 Applic.app.getString(R.string.journal_food_fat_short, formatFloatForEditor(it))
             }
-            listOfNotNull("$amount g".takeIf { amount.isNotBlank() }, protein, fat, curve, entry.note)
+            listOfNotNull(amount.takeIf { it.isNotBlank() }?.let { Applic.app.getString(R.string.unit_carbs_value, it) }, protein, fat, curve, entry.note)
                 .joinToString(" · ")
         }
 
@@ -3474,12 +3483,12 @@ private fun journalMarkerDetail(
     return when (entry.type) {
         JournalEntryType.INSULIN -> {
             val amount = entry.amount?.let(::formatFloatForEditor).orEmpty()
-            "$amount U".trim()
+            amount.takeIf { it.isNotBlank() }?.let { Applic.app.getString(R.string.unit_insulin_value, it) }.orEmpty()
         }
 
         JournalEntryType.CARBS -> {
             val amount = entry.amount?.let(::formatFloatForEditor).orEmpty()
-            "$amount g".trim()
+            amount.takeIf { it.isNotBlank() }?.let { Applic.app.getString(R.string.unit_carbs_value, it) }.orEmpty()
         }
 
         JournalEntryType.FINGERSTICK -> {

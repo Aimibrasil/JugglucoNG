@@ -1768,7 +1768,9 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_dose_pair_carbs">Дадаць вугляводы</string>
     <string name="journal_dose_suggested_insulin">Прапанавана %1$s АД</string>
     <string name="unit_insulin_value">%1$s АД</string>
+    <string name="unit_insulin_short">АД</string>
     <string name="unit_carbs_value">%1$s г</string>
+    <string name="unit_carbs_short">г</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
     <string name="dashboard_iob_full">Актыўны інсулін %1$s</string>
@@ -1794,6 +1796,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_no_active_insulin">Няма актыўнага інсуліну</string>
     <string name="journal_active_now_percent">Актыўна %1$d%%</string>
     <string name="journal_cob_value">COB %1$s</string>
+    <string name="dashboard_cob_full">Актыўныя вугляводы %1$s</string>
     <string name="journal_metric_iob">IOB</string>
     <string name="journal_metric_eiob">eIOB %1$s АД</string>
     <string name="journal_eiob_display_title">Эфектыўны IOB (eIOB)</string>

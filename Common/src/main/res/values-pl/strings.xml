@@ -1733,7 +1733,9 @@
     <string name="journal_dose_pair_carbs">Połącz węglowodany</string>
     <string name="journal_dose_suggested_insulin">Sugerowane %1$s j.</string>
     <string name="unit_insulin_value">%1$s j.</string>
+    <string name="unit_insulin_short">j.</string>
     <string name="unit_carbs_value">%1$s g</string>
+    <string name="unit_carbs_short">g</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
     <string name="dashboard_iob_full">Aktywna insulina %1$s</string>
@@ -1759,6 +1761,7 @@
     <string name="journal_no_active_insulin">Brak aktywnej insuliny</string>
     <string name="journal_active_now_percent">%1$d%% aktywne</string>
     <string name="journal_cob_value">COB %1$s</string>
+    <string name="dashboard_cob_full">Aktywne węglowodany %1$s</string>
     <string name="journal_metric_iob">IOB</string>
     <string name="journal_metric_eiob">eIOB %1$s j.</string>
     <string name="journal_eiob_display_title">Efektywne IOB (eIOB)</string>

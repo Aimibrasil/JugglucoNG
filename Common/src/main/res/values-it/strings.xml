@@ -1688,7 +1688,9 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_dose_pair_carbs">Abbina carboidrati</string>
     <string name="journal_dose_suggested_insulin">%1$s U suggerite</string>
     <string name="unit_insulin_value">%1$s U</string>
+    <string name="unit_insulin_short">U</string>
     <string name="unit_carbs_value">%1$s g</string>
+    <string name="unit_carbs_short">g</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
     <string name="dashboard_iob_full">Insulina attiva %1$s</string>
@@ -1714,6 +1716,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="journal_no_active_insulin">Nessuna insulina attiva</string>
     <string name="journal_active_now_percent">%1$d%% attivo</string>
     <string name="journal_cob_value">COB %1$s</string>
+    <string name="dashboard_cob_full">Carboidrati attivi %1$s</string>
     <string name="journal_metric_iob">IOB</string>
     <string name="journal_metric_eiob">eIOB %1$s U</string>
     <string name="journal_eiob_display_title">IOB effettivo (eIOB)</string>

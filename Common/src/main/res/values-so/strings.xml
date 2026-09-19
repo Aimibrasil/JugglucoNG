@@ -1973,7 +1973,9 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="journal_dose_pair_carbs">Isku xidh karbohaydraytyada</string>
     <string name="journal_dose_suggested_insulin">%1$s U ayaa soo jeedisay</string>
     <string name="unit_insulin_value">%1$s U</string>
+    <string name="unit_insulin_short">U</string>
     <string name="unit_carbs_value">%1$s g</string>
+    <string name="unit_carbs_short">g</string>
     <string name="dashboard_iob_short">IoB %1$s</string>
     <string name="dashboard_eiob_short">eIoB %1$s</string>
     <string name="dashboard_iob_full">Insuliin firfircoon %1$s</string>
@@ -1999,6 +2001,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="journal_metric_insulin_today">Insulinta maanta</string>
     <string name="journal_metric_activity_today">Hawsha maanta</string>
     <string name="journal_cob_value">COB %1$s</string>
+    <string name="dashboard_cob_full">Kaarbohaydrayt firfircoon %1$s</string>
     <string name="journal_metric_iob">IOB</string>
     <string name="journal_metric_eiob">eIOB %1$s U</string>
     <string name="journal_eiob_display_title">IOB wax ku ool ah (eIOB)</string>

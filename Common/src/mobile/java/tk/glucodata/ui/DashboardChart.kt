@@ -3813,11 +3813,13 @@ fun InteractiveGlucoseChart(
                             }
                         }
                         activeCarbsGrams?.let { grams ->
+                            val carbsValue = stringResource(R.string.unit_carbs_value, unitsLabel(grams))
                             Text(
-                                text = stringResource(
-                                    R.string.journal_cob_value,
-                                    stringResource(R.string.unit_carbs_value, unitsLabel(grams))
-                                ),
+                                text = if (isActiveInsulinExpanded) {
+                                    stringResource(R.string.dashboard_cob_full, carbsValue)
+                                } else {
+                                    stringResource(R.string.journal_cob_value, carbsValue)
+                                },
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold
                             )
