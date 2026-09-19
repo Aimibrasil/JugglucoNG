@@ -911,6 +911,7 @@ fun InteractiveGlucoseChart(
     val previewWindowReservedPx = with(LocalDensity.current) { previewWindowReservedDp.toPx() }
     val previewWindowReservedIntPx = with(LocalDensity.current) { previewWindowReservedDp.roundToPx() }
     val labelsLiftPx = with(LocalDensity.current) { (4.dp * safeExpandedProgress).toPx() }
+    val calibrationTimestampChipLiftPx = with(LocalDensity.current) { 4.dp.roundToPx() }
     val chartPlotBottomGapPx = with(LocalDensity.current) { (4.dp * safeExpandedProgress).toPx() }
     val bottomAxisHeightPx = with(LocalDensity.current) { 32.dp.toPx() }
     val axisLabelBackgroundColor = androidx.compose.ui.graphics.lerp(
@@ -4278,7 +4279,12 @@ fun InteractiveGlucoseChart(
                         .offset {
                             androidx.compose.ui.unit.IntOffset(
                                 x = calXOffset.toInt(),
-                                y = 0.dp.roundToPx() - (chartUnderlayBottomIntPx + previewWindowReservedIntPx + labelsLiftPx.toInt())
+                                y = 0.dp.roundToPx() - (
+                                    chartUnderlayBottomIntPx +
+                                        previewWindowReservedIntPx +
+                                        labelsLiftPx.toInt() +
+                                        calibrationTimestampChipLiftPx
+                                )
                             )
                         }
                         .graphicsLayer { translationX = -size.width / 2f }
