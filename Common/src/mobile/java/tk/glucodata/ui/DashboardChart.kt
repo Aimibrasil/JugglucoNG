@@ -4197,11 +4197,20 @@ fun InteractiveGlucoseChart(
                 it.timestamp in viewportStartTooltip..viewportEndTooltip
             }
 
+            val calibrationLabelLocale = java.util.Locale.getDefault()
+            val calibrationLabelTimeZone = java.util.TimeZone.getDefault()
             visibleCalibrationsTooltip.forEach { cal ->
                 val calXFraction = (cal.timestamp - viewportStartTooltip).toFloat() / overlayDuration
                 val calXOffset = (overlayDataWidthPx * calXFraction).coerceIn(0f, overlayDataWidthPx)
-                val calTimeFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-                val calTimeStr = calTimeFormat.format(java.util.Date(cal.timestamp))
+                // Collapse/scroll changes pixel positions every frame, not these labels.
+                val calTimeStr = remember(cal.timestamp, calibrationLabelLocale, calibrationLabelTimeZone) {
+                    java.text.SimpleDateFormat("HH:mm", calibrationLabelLocale).apply {
+                        timeZone = calibrationLabelTimeZone
+                    }.format(java.util.Date(cal.timestamp))
+                }
+                val calValueStr = remember(cal.userValue, unit, calibrationLabelLocale) {
+                    String.format(calibrationLabelLocale, if (unit.contains("mmol", true)) "%.1f" else "%.0f", cal.userValue)
+                }
 
                 // Top: Value chip with waterdrop icon (clickable to edit)
                 Surface(
@@ -4237,7 +4246,7 @@ fun InteractiveGlucoseChart(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = String.format(java.util.Locale.getDefault(), if (unit.contains("mmol", true)) "%.1f" else "%.0f", cal.userValue),
+                            text = calValueStr,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -4463,15 +4472,17 @@ fun InteractiveGlucoseChart(
         val rangeLabels = items.map { stringResource(it.labelResId, it.labelAmount) }
         val rangeTextMeasurer = rememberTextMeasurer()
         // Reserve the bold width for every label so changing selection cannot resize the picker.
-        val rangeLabelsWidth = with(density) {
-            rangeLabels.sumOf { label ->
-                rangeTextMeasurer.measure(
-                    text = label,
-                    style = baseLabelStyle.copy(fontWeight = FontWeight.Bold),
-                    softWrap = false,
-                    maxLines = 1
-                ).size.width
-            }.toDp()
+        val rangeLabelsWidth = remember(rangeLabels, baseLabelStyle, rangeTextMeasurer, density) {
+            with(density) {
+                rangeLabels.sumOf { label ->
+                    rangeTextMeasurer.measure(
+                        text = label,
+                        style = baseLabelStyle.copy(fontWeight = FontWeight.Bold),
+                        softWrap = false,
+                        maxLines = 1
+                    ).size.width
+                }.toDp()
+            }
         }
 
         val pickerVerticalOffset = -(chartUnderlayBottomDp + (8.dp * safeExpandedProgress))
