@@ -570,6 +570,77 @@ class AiDexRuntimePolicyTests {
     }
 
     @Test
+    fun cccdStartDelay_holdsTheFirstWriteUntilTheMtuBearerHasBeenQuiet() {
+        // Reconnect on a cached GATT db: services discovered ~50ms after our MTU callback,
+        // the sensor's own exchange still to come. Wait out the rest of the window.
+        assertEquals(
+            700L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 10_000L, nowMs = 10_050L, settleMs = 750L)
+        )
+        // First connect: full discovery took longer than the window, write immediately.
+        assertEquals(
+            0L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 10_000L, nowMs = 11_200L, settleMs = 750L)
+        )
+        assertEquals(
+            0L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 10_000L, nowMs = 10_750L, settleMs = 750L)
+        )
+    }
+
+    @Test
+    fun cccdStartDelay_noMtuCallbackMeansNoHold() {
+        // Stack never delivered onMtuChanged and the fallback started discovery.
+        assertEquals(
+            0L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 0L, nowMs = 10_050L, settleMs = 750L)
+        )
+    }
+
+    @Test
+    fun cccdStartDelay_clockStepBackwardsWaitsAFullWindow() {
+        assertEquals(
+            750L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 10_000L, nowMs = 9_000L, settleMs = 750L)
+        )
+    }
+
+    @Test
+    fun mtuExchangeCrossedPendingCccd_onlyWhileAChainWriteIsOutstanding() {
+        assertTrue(
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = AiDexBleManager.Phase.CCCD_CHAIN,
+                cccdWriteInProgress = true,
+                hasPendingCccd = true,
+            )
+        )
+        // Chain queued but not started: the settle window simply restarts.
+        assertFalse(
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = AiDexBleManager.Phase.CCCD_CHAIN,
+                cccdWriteInProgress = false,
+                hasPendingCccd = false,
+            )
+        )
+        // Our own first exchange, before discovery.
+        assertFalse(
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = AiDexBleManager.Phase.DISCOVERING_SERVICES,
+                cccdWriteInProgress = false,
+                hasPendingCccd = false,
+            )
+        )
+        // Post-key-exchange CCCD re-registration is not the setup chain.
+        assertFalse(
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = AiDexBleManager.Phase.KEY_EXCHANGE,
+                cccdWriteInProgress = true,
+                hasPendingCccd = true,
+            )
+        )
+    }
+
+    @Test
     fun decideMissingCccdCallbackAction_waitsThenAssumesComplete() {
         assertEquals(
             AiDexRuntimePolicy.MissingCccdCallbackAction.WAIT,

@@ -309,6 +309,38 @@ internal object AiDexRuntimePolicy {
         }
     }
 
+    /**
+     * How long the first CCCD write of a connection must wait after the most recent
+     * `onMtuChanged`, or 0 when it may go out now.
+     *
+     * The GX-01S runs its own ATT MTU exchange a few hundred ms after connecting, on top of
+     * the one we request. If our CCCD Write Request is outstanding when that second exchange
+     * lands, the write's completion is lost: `onDescriptorWrite` never arrives, `mDeviceBusy`
+     * stays latched and every later op on that `BluetoothGatt` is refused until we reconnect —
+     * which replays the same timing and loses the same race. A first connect survives because
+     * full service discovery is slow enough to miss the window; a reconnect on a cached GATT
+     * db is not, so it loops forever at "Configuring notifications". Holding the write until
+     * the bearer has been quiet for [settleMs] costs at most that long per connection.
+     */
+    fun cccdStartDelayMs(lastMtuCallbackAtMs: Long, nowMs: Long, settleMs: Long): Long {
+        if (lastMtuCallbackAtMs <= 0L) return 0L
+        val age = nowMs - lastMtuCallbackAtMs
+        if (age < 0L) return settleMs
+        return (settleMs - age).coerceAtLeast(0L)
+    }
+
+    /**
+     * An `onMtuChanged` landed while a CCCD write was still waiting for its callback. That
+     * write is dead (see [cccdStartDelayMs]); waiting out the callback windows and then
+     * inferring success only delays the reconnect that is coming anyway.
+     */
+    fun mtuExchangeCrossedPendingCccd(
+        phase: AiDexBleManager.Phase,
+        cccdWriteInProgress: Boolean,
+        hasPendingCccd: Boolean,
+    ): Boolean =
+        phase == AiDexBleManager.Phase.CCCD_CHAIN && cccdWriteInProgress && hasPendingCccd
+
     fun shouldRecoverFromBlockedReconnect(
         phase: AiDexBleManager.Phase,
         hasGatt: Boolean,
