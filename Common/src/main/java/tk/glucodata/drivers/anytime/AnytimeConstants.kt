@@ -340,6 +340,27 @@ object AnytimeConstants {
      */
     const val CT5_WARMUP_MINUTES = 40
 
+    /**
+     * Whether a sample falls inside the post-activation settling window and so must
+     * not be published, stored or exported.
+     *
+     * Deliberately a property of the SAMPLE rather than of the wall clock (the same
+     * shape as `OttaiConstants.isWithinWarmup`): a history replay of the same records
+     * then reaches the same verdict on every pass and across restarts, instead of
+     * re-admitting during warm-up whatever the live path already refused.
+     *
+     * [anchorMs] must be an authoritative activation instant — pass 0 to disable the
+     * gate rather than feeding it a provisional start. The window is per family
+     * ([AnytimeProfile.warmupMs]), so CT2 SN06/SN12 (180 min) and the 60-minute
+     * families get their own horizon.
+     */
+    @JvmStatic
+    fun isWithinWarmup(anchorMs: Long, sampleMs: Long, windowMs: Long): Boolean =
+        anchorMs > 0L &&
+            sampleMs > 0L &&
+            windowMs > 0L &&
+            sampleMs < anchorMs + windowMs
+
     /** Watchdog — official app's pullDataDelay is 190 s. */
     const val PULL_WATCHDOG_SECONDS = 190L
 

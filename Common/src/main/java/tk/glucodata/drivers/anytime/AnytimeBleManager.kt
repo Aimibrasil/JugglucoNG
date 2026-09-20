@@ -1808,39 +1808,31 @@ class AnytimeBleManager(
     }
 
     /**
-     * True while the sensor is inside its rated warm-up window and its readings are
-     * not trustworthy yet.
-     *
-     * CT5's warm-up ends at its first transmitter-computed reading (the firmware
-     * computes nothing before then). CT2/CT3/CT4 run an in-tree model from the very
-     * first frame, so theirs is purely age-based — otherwise a fresh sensor would
-     * publish its unsettled first hour as if it were glucose.
+     * Authoritative activation instant the warm-up gate is allowed to trust. All three
+     * sources are derived from real protocol data (a live glucose id, the glucose
+     * timeline, or the check-frame start); 0 means "no anchor", which disables the gate
+     * rather than feeding it a provisional — the same rule `OttaiConstants.isWithinWarmup`
+     * documents.
      */
-    private fun isWarmingUp(): Boolean {
-        if (isCt5()) return isCt5WarmingUp()
-        val start = warmupStartedAtMs.takeIf { it > 0L }
+    private fun warmupAnchorMs(): Long =
+        warmupStartedAtMs.takeIf { it > 0L }
             ?: glucoseTimelineStartAtMs.takeIf { it > 0L }
             ?: sensorStartAtMs.takeIf { it > 0L }
-            ?: return false
-        val elapsed = System.currentTimeMillis() - start
-        return elapsed >= 0L && elapsed < profile.warmupMs()
-    }
+            ?: 0L
 
     /**
-     * Glucose ids inside the warm-up window. Backfill can arrive after warm-up has
-     * elapsed, so the age-based [isWarmingUp] would let those early ids through; this
-     * keeps them out of storage and, with it, out of Nightscout/watch/notifications.
+     * True while the sensor is inside its rated warm-up window and its readings are
+     * not trustworthy yet. Sample-based (see [AnytimeConstants.isWithinWarmup]) so the
+     * live path and a later backfill of the same records agree.
+     *
+     * CT2/CT3/CT4 run an in-tree model from the very first frame; CT5's firmware
+     * computes nothing before its own window, so the same sample gate covers both.
      */
-    private fun isWarmupGlucoseId(glucoseId: Int): Boolean {
-        val warmupRecords = profile.warmupRecords()
-        return warmupRecords > 0 && glucoseId in 0 until warmupRecords
-    }
+    private fun isWarmingUp(nowMs: Long = System.currentTimeMillis()): Boolean =
+        AnytimeConstants.isWithinWarmup(warmupAnchorMs(), nowMs, profile.warmupMs())
 
     private fun warmupRemainingMs(): Long {
-        val start = warmupStartedAtMs.takeIf { it > 0L }
-            ?: glucoseTimelineStartAtMs.takeIf { it > 0L }
-            ?: sensorStartAtMs.takeIf { it > 0L }
-            ?: return -1L
+        val start = warmupAnchorMs().takeIf { it > 0L } ?: return -1L
         return (start + profile.warmupMs() - System.currentTimeMillis()).coerceAtLeast(0L)
     }
 
@@ -4312,9 +4304,9 @@ class AnytimeBleManager(
         // Warm-up gate: hold back readings the model has not settled for yet, so they
         // never reach Nightscout/watch/notifications or the app's own history. CT5
         // produces nothing during warm-up already; CT2/CT3/CT4 model from the very
-        // first frame, so they need this explicit hold. isWarmupGlucoseId also catches
-        // backfill that arrives after the window has elapsed.
-        if (isWarmingUp() || isWarmupGlucoseId(result.glucoseId)) {
+        // first frame, so they need this explicit hold. Sample-based (not wall-clock),
+        // so a later backfill of the same ids reaches the same verdict.
+        if (AnytimeConstants.isWithinWarmup(warmupAnchorMs(), sampleMs, profile.warmupMs())) {
             if (live) {
                 val now = System.currentTimeMillis()
                 lastLiveFrameAtMs = now
