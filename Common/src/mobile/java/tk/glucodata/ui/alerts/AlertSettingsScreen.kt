@@ -543,7 +543,7 @@ fun AlertSettingsScreen(
                     subtitle = stringResource(R.string.preemptive_snooze_desc),
                     icon = Icons.Default.Snooze,
                     iconTint = MaterialTheme.colorScheme.primary,
-                    position = SettingsItemPosition.SINGLE,
+                    position = SettingsItemPosition.TOP,
                     onClick = { showPreemptiveSnooze = true }
                 )
             }
@@ -554,7 +554,7 @@ fun AlertSettingsScreen(
                     subtitle = stringResource(R.string.speakglucose) + " \u2022 " + stringResource(R.string.speakalarms),
                     icon = Icons.AutoMirrored.Filled.VolumeUp,
                     iconTint = MaterialTheme.colorScheme.secondary,
-                    position = SettingsItemPosition.SINGLE,
+                    position = SettingsItemPosition.BOTTOM,
                     onClick = { navController.navigate("settings/alerts/talker") }
                 )
             }
