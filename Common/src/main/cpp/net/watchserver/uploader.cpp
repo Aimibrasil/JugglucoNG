@@ -831,6 +831,24 @@ static bool uploadRecentV3(const int sensorid,SensorGlucoseData *sens,const sens
     return true;
     }
 
+//nightsensor persists across restarts and sensor rotations. An index cached for a
+//removed sensor stays past sensors->last() indefinitely, and the upload loops below
+//then visit zero sensors while reporting success: glucose silently stops reaching
+//Nightscout while device-status and treatments keep working, and an ordinary Resend
+//(wakeall) never clears the stale value. Re-seed whenever the cached index is unset
+//or out of range so a pass always covers the live sensor list.
+static int resolveNightStartSensor(const int last,const uint32_t mintime) {
+    const int cached=settings->data()->nightsensor;
+    if(!cached||cached>last) {
+        const int reseeded=sensors->firstafter(mintime);
+        if(reseeded!=cached)
+            LOGGER("nightsensor %d out of range (last=%d), reseeding to %d\n",cached,last,reseeded);
+        settings->data()->nightsensor=reseeded;
+        return reseeded;
+        }
+    return cached;
+    }
+
 static bool uploadCGM3(const bool prioritizeRecent=false) {
     LOGSTRING("upload\n");
     uploadSmoothingSeconds=getExchangeSmoothingSeconds();
@@ -841,9 +859,7 @@ static bool uploadCGM3(const bool prioritizeRecent=false) {
         }
     time_t nu=time(nullptr);
     uint32_t mintime=nu-nighttimeback;
-    if(!settings->data()->nightsensor)
-        settings->data()->nightsensor=sensors->firstafter(mintime);
-    int startsensor= settings->data()->nightsensor;
+    int startsensor=resolveNightStartSensor(last,mintime);
 
 /*    constexpr const auto twoweeks=15*24*60*60;
     time_t old=nu-twoweeks; */
@@ -921,9 +937,7 @@ static bool uploadCGM(const bool prioritizeRecent=false) {
         }
     time_t nu=time(nullptr);
     uint32_t mintime=nu-nighttimeback;
-    if(!settings->data()->nightsensor)
-        settings->data()->nightsensor=sensors->firstafter(mintime);
-    int startsensor= settings->data()->nightsensor;
+    int startsensor=resolveNightStartSensor(last,mintime);
     constexpr const int itemsize=512;
 /*
     constexpr const auto twoweeks=15*24*60*60;
