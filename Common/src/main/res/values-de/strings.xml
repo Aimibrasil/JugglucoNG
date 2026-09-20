@@ -1885,6 +1885,8 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="dashboard_show_delta_desc">Gemessene Änderung über das Delta-Intervall, unter dem Trendpfeil</string>
     <string name="dashboard_rows_show_delta_title">Delta in der Messwertliste</string>
     <string name="dashboard_rows_show_delta_desc">Änderung neben jedem Messwert anzeigen, auf der Startseite und im Verlauf</string>
+    <string name="dashboard_show_reading_age_title">Lesealter</string>
+    <string name="dashboard_show_reading_age_desc">Zeit seit der letzten Messung auf dem Sensorfeld anzeigen</string>
     <string name="delta_interval_title">Delta-Intervall (Δ)</string>
     <string name="delta_interval_desc">Zeitfenster für die Δ-Anzeige; die Schnell-fallend/steigend-Alarme folgen ihm, solange kein eigenes Fenster gesetzt ist</string>
     <string name="delta_interval_1min">1 Min</string>

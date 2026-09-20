@@ -195,6 +195,7 @@ class DashboardViewModel(
         const val APP_CHART_RANGE_COLORS_KEY = "glucose_app_chart_range_colors_enabled"
         const val DASHBOARD_SHOW_DELTA_KEY = "dashboard_show_delta"
         const val DASHBOARD_ROWS_SHOW_DELTA_KEY = "dashboard_rows_show_delta"
+        const val DASHBOARD_SHOW_READING_AGE_KEY = "dashboard_show_reading_age"
         const val DELTA_INTERVAL_KEY = "delta_interval_minutes"
         const val JOURNAL_HEALTH_CONNECT_ACTIVITY_KEY = "dashboard_journal_health_connect_activity_enabled"
         const val PREDICTION_CARB_RATIO_KEY = "dashboard_prediction_carb_ratio_g_per_u"
@@ -492,6 +493,9 @@ class DashboardViewModel(
 
     private val _dashboardRowsShowDelta = MutableStateFlow(false)
     val dashboardRowsShowDelta = _dashboardRowsShowDelta.asStateFlow()
+
+    private val _dashboardShowReadingAge = MutableStateFlow(false)
+    val dashboardShowReadingAge = _dashboardShowReadingAge.asStateFlow()
 
     private val _deltaIntervalMinutes = MutableStateFlow(tk.glucodata.GlucoseDelta.DEFAULT_INTERVAL_MINUTES)
     val deltaIntervalMinutes = _deltaIntervalMinutes.asStateFlow()
@@ -860,6 +864,7 @@ class DashboardViewModel(
         _glucoseAppChartRangeColorsEnabled.value = prefs.getBoolean(APP_CHART_RANGE_COLORS_KEY, false)
         _dashboardShowDelta.value = prefs.getBoolean(DASHBOARD_SHOW_DELTA_KEY, false)
         _dashboardRowsShowDelta.value = prefs.getBoolean(DASHBOARD_ROWS_SHOW_DELTA_KEY, false)
+        _dashboardShowReadingAge.value = prefs.getBoolean(DASHBOARD_SHOW_READING_AGE_KEY, false)
         _deltaIntervalMinutes.value = tk.glucodata.GlucoseDelta.sanitizeIntervalMinutes(
             prefs.getInt(DELTA_INTERVAL_KEY, tk.glucodata.GlucoseDelta.DEFAULT_INTERVAL_MINUTES)
         )
@@ -1888,6 +1893,13 @@ class DashboardViewModel(
         val prefs = context.getSharedPreferences("tk.glucodata_preferences", android.content.Context.MODE_PRIVATE)
         prefs.edit().putBoolean(DASHBOARD_ROWS_SHOW_DELTA_KEY, enabled).apply()
         _dashboardRowsShowDelta.value = enabled
+    }
+
+    fun setDashboardShowReadingAge(enabled: Boolean) {
+        val context = tk.glucodata.Applic.app
+        val prefs = context.getSharedPreferences("tk.glucodata_preferences", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(DASHBOARD_SHOW_READING_AGE_KEY, enabled).apply()
+        _dashboardShowReadingAge.value = enabled
     }
 
     /**

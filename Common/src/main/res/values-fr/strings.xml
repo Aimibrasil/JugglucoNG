@@ -2304,6 +2304,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="notification_show_delta_minutes_desc">Afficher la variation sur %1$d min près de la flèche</string>
     <string name="dashboard_rows_show_delta_title">Delta dans la liste</string>
     <string name="dashboard_rows_show_delta_desc">Afficher la variation près de chaque valeur, sur le tableau de bord et dans l’historique</string>
+    <string name="dashboard_show_reading_age_title">Ancienneté de la lecture</string>
+    <string name="dashboard_show_reading_age_desc">Afficher le temps écoulé depuis la dernière lecture sur le panneau du capteur</string>
     <string name="glucose_range_colors_title">Colorer les valeurs par plage</string>
     <string name="glucose_range_colors_desc">Utiliser les couleurs de plage sur le tableau de bord et la notification</string>
     <string name="very_range_title">Très basse / très haute</string>

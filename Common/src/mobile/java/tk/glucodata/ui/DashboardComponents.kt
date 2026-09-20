@@ -254,6 +254,7 @@ fun DashboardCombinedHeader(
     valueRangeColorsEnabled: Boolean = false,
     arrowForecastColorsEnabled: Boolean = false,
     showDelta: Boolean = false,
+    showReadingAge: Boolean = false,
     deltaIntervalMinutes: Int = tk.glucodata.GlucoseDelta.DEFAULT_INTERVAL_MINUTES,
     peerReadings: List<tk.glucodata.ui.viewmodel.DashboardViewModel.PeerCurrentReading> = emptyList(),
     onPeerReadingClick: (String) -> Unit = {},
@@ -938,12 +939,14 @@ fun DashboardCombinedHeader(
                     }
 
                     // 0. Signal quality (start) and how old the newest reading is (end).
-                    // This row already existed with dead space to its right, so the
-                    // counter costs the card no height.
-                    if (trendResult.noiseLevel > 0f || primaryReadingMillis != null) {
+                    // The noise indicator shows as before; only the reading-age
+                    // counter is opt-in via Display → Dashboard readouts (off by
+                    // default). This row already existed with dead space to its
+                    // right, so the counter costs the card no height.
+                    if (trendResult.noiseLevel > 0f || (showReadingAge && primaryReadingMillis != null)) {
                         SignalQualityAndReadingAgeRow(
                             noiseLevel = trendResult.noiseLevel,
-                            readingMillis = primaryReadingMillis,
+                            readingMillis = if (showReadingAge) primaryReadingMillis else null,
                             contentColor = sensorContentColor,
                             modifier = Modifier
                                 .fillMaxWidth()
