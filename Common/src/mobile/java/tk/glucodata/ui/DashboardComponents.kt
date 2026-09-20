@@ -49,10 +49,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
@@ -258,6 +254,7 @@ fun DashboardCombinedHeader(
     valueRangeColorsEnabled: Boolean = false,
     arrowForecastColorsEnabled: Boolean = false,
     showDelta: Boolean = false,
+    showReadingAge: Boolean = false,
     deltaIntervalMinutes: Int = tk.glucodata.GlucoseDelta.DEFAULT_INTERVAL_MINUTES,
     peerReadings: List<tk.glucodata.ui.viewmodel.DashboardViewModel.PeerCurrentReading> = emptyList(),
     onPeerReadingClick: (String) -> Unit = {},
@@ -942,12 +939,14 @@ fun DashboardCombinedHeader(
                     }
 
                     // 0. Signal quality (start) and how old the newest reading is (end).
-                    // This row already existed with dead space to its right, so the
-                    // counter costs the card no height.
-                    if (trendResult.noiseLevel > 0f || primaryReadingMillis != null) {
+                    // The noise indicator shows as before; only the reading-age
+                    // counter is opt-in via Display → Dashboard readouts (off by
+                    // default). This row already existed with dead space to its
+                    // right, so the counter costs the card no height.
+                    if (trendResult.noiseLevel > 0f || (showReadingAge && primaryReadingMillis != null)) {
                         SignalQualityAndReadingAgeRow(
                             noiseLevel = trendResult.noiseLevel,
-                            readingMillis = primaryReadingMillis,
+                            readingMillis = if (showReadingAge) primaryReadingMillis else null,
                             contentColor = sensorContentColor,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2220,8 +2219,7 @@ fun SignalQualityIndicator(
  * counter to "1n". The counter is what the row is there to say, so it is measured first
  * and always placed whole. The indicator is never squeezed either (squeezing would wrap its
  * text); when there is no room it slides *under* the counter, fading out over
- * [SIGNAL_AGE_FADE_WIDTH] before the counter starts, and the counter draws a slight shade
- * behind itself so it reads as the layer on top. When both fit, nothing is drawn extra.
+ * [SIGNAL_AGE_FADE_WIDTH] before the counter starts. When both fit, nothing is drawn extra.
  */
 @Composable
 private fun SignalQualityAndReadingAgeRow(
@@ -2233,9 +2231,6 @@ private fun SignalQualityAndReadingAgeRow(
     val density = LocalDensity.current
     val gapPx = with(density) { SIGNAL_AGE_GAP.roundToPx() }
     val fadeWidthPx = with(density) { SIGNAL_AGE_FADE_WIDTH.toPx() }
-    val shadeInsetX = with(density) { SIGNAL_AGE_SHADE_INSET_X.toPx() }
-    val shadeInsetY = with(density) { SIGNAL_AGE_SHADE_INSET_Y.toPx() }
-    val shadeColor = contentColor.copy(alpha = 0.08f)
     // How many px of the indicator (measured from the counter's edge, gap included) the
     // counter covers; 0 when both fit. Written in measure, read only in draw, so a change
     // costs a redraw and never a recomposition.
@@ -2278,21 +2273,7 @@ private fun SignalQualityAndReadingAgeRow(
                     readingMillis = readingMillis,
                     iconTint = contentColor.copy(alpha = 0.55f),
                     textColor = contentColor.copy(alpha = 0.75f),
-                    modifier = Modifier
-                        .layoutId(SIGNAL_AGE_COUNTER_ID)
-                        .drawBehind {
-                            if (overlapPx > 0) {
-                                drawRoundRect(
-                                    color = shadeColor,
-                                    topLeft = Offset(-shadeInsetX, -shadeInsetY),
-                                    size = Size(
-                                        size.width + 2 * shadeInsetX,
-                                        size.height + 2 * shadeInsetY
-                                    ),
-                                    cornerRadius = CornerRadius(size.height)
-                                )
-                            }
-                        }
+                    modifier = Modifier.layoutId(SIGNAL_AGE_COUNTER_ID)
                 )
             }
         }
@@ -2330,9 +2311,6 @@ private const val SIGNAL_AGE_COUNTER_ID = "readingAge"
 private val SIGNAL_AGE_GAP = 8.dp
 /** How long the indicator's tail takes to dissolve under the counter. */
 private val SIGNAL_AGE_FADE_WIDTH = 16.dp
-private val SIGNAL_AGE_SHADE_INSET_X = 8.dp
-/** Optical: the row is only as tall as its text, so the shade may not reach the rows around it. */
-private val SIGNAL_AGE_SHADE_INSET_Y = 2.dp
 
 /**
  * Bottom sheet for clear options in Dashboard

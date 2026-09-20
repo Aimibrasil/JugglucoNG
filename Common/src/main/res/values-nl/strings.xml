@@ -2346,6 +2346,8 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="notification_show_delta_minutes_desc">Toon de verandering over %1$d min naast de pijl</string>
     <string name="dashboard_rows_show_delta_title">Delta in meetwaardenlijst</string>
     <string name="dashboard_rows_show_delta_desc">Toon de verandering naast elke meetwaarde, op het dashboard en in de geschiedenis</string>
+    <string name="dashboard_show_reading_age_title">Meetleeftijd</string>
+    <string name="dashboard_show_reading_age_desc">Toon de tijd sinds de laatste meting op het sensorpaneel</string>
     <string name="glucose_range_colors_title">Waarden kleuren per bereik</string>
     <string name="glucose_range_colors_desc">Gebruik bereikkleuren op het dashboard en in meldingen</string>
     <string name="very_range_title">Zeer laag / zeer hoog</string>
