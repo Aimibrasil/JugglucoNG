@@ -581,6 +581,9 @@
     <string name="aidex_key_management_entry_desc">Gestisci le chiavi dei sensori e l’account AiDex CN</string>
     <string name="aidex_key_missing">Chiave di abbinamento mancante</string>
     <string name="aidex_key_rejected">Chiave di abbinamento salvata rifiutata; sostituirla</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Chiave di associazione salvata rifiutata — nuova associazione</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Chiave di associazione salvata rifiutata — premi Associa</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Associazione non riuscita — solo broadcast</string>
     <string name="aidex_key_saved">Chiave di abbinamento specifica del sensore salvata</string>
     <string name="aidex_key_fetch_action">Ottieni la chiave dall’account</string>
     <string name="aidex_key_fetch_requires_sign_in">Accedi per scaricare la chiave di questo sensore.</string>
@@ -1309,7 +1312,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="offset">Compensazione</string>
     <string name="override_silent_mode">Ignora la modalità silenziosa</string>
     <string name="override_silent_mode_desc">Riproduci avvisi quando il telefono è in modalità silenziosa.</string>
-    <string name="pair">Coppia</string>
+    <string name="pair">Associa</string>
     <string name="points">Punti</string>
     <string name="position_layout">Posizione e disposizione</string>
     <string name="preview">Anteprima</string>

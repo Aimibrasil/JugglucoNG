@@ -718,6 +718,9 @@
     <string name="aidex_key_management_entry_desc">管理传感器密钥和 AiDex 中国账户</string>
     <string name="aidex_key_missing">缺少配对密钥</string>
     <string name="aidex_key_rejected">已保存的配对密钥被拒绝；请替换</string>
+    <string name="aidex_status_saved_key_rejected_repairing">已保存的配对密钥被拒绝 — 正在重新配对</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">已保存的配对密钥被拒绝 — 请点击“配对”</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">配对失败 — 仅广播</string>
     <string name="aidex_key_saved">已保存传感器专用配对密钥</string>
     <string name="aidex_key_fetch_action">从账户获取密钥</string>
     <string name="aidex_key_fetch_requires_sign_in">请登录以下载此传感器的密钥。</string>

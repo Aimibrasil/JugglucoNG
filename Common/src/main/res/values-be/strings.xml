@@ -697,6 +697,9 @@
     <string name="aidex_key_management_entry_desc">Кіраванне ключамі датчыкаў і ўліковым запісам AiDex CN</string>
     <string name="aidex_key_missing">Ключ спалучэння адсутнічае</string>
     <string name="aidex_key_rejected">Захаваны ключ спалучэння адхілены; замяніце яго</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Захаваны ключ спалучэння адхілены — паўторнае спалучэнне</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Захаваны ключ спалучэння адхілены — націсніце «Спалучыць»</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Спалучэнне не ўдалося — толькі трансляцыя</string>
     <string name="aidex_key_saved">Асобны ключ спалучэння датчыка захаваны</string>
     <string name="aidex_key_fetch_action">Атрымаць ключ з акаўнта</string>
     <string name="aidex_key_fetch_requires_sign_in">Увайдзіце, каб спампаваць ключ гэтага датчыка.</string>
@@ -1318,7 +1321,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="offset">Зрушэнне</string>
     <string name="override_silent_mode">Перавызначыць бясшумны рэжым</string>
     <string name="override_silent_mode_desc">Прайграванне абвестак, калі тэлефон знаходзіцца ў бязгучным рэжыме.</string>
-    <string name="pair">Пара</string>
+    <string name="pair">Спалучыць</string>
     <string name="points">Ачкі</string>
     <string name="position_layout">Размяшчэнне і размяшчэнне</string>
     <string name="preview">Папярэдні прагляд</string>

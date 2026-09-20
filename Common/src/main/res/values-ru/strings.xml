@@ -827,6 +827,9 @@
     <string name="aidex_key_management_entry_desc">Управление ключами сенсоров и аккаунтом AiDex CN</string>
     <string name="aidex_key_missing">Ключ сопряжения отсутствует</string>
     <string name="aidex_key_rejected">Сохранённый ключ сопряжения отклонён; замените его</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Сохранённый ключ сопряжения отклонён — повторное сопряжение</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Сохранённый ключ сопряжения отклонён — нажмите «Сопряжение»</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Сопряжение не удалось — только трансляция</string>
     <string name="aidex_key_saved">Ключ сопряжения для датчика сохранён</string>
     <string name="aidex_key_fetch_action">Получить ключ из аккаунта</string>
     <string name="aidex_key_fetch_requires_sign_in">Войдите, чтобы загрузить ключ этого датчика.</string>
@@ -1356,7 +1359,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="offset">Смещение</string>
     <string name="override_silent_mode">Переопределить беззвучный режим</string>
     <string name="override_silent_mode_desc">Воспроизведение оповещений, когда телефон находится в беззвучном режиме.</string>
-    <string name="pair">Пара</string>
+    <string name="pair">Сопряжение</string>
     <string name="points">точек</string>
     <string name="position_layout">Расположение и планировка</string>
     <string name="preview">Предварительный просмотр</string>

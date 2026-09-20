@@ -758,6 +758,9 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="aidex_key_management_entry_desc">Sensör anahtarlarını ve AiDex CN hesabını yönetin</string>
     <string name="aidex_key_missing">Eşleştirme anahtarı eksik</string>
     <string name="aidex_key_rejected">Kaydedilen eşleştirme anahtarı reddedildi; değiştirin</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Kayıtlı eşleştirme anahtarı reddedildi — yeniden eşleştiriliyor</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Kayıtlı eşleştirme anahtarı reddedildi — Eşleştir’e dokunun</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Eşleştirme başarısız — yalnızca yayın</string>
     <string name="aidex_key_saved">Sensöre özel eşleştirme anahtarı kaydedildi</string>
     <string name="aidex_key_fetch_action">Hesaptan anahtar al</string>
     <string name="aidex_key_fetch_requires_sign_in">Bu sensörün anahtarını indirmek için giriş yapın.</string>
@@ -1347,7 +1350,7 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="offset">Ofset</string>
     <string name="override_silent_mode">Sessiz modu geçersiz kıl</string>
     <string name="override_silent_mode_desc">Telefon sessiz moddayken uyarıları çalın.</string>
-    <string name="pair">Çift</string>
+    <string name="pair">Eşleştir</string>
     <string name="points">Puanlar</string>
     <string name="position_layout">Konum ve düzen</string>
     <string name="preview">Önizleme</string>

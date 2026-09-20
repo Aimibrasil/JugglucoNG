@@ -653,6 +653,9 @@
     <string name="aidex_key_management_entry_desc">Gérez les clés des capteurs et le compte AiDex Chine</string>
     <string name="aidex_key_missing">Clé d’appairage manquante</string>
     <string name="aidex_key_rejected">Clé d’appairage enregistrée refusée ; remplacez-la</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Clé d’appairage enregistrée refusée — nouvel appairage</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Clé d’appairage enregistrée refusée — appuyez sur Appairer</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Échec de l’appairage — diffusion seule</string>
     <string name="aidex_key_saved">Clé d’appairage propre au capteur enregistrée</string>
     <string name="aidex_key_fetch_action">Obtenir la clé du compte</string>
     <string name="aidex_key_fetch_requires_sign_in">Connectez-vous pour télécharger la clé de ce capteur.</string>
@@ -1325,7 +1328,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="offset">Décalage</string>
     <string name="override_silent_mode">Remplacer le mode silencieux</string>
     <string name="override_silent_mode_desc">Jouez des alertes lorsque le téléphone est en mode silencieux.</string>
-    <string name="pair">Paire</string>
+    <string name="pair">Appairer</string>
     <string name="points">Points</string>
     <string name="position_layout">Position et disposition</string>
     <string name="preview">Aperçu</string>

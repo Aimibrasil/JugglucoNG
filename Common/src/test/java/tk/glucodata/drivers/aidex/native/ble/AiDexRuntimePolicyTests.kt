@@ -34,21 +34,37 @@ class AiDexRuntimePolicyTests {
             AiDexRuntimePolicy.PairKeyStartAction.USE_SAVED_KEY,
             AiDexRuntimePolicy.decidePairKeyStartAction(hasSavedPairKey = true, explicitPairRequested = true)
         )
-        // Nothing automatic replaces a key either, even after it has failed its retries.
+        // An unbonded phone never replaces a key on its own, even after it has failed its
+        // retries: the sensor refuses F001 while another device holds the bond slot.
         assertEquals(
             AiDexRuntimePolicy.PairKeyStartAction.USE_SAVED_KEY,
             AiDexRuntimePolicy.decidePairKeyStartAction(hasSavedPairKey = true, savedKeyExhausted = true)
         )
+        // Being bonded alone is not a reason to touch a key that still works.
+        assertEquals(
+            AiDexRuntimePolicy.PairKeyStartAction.USE_SAVED_KEY,
+            AiDexRuntimePolicy.decidePairKeyStartAction(hasSavedPairKey = true, bonded = true)
+        )
     }
 
     @Test
-    fun pairKeyStartAction_userPressingPairIsTheOnlyWayOffADeadSavedKey() {
+    fun pairKeyStartAction_deadSavedKeyIsReplacedByPairOrByTheBondedPhone() {
         assertEquals(
             AiDexRuntimePolicy.PairKeyStartAction.FRESH_PAIR,
             AiDexRuntimePolicy.decidePairKeyStartAction(
                 hasSavedPairKey = true,
                 savedKeyExhausted = true,
                 explicitPairRequested = true,
+            )
+        )
+        // The reporter's case: bond state 12, saved key rejected three times. This phone is
+        // the device the sensor accepts F001 from, so it re-pairs without a button press.
+        assertEquals(
+            AiDexRuntimePolicy.PairKeyStartAction.FRESH_PAIR,
+            AiDexRuntimePolicy.decidePairKeyStartAction(
+                hasSavedPairKey = true,
+                savedKeyExhausted = true,
+                bonded = true,
             )
         )
     }
@@ -62,6 +78,34 @@ class AiDexRuntimePolicyTests {
         assertEquals(
             AiDexRuntimePolicy.KeyExchangeFailureAction.BROADCAST_ONLY,
             AiDexRuntimePolicy.decideKeyExchangeFailureAction(3, 3)
+        )
+        // A fresh pair that keeps failing parks, bonded or not: there is no other key to try.
+        assertEquals(
+            AiDexRuntimePolicy.KeyExchangeFailureAction.BROADCAST_ONLY,
+            AiDexRuntimePolicy.decideKeyExchangeFailureAction(3, 3, usedSavedKey = false, bonded = true)
+        )
+    }
+
+    @Test
+    fun keyExchangeFailures_exhaustedSavedKeyOnABondedLinkIsReplacedNotParked() {
+        assertEquals(
+            AiDexRuntimePolicy.KeyExchangeFailureAction.RETRY_CLEAN_GATT,
+            AiDexRuntimePolicy.decideKeyExchangeFailureAction(2, 3, usedSavedKey = true, bonded = true)
+        )
+        assertEquals(
+            AiDexRuntimePolicy.KeyExchangeFailureAction.REPLACE_SAVED_KEY,
+            AiDexRuntimePolicy.decideKeyExchangeFailureAction(3, 3, usedSavedKey = true, bonded = true)
+        )
+        // Counters persist across a process death, so a count past the limit must not
+        // fall back into retrying.
+        assertEquals(
+            AiDexRuntimePolicy.KeyExchangeFailureAction.REPLACE_SAVED_KEY,
+            AiDexRuntimePolicy.decideKeyExchangeFailureAction(5, 3, usedSavedKey = true, bonded = true)
+        )
+        // Unbonded: the user decides, the status line tells them to press Pair.
+        assertEquals(
+            AiDexRuntimePolicy.KeyExchangeFailureAction.BROADCAST_ONLY,
+            AiDexRuntimePolicy.decideKeyExchangeFailureAction(3, 3, usedSavedKey = true, bonded = false)
         )
     }
 

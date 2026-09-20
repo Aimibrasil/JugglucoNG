@@ -819,6 +819,9 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="aidex_key_management_entry_desc">Sensorschlüssel und AiDex-CN-Konto verwalten</string>
     <string name="aidex_key_missing">Kopplungsschlüssel fehlt</string>
     <string name="aidex_key_rejected">Gespeicherter Kopplungsschlüssel abgelehnt; bitte ersetzen</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Gespeicherter Kopplungsschlüssel abgelehnt — erneute Kopplung</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Gespeicherter Kopplungsschlüssel abgelehnt — „Koppeln“ drücken</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Kopplung fehlgeschlagen — nur Broadcast</string>
     <string name="aidex_key_saved">Sensorspezifischer Kopplungsschlüssel gespeichert</string>
     <string name="aidex_key_fetch_action">Schlüssel vom Konto abrufen</string>
     <string name="aidex_key_fetch_requires_sign_in">Melde dich an, um den Schlüssel dieses Sensors herunterzuladen.</string>

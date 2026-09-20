@@ -1169,6 +1169,9 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="aidex_key_management_entry_desc">Maamul furayaasha dareemayaasha iyo akoonka AiDex CN</string>
     <string name="aidex_key_missing">Furaha isku-xidhka ayaa maqan</string>
     <string name="aidex_key_rejected">Furaha isku-xidhka la kaydiyey waa la diiday; beddel</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Furaha lammaanaynta ee kaydsan waa la diiday — dib ayaa loo lammaanaynayaa</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Furaha lammaanaynta ee kaydsan waa la diiday — riix Lammaanee</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Lammaanayntu way fashilantay — Baahinta kaliya</string>
     <string name="aidex_key_saved">Furaha isku-xidhka dareemaha waa la kaydiyey</string>
     <string name="aidex_key_fetch_action">Furaha ka hel akoonka</string>
     <string name="aidex_key_fetch_requires_sign_in">Soo gal si aad u soo dejiso furaha dareemahan.</string>
@@ -1623,7 +1626,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="offset">Deminta</string>
     <string name="override_silent_mode">Tirtir qaabka aamusnaanta</string>
     <string name="override_silent_mode_desc">Daar ogeysiisyada marka taleefanku ku jiro qaab aamusan.</string>
-    <string name="pair">Lammaane</string>
+    <string name="pair">Lammaanee</string>
     <string name="points">Qodobbada</string>
     <string name="position_layout">Booska iyo qaabka</string>
     <string name="preview">Horudhac</string>
