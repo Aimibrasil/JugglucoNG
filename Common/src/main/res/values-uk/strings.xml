@@ -718,6 +718,9 @@
     <string name="aidex_key_management_entry_desc">Керування ключами сенсорів і акаунтом AiDex CN</string>
     <string name="aidex_key_missing">Ключ сполучення відсутній</string>
     <string name="aidex_key_rejected">Збережений ключ сполучення відхилено; замініть його</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Збережений ключ спарювання відхилено — повторне спарювання</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Збережений ключ спарювання відхилено — натисніть «Спарювання»</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Спарювання не вдалося — лише трансляція</string>
     <string name="aidex_key_saved">Ключ сполучення для сенсора збережено</string>
     <string name="aidex_key_fetch_action">Отримати ключ з облікового запису</string>
     <string name="aidex_key_fetch_requires_sign_in">Увійдіть, щоб завантажити ключ цього сенсора.</string>
@@ -1333,7 +1336,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="offset">Зсув</string>
     <string name="override_silent_mode">Скасувати беззвучний режим</string>
     <string name="override_silent_mode_desc">Відтворювати сповіщення, коли телефон у беззвучному режимі.</string>
-    <string name="pair">Пара</string>
+    <string name="pair">Спарювання</string>
     <string name="points">Очки</string>
     <string name="position_layout">Розташування та компонування</string>
     <string name="preview">Попередній перегляд</string>

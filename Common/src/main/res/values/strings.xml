@@ -1236,6 +1236,9 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_key_management_entry_desc">Manage sensor keys and the AiDex CN account</string>
     <string name="aidex_key_missing">Pairing key missing</string>
     <string name="aidex_key_rejected">Saved pairing key rejected; replace it</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Stored pairing key rejected — pairing again</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Stored pairing key rejected — press Pair</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Pairing failed — Broadcast Only</string>
     <string name="aidex_key_saved">Sensor-specific pairing key saved</string>
     <string name="aidex_key_fetch_action">Get key from account</string>
     <string name="aidex_key_fetch_requires_sign_in">Sign in to download this sensor\'s key.</string>

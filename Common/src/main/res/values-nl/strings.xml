@@ -795,6 +795,9 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="aidex_key_management_entry_desc">Beheer sensorsleutels en het AiDex CN-account</string>
     <string name="aidex_key_missing">Koppelingssleutel ontbreekt</string>
     <string name="aidex_key_rejected">Opgeslagen koppelingssleutel geweigerd; vervang deze</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Opgeslagen koppelsleutel geweigerd — opnieuw koppelen</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Opgeslagen koppelsleutel geweigerd — druk op Koppelen</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Koppelen mislukt — alleen broadcast</string>
     <string name="aidex_key_saved">Sensorspecifieke koppelingssleutel opgeslagen</string>
     <string name="aidex_key_fetch_action">Sleutel ophalen uit account</string>
     <string name="aidex_key_fetch_requires_sign_in">Meld je aan om de sleutel van deze sensor te downloaden.</string>
@@ -1362,7 +1365,7 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="offset">Offset</string>
     <string name="override_silent_mode">Stille modus negeren</string>
     <string name="override_silent_mode_desc">Speel waarschuwingen af wanneer de telefoon in de stille modus staat.</string>
-    <string name="pair">Paar</string>
+    <string name="pair">Koppelen</string>
     <string name="points">Punten</string>
     <string name="position_layout">Positie en indeling</string>
     <string name="preview">Voorbeeld</string>

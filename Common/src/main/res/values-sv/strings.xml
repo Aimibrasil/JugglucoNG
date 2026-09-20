@@ -706,6 +706,9 @@
     <string name="aidex_key_management_entry_desc">Hantera sensornycklar och AiDex CN-kontot</string>
     <string name="aidex_key_missing">Parkopplingsnyckel saknas</string>
     <string name="aidex_key_rejected">Sparad parkopplingsnyckel avvisades; ersätt den</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Sparad parkopplingsnyckel avvisad — parkopplar igen</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Sparad parkopplingsnyckel avvisad — tryck på Parkoppla</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Parkoppling misslyckades — endast broadcast</string>
     <string name="aidex_key_saved">Sensorspecifik parkopplingsnyckel sparad</string>
     <string name="aidex_key_fetch_action">Hämta nyckel från konto</string>
     <string name="aidex_key_fetch_requires_sign_in">Logga in för att hämta nyckeln till den här sensorn.</string>
@@ -1319,7 +1322,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="offset">Offset</string>
     <string name="override_silent_mode">Åsidosätt tyst läge</string>
     <string name="override_silent_mode_desc">Spela upp varningar när telefonen är i tyst läge.</string>
-    <string name="pair">Par</string>
+    <string name="pair">Parkoppla</string>
     <string name="points">Poäng</string>
     <string name="position_layout">Position och layout</string>
     <string name="preview">Förhandsgranska</string>

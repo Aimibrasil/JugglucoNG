@@ -11,6 +11,8 @@ internal object AiDexRuntimePolicy {
 
     enum class KeyExchangeFailureAction {
         RETRY_CLEAN_GATT,
+        /** The saved key is dead and this phone holds the sensor's bond: replace it over F001. */
+        REPLACE_SAVED_KEY,
         BROADCAST_ONLY,
     }
 
@@ -36,27 +38,37 @@ internal object AiDexRuntimePolicy {
      * side; the sensor refuses that (BOND_NONE, then status 22).
      *
      * Without a saved key the sensor is paired fresh over F001, which is what makes it
-     * initiate pairing. A saved key that has failed [savedKeyExhausted] times is replaced
-     * only when the user presses Pair; nothing automatic rotates a stored credential.
+     * initiate pairing. A saved key that has failed its bounded retries ([savedKeyExhausted])
+     * is replaced over F001 when this phone is the sensor's bonded device — F001 on a bonded
+     * link is exactly what every pre-1.2.0 connection did — or when the user presses Pair.
+     * An unbonded phone never runs F001 on its own: the sensor refuses it while another
+     * device holds the bond slot, so there the user decides.
      */
     fun decidePairKeyStartAction(
         hasSavedPairKey: Boolean,
         savedKeyExhausted: Boolean = false,
         explicitPairRequested: Boolean = false,
+        bonded: Boolean = false,
     ): PairKeyStartAction = when {
         !hasSavedPairKey -> PairKeyStartAction.FRESH_PAIR
-        explicitPairRequested && savedKeyExhausted -> PairKeyStartAction.FRESH_PAIR
+        savedKeyExhausted && (explicitPairRequested || bonded) -> PairKeyStartAction.FRESH_PAIR
         else -> PairKeyStartAction.USE_SAVED_KEY
     }
 
-    /** Both saved-key reconnects and fresh pairs retry through a clean GATT this many times. */
+    /**
+     * Both saved-key reconnects and fresh pairs retry through a clean GATT this many times.
+     * Once a saved key has used up its retries on a bonded link it is replaced over F001
+     * rather than parked; anything else holds in broadcast-only until the user acts.
+     */
     fun decideKeyExchangeFailureAction(
         consecutiveFailures: Int,
         maxFailures: Int,
-    ): KeyExchangeFailureAction = if (consecutiveFailures >= maxFailures) {
-        KeyExchangeFailureAction.BROADCAST_ONLY
-    } else {
-        KeyExchangeFailureAction.RETRY_CLEAN_GATT
+        usedSavedKey: Boolean = false,
+        bonded: Boolean = false,
+    ): KeyExchangeFailureAction = when {
+        consecutiveFailures < maxFailures -> KeyExchangeFailureAction.RETRY_CLEAN_GATT
+        usedSavedKey && bonded -> KeyExchangeFailureAction.REPLACE_SAVED_KEY
+        else -> KeyExchangeFailureAction.BROADCAST_ONLY
     }
 
     fun shouldClearPersistedPairKey(deleteBondPending: Boolean, responseStatus: Int): Boolean =

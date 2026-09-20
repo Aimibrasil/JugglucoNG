@@ -608,6 +608,9 @@
     <string name="aidex_key_management_entry_desc">Gerir chaves dos sensores e a conta AiDex CN</string>
     <string name="aidex_key_missing">Chave de emparelhamento em falta</string>
     <string name="aidex_key_rejected">Chave de emparelhamento guardada rejeitada; substitua-a</string>
+    <string name="aidex_status_saved_key_rejected_repairing">Chave de emparelhamento guardada rejeitada — a emparelhar novamente</string>
+    <string name="aidex_status_saved_key_rejected_press_pair">Chave de emparelhamento guardada rejeitada — toque em Emparelhar</string>
+    <string name="aidex_status_pairing_failed_broadcast_only">Emparelhamento falhou — apenas difusão</string>
     <string name="aidex_key_saved">Chave de emparelhamento específica do sensor guardada</string>
     <string name="aidex_key_fetch_action">Obter chave da conta</string>
     <string name="aidex_key_fetch_requires_sign_in">Inicie sessão para transferir a chave deste sensor.</string>
@@ -1320,7 +1323,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="offset">Deslocamento</string>
     <string name="override_silent_mode">Substituir o modo silencioso</string>
     <string name="override_silent_mode_desc">Reproduza alertas quando o telefone estiver no modo silencioso.</string>
-    <string name="pair">Par</string>
+    <string name="pair">Emparelhar</string>
     <string name="points">Pontos</string>
     <string name="position_layout">Posição e layout</string>
     <string name="preview">Visualização</string>
