@@ -726,6 +726,8 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="only_alert_during_hours">Yalnizca secili saatlerde uyar</string>
     <string name="other_alerts">Sensör ve bağlantı</string>
     <string name="predictive_alerts">Eğilimler ve tahminler</string>
+    <string name="preemptive_snooze">Onleyici erteleme</string>
+    <string name="preemptive_snooze_desc">Tetiklenmeden once uyarilari ertele</string>
     <string name="notification_dismiss_action_dismiss">Kapat</string>
     <string name="notification_dismiss_action_snooze">Ertele</string>
     <string name="realert_if_not_dismissed">Kapatilmazsa tekrar uyar</string>

@@ -749,6 +749,8 @@
     <string name="only_alert_during_hours">Alarmuj tylko w wybranych godzinach</string>
     <string name="other_alerts">Czujnik i połączenie</string>
     <string name="predictive_alerts">Trendy i prognozy</string>
+    <string name="preemptive_snooze">Wstepne odlozenie</string>
+    <string name="preemptive_snooze_desc">Odkładaj alarmy zanim sie uruchomia</string>
     <string name="notification_dismiss_action_dismiss">Odrzuc</string>
     <string name="notification_dismiss_action_snooze">Odloz</string>
     <string name="realert_if_not_dismissed">Ponow alarm, jesli nie odrzucono</string>

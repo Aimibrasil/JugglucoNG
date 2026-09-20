@@ -786,6 +786,8 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="only_alert_during_hours">Nur während ausgewählter Stunden alarmieren</string>
     <string name="other_alerts">Sensor und Verbindung</string>
     <string name="predictive_alerts">Trends und Vorhersagen</string>
+    <string name="preemptive_snooze">Vorbeugendes Schlummern</string>
+    <string name="preemptive_snooze_desc">Alarme vor dem Auslösen schlummern</string>
     <string name="notification_dismiss_action_dismiss">Verwerfen</string>
     <string name="notification_dismiss_action_snooze">Schlummern</string>
     <string name="realert_if_not_dismissed">Erneut alarmieren, wenn nicht verworfen</string>

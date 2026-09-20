@@ -686,6 +686,8 @@
     <string name="only_alert_during_hours">仅在所选时段警报</string>
     <string name="other_alerts">传感器与连接</string>
     <string name="predictive_alerts">趋势与预测</string>
+    <string name="preemptive_snooze">预先稍后提醒</string>
+    <string name="preemptive_snooze_desc">在触发前先暂停警报</string>
     <string name="notification_dismiss_action_dismiss">关闭</string>
     <string name="notification_dismiss_action_snooze">稍后提醒</string>
     <string name="realert_if_not_dismissed">未关闭则再次提醒</string>

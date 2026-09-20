@@ -686,6 +686,8 @@
     <string name="only_alert_during_hours">Сповіщати лише у вибрані години</string>
     <string name="other_alerts">Датчик і з\'єднання</string>
     <string name="predictive_alerts">Тренди та прогнози</string>
+    <string name="preemptive_snooze">Превентивне відкладання</string>
+    <string name="preemptive_snooze_desc">Відкладати сповіщення до їх спрацювання</string>
     <string name="notification_dismiss_action_dismiss">Закрити</string>
     <string name="notification_dismiss_action_snooze">Відкласти</string>
     <string name="realert_if_not_dismissed">Повторювати, якщо не відхилено</string>

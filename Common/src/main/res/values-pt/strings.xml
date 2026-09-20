@@ -574,6 +574,8 @@
     <string name="only_alert_during_hours">Alertar somente durante as horas selecionadas</string>
     <string name="other_alerts">Sensor e ligação</string>
     <string name="predictive_alerts">Tendências e previsões</string>
+    <string name="preemptive_snooze">Soneca preventiva</string>
+    <string name="preemptive_snooze_desc">Adiar alertas antes de dispararem</string>
     <string name="notification_dismiss_action_dismiss">Dispensar</string>
     <string name="notification_dismiss_action_snooze">Adiar</string>
     <string name="realert_if_not_dismissed">Alertar novamente se nao descartado</string>
