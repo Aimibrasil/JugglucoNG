@@ -85,4 +85,17 @@ class AnytimeCt2ProfileTests {
     fun aKnownAdvertisedNameBeatsTheSerial() {
         assertEquals("SN08-device", AnytimeConstants.resolveHandshakeName("", "SN08-device", "SN08402178"))
     }
+
+    @Test
+    fun warmupGateIsSampleBased() {
+        val anchor = 1_000_000L
+        val window = 60 * 60_000L
+        assertTrue(AnytimeConstants.isWithinWarmup(anchor, anchor + window - 1, window))
+        assertFalse(AnytimeConstants.isWithinWarmup(anchor, anchor + window, window))
+        // No authoritative anchor, no sample, or no window disables the gate rather
+        // than blanking readings on a guess.
+        assertFalse(AnytimeConstants.isWithinWarmup(0L, anchor + 1, window))
+        assertFalse(AnytimeConstants.isWithinWarmup(anchor, 0L, window))
+        assertFalse(AnytimeConstants.isWithinWarmup(anchor, anchor + 1, 0L))
+    }
 }

@@ -308,8 +308,11 @@ or `−term`; the 376 terms are organised in several groups with different scale
 
 ## CT3 native track (added 2026-09-16)
 
-Status: shipped-blob P1/P2 first pass done (2026-09-16) — full CT3 chain
-decompiled on the actual shipped lib, oracle harness runs. No Kotlin code yet. CT3 is the
+Status (2026-09-18): **P1–P4 done; PAUSED at P5.** Full CT3 chain decompiled on the
+shipped lib, Kotlin port `AnytimeNativeAlgorithm.kt` validated against the Unicorn oracle
+(200/200, worst `5.8e-6`), wired `NATIVE-PORT → LINEAR` (see work log). **P5 (live
+validation) is blocked until a real SN16 (CT3) sensor capture exists — do not resume CT3
+work without one.** CT3 is the
 product's primary target (`SN16` = CT3 4/4H) and the one family with **no
 fallback of its own**: with the vendor `.so` absent it drops to `computeLinear`
 (a K/R straight line, `AnytimeConstants.kt:339`). The vendor path is still
@@ -730,3 +733,22 @@ Implemented:
   All `AnytimeNativeCt3Tests` pass, including the state round-trip; the
   `tk.glucodata.drivers.anytime.*` suite is green. Remaining for CT3: P5 live
   validation against a real SN16 capture (oracle replay is already done).
+- 2026-09-18: **CT3/CT4 native stage diff + CT2.5 mapping; CT3 paused pending sensor.**
+  Decompiled the full shipped CT4 chain via Ghidra headless (`scripts/DecompPair.java`;
+  output `ct3_ct4_decomp_clean.c`, 27 functions, 0 failures). Verdict: one framework,
+  shared **by address** — stats `SUTC_SD_GE3_PD5` (CT3 via the veneer `SUTC_SD_GE3` =
+  `mov w1,0x14; b …`), PULSE, the whole error chain, resets, and the `27.8/(1.7)/500/31`
+  output clamp. CT4-only: `rfbNsvpyGtgj` (4180 B), `itf_eiulayltu_M/L_TD4`,
+  `wntrul_ycxhy_ME4`, `pjshs_gprylsn_ND4`, `wfyLbpjipfwnvrDxlxf_LA4`, `gprsfrthrnrs_*`.
+  Localised diffs: temperature (CT3 differential two-clamp vs CT4 absolute piecewise),
+  limiter (`wntrulThgs_NG3` 3-stage vs `NG4` 1-stage), background (`…_NG3` 476 B vs
+  `gbqfvpbacV_NG4` 716 B), trend (CT3 10-pt ±0.11/0.06 vs CT4 6-pt poly/945 ±2.0/1.0),
+  gain ramp (CT3 120/320/600, `K0·1.35` vs CT4 480, `K0·1.2`, `0.9+id/4800`).
+  `MK4_FINAL_SUMMARY.md` is directionally right but under-describes CT4 (`temp_mul` is
+  one branch; `1.35` also used). CT2.5 (Juggluco `Family.CT2_5`, SN30/32/36/38/40,
+  `algorithm=7`) = shipped `yqidui_PX2J_44G` (1856 B) → body `emlrsmuokMrif_ND2K_44C`
+  (952 B), the "2A / 4.4V" (`_44G`) generation; `algorithmMain` case 7 confirmed, not a
+  distinct kernel (id 7 is also used by some CT2 prefixes). Artifacts:
+  `anytime-native/ct3_ct4_stage_diff.md`, `ct3_ct4_decomp_clean.c`, `ct4_decomp.log`,
+  `scripts/DecompPair.java`, `scripts/DecompDispatch.java`. **STOPPED: CT3-P5 (live
+  validation) blocked until a real SN16 capture; no other CT3 code changes pending.**

@@ -1807,11 +1807,32 @@ class AnytimeBleManager(
         return lastLiveFrameAtMs > 0L || glucoseTimelineStartAtMs > 0L
     }
 
-    private fun ct5WarmupRemainingMs(): Long {
-        val start = warmupStartedAtMs.takeIf { it > 0L }
+    /**
+     * Authoritative activation instant the warm-up gate is allowed to trust. All three
+     * sources are derived from real protocol data (a live glucose id, the glucose
+     * timeline, or the check-frame start); 0 means "no anchor", which disables the gate
+     * rather than feeding it a provisional — the same rule `OttaiConstants.isWithinWarmup`
+     * documents.
+     */
+    private fun warmupAnchorMs(): Long =
+        warmupStartedAtMs.takeIf { it > 0L }
             ?: glucoseTimelineStartAtMs.takeIf { it > 0L }
             ?: sensorStartAtMs.takeIf { it > 0L }
-            ?: return -1L
+            ?: 0L
+
+    /**
+     * True while the sensor is inside its rated warm-up window and its readings are
+     * not trustworthy yet. Sample-based (see [AnytimeConstants.isWithinWarmup]) so the
+     * live path and a later backfill of the same records agree.
+     *
+     * CT2/CT3/CT4 run an in-tree model from the very first frame; CT5's firmware
+     * computes nothing before its own window, so the same sample gate covers both.
+     */
+    private fun isWarmingUp(nowMs: Long = System.currentTimeMillis()): Boolean =
+        AnytimeConstants.isWithinWarmup(warmupAnchorMs(), nowMs, profile.warmupMs())
+
+    private fun warmupRemainingMs(): Long {
+        val start = warmupAnchorMs().takeIf { it > 0L } ?: return -1L
         return (start + profile.warmupMs() - System.currentTimeMillis()).coerceAtLeast(0L)
     }
 
@@ -3904,7 +3925,7 @@ class AnytimeBleManager(
             if (idAdvanced) lastGlucoseId = record.glucoseId
             persistAlgorithmState()
             if (!idAdvanced && emitCt5RawEstimate(record, now, intervalMs)) return
-            val remainingMin = ct5WarmupRemainingMs().takeIf { it >= 0L }?.let { (it + 59_999L) / 60_000L } ?: -1L
+            val remainingMin = warmupRemainingMs().takeIf { it >= 0L }?.let { (it + 59_999L) / 60_000L } ?: -1L
             Log.i(
                 TAG,
                 String.format(
@@ -4280,6 +4301,22 @@ class AnytimeBleManager(
         history: Boolean,
         skipHistoryImport: Boolean = false,
     ): Boolean {
+        // Warm-up gate: hold back readings the model has not settled for yet, so they
+        // never reach Nightscout/watch/notifications or the app's own history. CT5
+        // produces nothing during warm-up already; CT2/CT3/CT4 model from the very
+        // first frame, so they need this explicit hold. Sample-based (not wall-clock),
+        // so a later backfill of the same ids reaches the same verdict.
+        if (AnytimeConstants.isWithinWarmup(warmupAnchorMs(), sampleMs, profile.warmupMs())) {
+            if (live) {
+                val now = System.currentTimeMillis()
+                lastLiveFrameAtMs = now
+                noteLiveFrameWithoutReading(now)
+                armNoDataWatchdog()
+                UiRefreshBus.requestStatusRefresh()
+                Log.i(TAG, "Warm-up: holding live id=${result.glucoseId} (no reading published yet)")
+            }
+            return false
+        }
         val rawMgdl = if (result.rawMgdl.isNaN()) result.mgdl else result.rawMgdl
         if (result.errorCode != 0 || result.mgdlTimes10 < 170) {
             if (live || !history) {
@@ -5483,7 +5520,7 @@ class AnytimeBleManager(
 
     private fun warmingUpStatus(): String {
         val context = Applic.app
-        val remainingMs = ct5WarmupRemainingMs()
+        val remainingMs = warmupRemainingMs()
         if (context == null) return "Warming up"
         return if (remainingMs > 0L) {
             val minutes = ((remainingMs + 59_999L) / 60_000L).toInt()
@@ -5532,7 +5569,7 @@ class AnytimeBleManager(
             Phase.CONNECTING -> "Connecting"
             Phase.DISCOVERING -> "Discovering"
             Phase.HANDSHAKING -> "Handshaking"
-            Phase.STREAMING -> if (isCt5WarmingUp()) {
+            Phase.STREAMING -> if (isWarmingUp()) {
                 warmingUpStatus()
             } else if (historyBackfillActive) {
                 historyProgressStatus()
