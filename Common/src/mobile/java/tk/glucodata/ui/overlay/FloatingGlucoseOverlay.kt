@@ -352,20 +352,25 @@ fun FloatingGlucoseOverlay(
     
     // ROOT LAYOUT: Column for vertical offset spacer
     if (isDynamicIsland) {
+        // Clip and click the pill itself, not the offset wrapper: the wrapper is
+        // taller by the offset spacer, so its corner radius clamps differently
+        // from the pill's own Surface and its arc cut into the bottom corners.
+        val pillModifier = Modifier
+            .clip(finalShape)
+            .clickable(
+                interactionSource = overlayInteractionSource,
+                indication = overlayIndication
+            ) { launchIntent?.let { context.startActivity(it) } }
         CutoutOffsetLayout(
             edge = cutoutEdge,
             offset = verticalOffset.dp,
             modifier = Modifier
                 .wrapContentSize()
                 .then(dragModifier)
-                .clip(finalShape)
-                .clickable(
-                    interactionSource = overlayInteractionSource,
-                    indication = overlayIndication
-                ) { launchIntent?.let { context.startActivity(it) } }
         ) {
             if (isVerticalIsland) {
                 AsymmetricCenteringColumn(
+                    modifier = pillModifier,
                     gap = finalGap,
                     horizontalAlignment = Alignment.CenterHorizontally,
                     backgroundContent = {
@@ -399,6 +404,7 @@ fun FloatingGlucoseOverlay(
                 }
             } else {
                 AsymmetricCenteringRow(
+                    modifier = pillModifier,
                     gap = finalGap,
                     verticalAlignment = Alignment.CenterVertically,
                     backgroundContent = {
