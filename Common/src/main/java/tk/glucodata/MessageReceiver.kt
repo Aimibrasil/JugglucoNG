@@ -234,6 +234,11 @@ class MessageReceiver: WearableListenerService() {
                      WearToggleSync.pushTo(messageEvent.sourceNodeId)
                  }
                 }
+             MessageSender.MAIN_SENSOR_CMD_PATH -> {
+                 // The watch chose a sensor; the phone follows, and the
+                 // preferences it pushes on the change carry the result back.
+                 if (!isWearable) WearSensorSelectionSync.onCommand(data)
+                }
              MessageSender.WEAR_PREFS_PATH -> {
                  // The phone owns these settings; the watch only mirrors them,
                  // so smoothing and prediction behave the same on both.

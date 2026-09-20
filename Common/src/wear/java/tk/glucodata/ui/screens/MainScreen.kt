@@ -61,8 +61,14 @@ import tk.glucodata.ui.components.TrendArrowCanvas
 
 private const val TICK_MS = 30_000L
 
+// Resolved for the selection's primary, not for whatever native calls current:
+// with two sensors syncing the latter changed with every chunk.
 private fun currentSnapshot(): CurrentDisplaySource.Snapshot? =
-    runCatching { CurrentDisplaySource.resolveCurrent() }.getOrNull()
+    runCatching {
+        CurrentDisplaySource.resolveCurrent(
+            preferredSensorId = tk.glucodata.ui.WearSensorSelection.resolve(),
+        )
+    }.getOrNull()
 
 private fun sensorPresent(): Boolean = runCatching {
     Natives.activeSensors()?.isNotEmpty() == true

@@ -418,7 +418,7 @@ internal object ComplicationRenderer {
         if (cached.isNotEmpty() && now - sparkCacheAt < SPARK_CACHE_MS) return cached
         val from = now - SPARK_WINDOW_MS
         val points = runCatching {
-            val sensor = NotificationHistorySource.resolveSensorSerial()
+            val sensor = tk.glucodata.ui.WearSensorSelection.resolve()
             val lane = primaryLane(sensor)
             NotificationHistorySource.getDisplayHistory(from, isMmol, sensor)
                 .filter { it.timestamp in from..now }
