@@ -664,6 +664,8 @@
     <string name="only_alert_during_hours">Апавяшчаць толькі ў выбраныя гадзіны</string>
     <string name="other_alerts">Датчык і злучэнне</string>
     <string name="predictive_alerts">Трэнды і прагнозы</string>
+    <string name="preemptive_snooze">Папераджальнае адкладанне</string>
+    <string name="preemptive_snooze_desc">Адкласці апавяшчэнні да іх спрацоўвання</string>
     <string name="notification_dismiss_action_dismiss">Закрыць</string>
     <string name="notification_dismiss_action_snooze">Адкласці</string>
     <string name="realert_if_not_dismissed">Паўтараць, калі не адхілена</string>

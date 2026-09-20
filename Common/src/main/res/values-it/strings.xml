@@ -547,6 +547,8 @@
     <string name="only_alert_during_hours">Avvisa solo nelle ore selezionate</string>
     <string name="other_alerts">Sensore e connessione</string>
     <string name="predictive_alerts">Tendenze e previsioni</string>
+    <string name="preemptive_snooze">Snooze preventivo</string>
+    <string name="preemptive_snooze_desc">Posticipa gli avvisi prima che si attivino</string>
     <string name="notification_dismiss_action_dismiss">Ignora</string>
     <string name="notification_dismiss_action_snooze">Posticipa</string>
     <string name="realert_if_not_dismissed">Ripeti se non ignorato</string>

@@ -1126,6 +1126,8 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="only_alert_during_hours">Зөвхөн сонгосон цагуудад анхааруулах</string>
     <string name="other_alerts">Мэдрэгч ба холболт</string>
     <string name="predictive_alerts">Чиг хандлага ба таамаглал</string>
+    <string name="preemptive_snooze">Урьдчилан сэргийлэх түр зогсолт</string>
+    <string name="preemptive_snooze_desc">Дохио идэвхжихээс өмнө түр зогсоох</string>
     <string name="realert_if_not_dismissed">Хэрэв хаахгүй бол дахин анхааруулах</string>
     <string name="retry_constantly">Тасралтгүй</string>
     <string name="retry_every">Дахин оролдох давтамж</string>

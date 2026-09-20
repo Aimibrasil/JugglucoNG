@@ -621,6 +621,8 @@
     <string name="only_alert_during_hours">Alerter seulement pendant les heures selectionnees</string>
     <string name="other_alerts">Capteur et connexion</string>
     <string name="predictive_alerts">Tendances et prévisions</string>
+    <string name="preemptive_snooze">Snooze preventif</string>
+    <string name="preemptive_snooze_desc">Mettre en snooze les alertes avant leur declenchement</string>
     <string name="notification_dismiss_action_dismiss">Ignorer</string>
     <string name="notification_dismiss_action_snooze">Répéter</string>
     <string name="realert_if_not_dismissed">Realerter si non ignoree</string>

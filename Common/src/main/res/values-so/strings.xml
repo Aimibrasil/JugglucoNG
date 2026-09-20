@@ -1329,6 +1329,8 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="only_alert_during_hours">Kaliya digtoonow saacadaha la doortay</string>
     <string name="other_alerts">Dareemaha iyo xiriirka</string>
     <string name="predictive_alerts">Isbeddellada iyo saadaasha</string>
+    <string name="preemptive_snooze">Hurdo ka horraysa</string>
+    <string name="preemptive_snooze_desc">Hurdo digniinaha ka hor inta aysan kicin</string>
     <string name="notification_dismiss_action_dismiss">Eryi</string>
     <string name="notification_dismiss_action_snooze">Hurdo</string>
     <string name="realert_if_not_dismissed">Dib-u-wargelinta haddii aan la dirin</string>
