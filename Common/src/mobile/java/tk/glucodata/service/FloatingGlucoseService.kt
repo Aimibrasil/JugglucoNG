@@ -149,14 +149,16 @@ class FloatingGlucoseService : Service(), LifecycleOwner, ViewModelStoreOwner, S
                     applyOverlayPlacement()
                 }
             }
+        }.apply {
+            // Compose resolves the window recomposer's lifecycle from the window's
+            // rootView, which is this container now — the owners have to live here.
+            setViewTreeLifecycleOwner(this@FloatingGlucoseService)
+            setViewTreeViewModelStoreOwner(this@FloatingGlucoseService)
+            setViewTreeSavedStateRegistryOwner(this@FloatingGlucoseService)
         }
         overlayRoot = root
 
         composeView = ComposeView(this).apply {
-            setViewTreeLifecycleOwner(this@FloatingGlucoseService)
-            setViewTreeViewModelStoreOwner(this@FloatingGlucoseService)
-            setViewTreeSavedStateRegistryOwner(this@FloatingGlucoseService)
-
             setContent {
                 FloatingGlucoseOverlay(
                     repository = settingsRepository,
