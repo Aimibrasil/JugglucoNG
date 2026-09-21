@@ -19,11 +19,9 @@ import java.util.Locale
  */
 class HistoryRowDeltaTests {
 
-    private val nowMillis = 1_700_000_000_000L
-    private val minute = 60_000L
-
-    // The "Δ" text follows the device locale's decimal separator; these tests
-    // assert a literal ".", so pin the locale rather than the host's.
+    // readingDeltaTexts formats through GlucoseDelta.format, which follows the device
+    // locale's decimal separator (DashboardReadingDeltaTests hit this on a comma-decimal
+    // host). These tests assert a literal ".", so pin the locale rather than the host's.
     private val originalLocale: Locale = Locale.getDefault()
 
     @Before
@@ -35,6 +33,9 @@ class HistoryRowDeltaTests {
     fun restoreLocale() {
         Locale.setDefault(originalLocale)
     }
+
+    private val nowMillis = 1_700_000_000_000L
+    private val minute = 60_000L
 
     /** Oldest-first, like the history screen's sorted history. */
     private fun oneMinuteCadence(
