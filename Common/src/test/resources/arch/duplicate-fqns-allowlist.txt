@@ -15,7 +15,6 @@ tk.glucodata.Display
 tk.glucodata.FloatingConfig
 tk.glucodata.Gadgetbridge
 tk.glucodata.GlucoseAlarms
-tk.glucodata.GlucoseWidget
 tk.glucodata.HealthConnection
 tk.glucodata.IOB
 tk.glucodata.LaunchShit
