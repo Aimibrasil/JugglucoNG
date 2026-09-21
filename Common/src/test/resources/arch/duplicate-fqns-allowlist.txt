@@ -10,7 +10,6 @@
 # Removed so far: tk.glucodata.receivers.AlarmLaunchReceiver (T5.1).
 tk.glucodata.BluetoothGlucoseMeter
 tk.glucodata.Dialogs
-tk.glucodata.Display
 tk.glucodata.FloatingConfig
 tk.glucodata.Gadgetbridge
 tk.glucodata.GlucoseAlarms
@@ -25,7 +24,6 @@ tk.glucodata.Nightscout
 tk.glucodata.NovoPen.Scan
 tk.glucodata.Specific
 tk.glucodata.Stats
-tk.glucodata.UseWifi
 tk.glucodata.Watch
 tk.glucodata.WearOngoingActivity
 tk.glucodata.XInfuus
