@@ -30,14 +30,77 @@ object WearSensorSelectionSync {
     private const val ACTION_PRIMARY = "primary"
     private const val ACTION_TOGGLE = "toggle"
 
+    /**
+     * True when native holds a record for [sensorId], under the id itself or
+     * the native spelling of it. A read-only lookup: [Natives.getdataptr] would
+     * create a record for an unknown id.
+     */
+    @JvmStatic
+    fun hasLocalRecord(sensorId: String?): Boolean = localName(sensorId) != null
+
+    /**
+     * The spelling native knows [sensorId] by, or null when it holds no record.
+     * The phone lists a managed sensor by its canonical id (`SIBI:…`); the
+     * watch's store has it under the short native name the chunks carried.
+     */
+    @JvmStatic
+    fun localName(sensorId: String?): String? {
+        val raw = sensorId?.trim()?.takeIf { SensorIdentity.isUsableSensorId(it) } ?: return null
+        if (nativeIndex(raw) >= 0) return raw
+        val native = runCatching { SensorIdentity.resolveNativeSensorName(raw) }.getOrNull()
+            ?.trim()?.takeIf { it.isNotEmpty() && !it.equals(raw, ignoreCase = true) }
+        if (native != null && nativeIndex(native) >= 0) return native
+        return null
+    }
+
+    private fun nativeIndex(name: String): Int =
+        runCatching { Natives.getSensorIndex(name) }.getOrDefault(-1)
+
+    /**
+     * Every sensor that could be displayed here.
+     *
+     * On the watch that includes the phone's selection, for as long as the
+     * sensor has a record here. Native's "active" list is a streaming
+     * heuristic — last poll within a day, still within its rated life and so
+     * on — that comes and goes for a sensor whose readings arrive by sync;
+     * filtering the selection by it made the second sensor blink in and out
+     * of the chart and the list.
+     */
+    @JvmStatic
+    fun candidates(primary: String?): List<String?> {
+        val out = ArrayList(NotificationMultiSensorSource.candidateSensorIds(primary))
+        if (Applic.isWearable) {
+            runCatching { MultiSensorSelection.selectedOrder() }.getOrDefault(emptyList())
+                .mapNotNull(::localName)
+                .forEach(out::add)
+        }
+        return out
+    }
+
     /** The sensors this device displays, primary first, as the phone lists them. */
     @JvmStatic
     fun selected(fallbackPrimary: String? = null): List<String> {
-        val primary = runCatching { SensorIdentity.resolveMainSensor() }.getOrNull()
-            ?.takeIf { it.isNotBlank() }
+        // The mirrored order names the primary; native's own idea of "main"
+        // only breaks the tie when the phone has not said.
+        val storedPrimary = if (Applic.isWearable) {
+            runCatching { MultiSensorSelection.selectedOrder() }.getOrDefault(emptyList())
+                .firstNotNullOfOrNull(::localName)
+        } else {
+            null
+        }
+        val primary = storedPrimary
+            ?: runCatching { SensorIdentity.resolveMainSensor() }.getOrNull()?.takeIf { it.isNotBlank() }
             ?: fallbackPrimary
-        return runCatching { NotificationMultiSensorSource.selectedSensorIds(primary) }
+        val candidates = candidates(primary)
+        val selected = runCatching { MultiSensorSelection.selectedAvailable(candidates, primary) }
             .getOrDefault(emptyList())
+        // Stored ids come back as the phone spells them; hand out the spelling
+        // this device's store answers to.
+        return selected.map { id ->
+            localName(id)
+                ?: candidates.firstOrNull { it != null && SensorIdentity.matches(it, id) && hasLocalRecord(it) }
+                ?: id
+        }
     }
 
     /** The sensor the screens draw first. */
@@ -126,10 +189,7 @@ object WearSensorSelectionSync {
 
     private fun applyPrimary(serial: String) {
         runCatching {
-            MultiSensorSelection.moveToFront(
-                serial,
-                NotificationMultiSensorSource.candidateSensorIds(serial),
-            )
+            MultiSensorSelection.moveToFront(serial, candidates(serial))
             SensorBluetooth.setCurrentSensorSelection(serial)
             // The phone reads its history from Room; the sensor list's own
             // tap merges the new primary's native history in, so this does too.
@@ -143,7 +203,7 @@ object WearSensorSelectionSync {
             val currentPrimary = SensorIdentity.resolveMainSensor()
             val selected = MultiSensorSelection.toggle(
                 sensorId = serial,
-                availableSensorIds = NotificationMultiSensorSource.candidateSensorIds(currentPrimary),
+                availableSensorIds = candidates(currentPrimary),
                 primarySensorId = currentPrimary,
             )
             // Hiding the primary hands the role to the next shown sensor.

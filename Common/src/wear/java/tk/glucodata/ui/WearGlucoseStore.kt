@@ -274,6 +274,7 @@ object WearGlucoseStore {
         // whatever native called "main" showed one sensor's readings under
         // another's mode as soon as the user pinned a second sensor.
         val viewMode = viewModeFor(sensor)
+        if (Log.doLog) Log.i(TAG, "selection ${WearSensorSelection.selected()} primary=$sensor mode=$viewMode")
         val isRawMode = viewMode == 1 || viewMode == 3
         val rawPoints = runCatching {
             NotificationHistorySource.getDisplayHistory(horizonStart, isMmol, sensor)
@@ -324,6 +325,9 @@ object WearGlucoseStore {
                 NotificationHistorySource.getDisplayHistory(from, isMmol, peer)
             }.getOrDefault(emptyList())
                 .filter { it.timestamp in from..now && it.value.isFinite() && it.value > 0f }
+            if (Log.doLog) {
+                Log.i(TAG, "peer $peer mode=$viewMode points=${raw.size} last=${raw.lastOrNull()?.let { "${it.value}/${it.rawValue}" } ?: "-"}")
+            }
             if (raw.isEmpty()) return@mapNotNull null
             PeerSeries(
                 sensorId = peer,

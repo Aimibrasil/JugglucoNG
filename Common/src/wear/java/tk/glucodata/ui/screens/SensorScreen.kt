@@ -88,7 +88,11 @@ private fun loadSensors(): List<SensorRow> = runCatching {
         .filter { managedId ->
             visible.any { candidate -> tk.glucodata.SensorIdentity.matches(managedId, candidate) }
         }
-    val ordered = managed + connected + active
+    // A sensor the phone displays stays listed for as long as it has a record
+    // here, whatever native's streaming heuristic says about it today.
+    val ordered = managed + connected + active + selected.filter {
+        tk.glucodata.WearSensorSelectionSync.hasLocalRecord(it)
+    }
     val kept = tk.glucodata.SensorIdentity.distinctLogicalSensorIds(ordered)
     fun selectionIndex(id: String): Int =
         selected.indexOfFirst { tk.glucodata.SensorIdentity.matches(id, it) }
@@ -277,8 +281,10 @@ fun SensorScreen(onCalibrate: () -> Unit, onOpenSettings: (() -> Unit)? = null) 
                         SensorDetailRow(stringResource(R.string.sensor_started), dateFormat.format(Date(it)))
                     }
                     details.lastReadingMs.takeIf { it > 0L }?.let {
+                        // A reading stamped by the phone can sit a few seconds
+                        // ahead of this clock; "in 0 minutes" is not an age.
                         val age = DateUtils.getRelativeTimeSpanString(
-                            it,
+                            minOf(it, now),
                             now,
                             DateUtils.MINUTE_IN_MILLIS,
                         ).toString()
