@@ -53,6 +53,12 @@ jobs:
             :Common:testWearDebugUnitTest \
             --stacktrace
 
+      # T0.3: none of the architecture-debt counts may grow. The baseline in
+      # docs/architecture/metrics-baseline.json only goes down, so improvements
+      # stick and new coupling is visible immediately.
+      - name: Architecture debt ratchet
+        run: ./scripts/arch-metrics.sh --check
+
       # Only on failure, and only the reports -- the HTML report is what makes a
       # red build readable, and it is a few hundred KB.
       - name: Upload test reports
