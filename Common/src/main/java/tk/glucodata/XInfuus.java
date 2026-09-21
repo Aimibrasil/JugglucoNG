@@ -43,6 +43,8 @@ private static long lastActivatedStartSec;
     }
 
 static public void setlibrenames() {
+	if(Applic.isWearable)
+		return;
 	librenames=Natives.librelinkRecepters();
 	}
 
@@ -66,8 +68,11 @@ static public void setlibrenames() {
     }
 
     */
-public static final String glucoseaction="com.librelink.app.ThirdPartyIntegration.GLUCOSE_READING";
+public static final String glucoseaction=
+	Applic.isWearable ? "" : "com.librelink.app.ThirdPartyIntegration.GLUCOSE_READING";
 public static void sendGlucoseBroadcast(String serial, double currentGlucose,float rate,long mmsec,long sensorStartmsec) {
+	if(Applic.isWearable)
+		return;
 	final Context context=Applic.app;
         final String stableSerial = SensorIdentity.resolveAppSensorId(serial) != null
                 ? SensorIdentity.resolveAppSensorId(serial)
@@ -120,6 +125,8 @@ public static void sendGlucoseBroadcast(String serial, double currentGlucose,flo
     }
 
     public static void sendSensorActivateBroadcast(Context context,String serial,long startsec) {
+        if(Applic.isWearable)
+            return;
         maybeSendSensorActivateBroadcast(context, serial, startsec);
     } 
 }
