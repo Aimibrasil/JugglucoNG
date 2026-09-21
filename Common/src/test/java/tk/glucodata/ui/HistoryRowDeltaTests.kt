@@ -1,11 +1,14 @@
 package tk.glucodata.ui
 
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
 /**
  * The history screen's reading rows carry the dashboard's "Δ": [RowDeltaIndex] is
@@ -18,6 +21,20 @@ class HistoryRowDeltaTests {
 
     private val nowMillis = 1_700_000_000_000L
     private val minute = 60_000L
+
+    // The "Δ" text follows the device locale's decimal separator; these tests
+    // assert a literal ".", so pin the locale rather than the host's.
+    private val originalLocale: Locale = Locale.getDefault()
+
+    @Before
+    fun useDotDecimalLocale() {
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun restoreLocale() {
+        Locale.setDefault(originalLocale)
+    }
 
     /** Oldest-first, like the history screen's sorted history. */
     private fun oneMinuteCadence(

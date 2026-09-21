@@ -61,7 +61,9 @@ public class CloneRecoveryMigrationTests {
     private Connection db() throws Exception {
         Class.forName("org.sqlite.JDBC");
         Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");
-        String source = Files.readString(ROOT.resolve("Common/build/generated/ksp/mobileRelease/kotlin/tk/glucodata/data/HistoryDatabase_Impl.kt"));
+        // The schema is the same for both mobile variants; read the one this task builds,
+        // so the test does not depend on a release KSP run having happened first.
+        String source = Files.readString(ROOT.resolve("Common/build/generated/ksp/mobileDebug/kotlin/tk/glucodata/data/HistoryDatabase_Impl.kt"));
         source = source.substring(source.indexOf("override fun createAllTables"), source.indexOf("override fun dropAllTables"));
         Matcher sql = Pattern.compile("connection\\.execSQL\\(\"([^\"]*)\"\\)").matcher(source);
         int count = 0;

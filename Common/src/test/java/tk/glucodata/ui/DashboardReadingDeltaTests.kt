@@ -1,9 +1,12 @@
 package tk.glucodata.ui
 
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
 import tk.glucodata.GlucoseDelta
+import java.util.Locale
 
 /**
  * The per-row "Δ" column of the dashboard readings list is the hero readout
@@ -18,6 +21,20 @@ class DashboardReadingDeltaTests {
 
     private val nowMillis = 1_700_000_000_000L
     private val minute = 60_000L
+
+    // The "Δ" text follows the device locale's decimal separator; these tests
+    // assert a literal ".", so pin the locale rather than the host's.
+    private val originalLocale: Locale = Locale.getDefault()
+
+    @Before
+    fun useDotDecimalLocale() {
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun restoreLocale() {
+        Locale.setDefault(originalLocale)
+    }
 
     /** Oldest-first, like the hero's history input. */
     private fun oneMinuteCadence(count: Int, valueAt: (minutesAgo: Int) -> Float): List<GlucosePoint> =
