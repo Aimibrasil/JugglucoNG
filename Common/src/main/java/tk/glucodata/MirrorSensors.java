@@ -79,6 +79,11 @@ private static void confirmFinish(MainActivity act,long ptr) {
     }
 private static boolean isVisible=false;
 static void show(MainActivity act) {
+    if (Applic.isWearable) {
+        // The watch has no mirror-sensors screen. The class lives in main so
+        // that both flavours compile the call; this is the one flavour branch.
+        return;
+    }
     if(isVisible)
         return;
     long[] ptrs=Natives.activeSensorPtrs();
