@@ -271,7 +271,7 @@ private fun nodeSendmessage(node:Node,path:String,data:ByteArray) {
     public fun requestToggles() {
         sendmessage(TOGGLE_REQ_PATH, byteArrayOf(1))
      }
-    /** Watch: asks the phone to make a sensor the primary one, as its sensor list does. */
+    /** Watch: asks the phone to change its sensor selection (primary, or shown/hidden). */
     public fun sendMainSensorCommand(data:ByteArray) {
         sendmessage(MAIN_SENSOR_CMD_PATH,data)
      }

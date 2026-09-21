@@ -16,13 +16,19 @@ package tk.glucodata
  * choice, not an input to it: [alignCurrentSensor] moves it to the primary
  * whenever a chunk lands or the mirrored order changes.
  *
- * Choosing a sensor on the watch goes the other way: [requestPrimary] applies
- * it locally, so it takes effect at once and works with the phone out of reach,
- * and asks the phone to make the same choice. The phone applies and pushes its
- * preferences back, which is how the two converge if it disagreed.
+ * Choosing on the watch goes the other way. [requestPrimary] and
+ * [requestToggle] are the phone's own two controls — promote a sensor to the
+ * primary, show or hide a sensor on the chart — applied locally, so they take
+ * effect at once and work with the phone out of reach, then asked of the phone.
+ * The phone applies and pushes its preferences back, which is how the two
+ * converge if it disagreed.
  */
 object WearSensorSelectionSync {
     private const val LOG_ID = "WearSensorSelectionSync"
+
+    /** Wire: `<action>:<serial>`, one command per message. */
+    private const val ACTION_PRIMARY = "primary"
+    private const val ACTION_TOGGLE = "toggle"
 
     /** The sensors this device displays, primary first, as the phone lists them. */
     @JvmStatic
@@ -58,32 +64,64 @@ object WearSensorSelectionSync {
     }
 
     /**
-     * Makes [serial] the primary sensor. Applied here first, then asked of the
-     * phone; on the phone itself this is what the sensor list's tap does.
+     * Makes [serial] the primary sensor — what tapping a peer's chip on the
+     * phone's hero does. Applied here first, then asked of the phone.
      */
     @JvmStatic
     fun requestPrimary(serial: String?) {
         val target = serial?.trim()?.takeIf { SensorIdentity.isUsableSensorId(it) } ?: return
         applyPrimary(target)
-        if (Applic.isWearable) {
-            runCatching {
-                MessageSender.getMessageSender()
-                    ?.sendMainSensorCommand(target.toByteArray(Charsets.UTF_8))
-            }.onFailure { Log.stack(LOG_ID, "requestPrimary", it) }
-        }
+        send(ACTION_PRIMARY, target)
+    }
+
+    /**
+     * Shows or hides [serial] on the chart — the check on the phone's sensor
+     * card. The last shown sensor cannot be hidden, and hiding the primary
+     * promotes the next one, exactly as [MultiSensorSelection.toggle] does it.
+     */
+    @JvmStatic
+    fun requestToggle(serial: String?) {
+        val target = serial?.trim()?.takeIf { SensorIdentity.isUsableSensorId(it) } ?: return
+        applyToggle(target)
+        send(ACTION_TOGGLE, target)
+    }
+
+    private fun send(action: String, serial: String) {
+        if (!Applic.isWearable) return
+        runCatching {
+            MessageSender.getMessageSender()
+                ?.sendMainSensorCommand(encodeCommand(action, serial).toByteArray(Charsets.UTF_8))
+        }.onFailure { Log.stack(LOG_ID, "send $action", it) }
+    }
+
+    @JvmStatic
+    fun encodeCommand(action: String, serial: String): String = "$action:$serial"
+
+    /** `(action, serial)`, or null when the payload is not a command this build knows. */
+    @JvmStatic
+    fun decodeCommand(payload: String?): Pair<String, String>? {
+        val text = payload?.trim() ?: return null
+        val split = text.indexOf(':')
+        // A bare serial is the first build's "make primary".
+        val action = if (split <= 0) ACTION_PRIMARY else text.substring(0, split)
+        val serial = (if (split <= 0) text else text.substring(split + 1)).trim()
+        if (action != ACTION_PRIMARY && action != ACTION_TOGGLE) return null
+        if (!SensorIdentity.isUsableSensorId(serial)) return null
+        return action to serial
     }
 
     /** Phone: applies a watch's choice. The pushed preferences carry the result back. */
     @JvmStatic
     fun onCommand(data: ByteArray?) {
         if (Applic.isWearable) return
-        val serial = data?.toString(Charsets.UTF_8)?.trim()
-            ?.takeIf { SensorIdentity.isUsableSensorId(it) }
-        if (serial == null) {
-            Log.w(LOG_ID, "ignoring unusable main-sensor command")
+        val (action, serial) = decodeCommand(data?.toString(Charsets.UTF_8)) ?: run {
+            Log.w(LOG_ID, "ignoring unusable sensor-selection command")
             return
         }
-        applyPrimary(serial)
+        when (action) {
+            ACTION_PRIMARY -> applyPrimary(serial)
+            ACTION_TOGGLE -> applyToggle(serial)
+        }
     }
 
     private fun applyPrimary(serial: String) {
@@ -98,5 +136,24 @@ object WearSensorSelectionSync {
             if (!Applic.isWearable) HistorySyncAccess.mergeFullSyncForSensor(serial)
             UiRefreshBus.requestDataRefresh()
         }.onFailure { Log.stack(LOG_ID, "applyPrimary", it) }
+    }
+
+    private fun applyToggle(serial: String) {
+        runCatching {
+            val currentPrimary = SensorIdentity.resolveMainSensor()
+            val selected = MultiSensorSelection.toggle(
+                sensorId = serial,
+                availableSensorIds = NotificationMultiSensorSource.candidateSensorIds(currentPrimary),
+                primarySensorId = currentPrimary,
+            )
+            // Hiding the primary hands the role to the next shown sensor.
+            selected.firstOrNull()?.let { primary ->
+                if (!SensorIdentity.matches(currentPrimary, primary)) {
+                    SensorBluetooth.setCurrentSensorSelection(primary)
+                    if (!Applic.isWearable) HistorySyncAccess.mergeFullSyncForSensor(primary)
+                }
+            }
+            UiRefreshBus.requestDataRefresh()
+        }.onFailure { Log.stack(LOG_ID, "applyToggle", it) }
     }
 }

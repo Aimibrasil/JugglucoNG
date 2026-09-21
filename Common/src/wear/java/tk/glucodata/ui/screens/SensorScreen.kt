@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -53,6 +57,8 @@ private data class SensorRow(
     /** The primary: the one the chart, the hero and the complications show. */
     val isCurrent: Boolean,
     val isConnected: Boolean,
+    /** On the chart at all — the primary or a peer. */
+    val isShown: Boolean,
     /** Drawn beside the primary on the chart, in this colour. */
     val peerColorArgb: Int? = null,
 )
@@ -95,6 +101,7 @@ private fun loadSensors(): List<SensorRow> = runCatching {
                 serial = id,
                 isCurrent = isCurrent,
                 isConnected = connected.any { tk.glucodata.SensorIdentity.matches(it, id) },
+                isShown = isCurrent || selectionIndex(id) != Int.MAX_VALUE,
                 peerColorArgb = if (!isCurrent && selectionIndex(id) != Int.MAX_VALUE) {
                     tk.glucodata.ui.WearSensorSelection.colorOf(id, colors)
                 } else {
@@ -162,10 +169,17 @@ fun SensorScreen(onCalibrate: () -> Unit, onOpenSettings: (() -> Unit)? = null) 
                 val details = remember(row, revision, now / SENSOR_TICK_MS) {
                     loadWearSensorPresentation(row.serial, now)
                 }
-                // Tapping a sensor makes it the primary here and on the phone,
-                // as the phone's own sensor list does.
                 val displayed = displayedSensor != null &&
                     tk.glucodata.SensorIdentity.matches(displayedSensor, row.serial)
+                // The check is the phone's sensor-card control: it shows or
+                // hides the sensor on the chart. With one sensor there is
+                // nothing to hide, so the card is not offered as pressable.
+                val selectable = sensors.size > 1
+                val identityColor = when {
+                    displayed || row.isCurrent -> MaterialTheme.colorScheme.primary
+                    row.peerColorArgb != null -> androidx.compose.ui.graphics.Color(row.peerColorArgb)
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
                 Column(
                     Modifier.fillMaxWidth()
                         // Clip before the background and the click, so the ripple
@@ -177,7 +191,7 @@ fun SensorScreen(onCalibrate: () -> Unit, onOpenSettings: (() -> Unit)? = null) 
                         )
                         .combinedClickable(
                             onClick = {
-                                if (!displayed) tk.glucodata.ui.WearSensorSelection.makePrimary(row.serial)
+                                if (selectable) tk.glucodata.ui.WearSensorSelection.toggle(row.serial)
                             },
                             // Long press offers to drop a sensor this watch holds
                             // on its own, which the phone cannot remove for it.
@@ -186,17 +200,32 @@ fun SensorScreen(onCalibrate: () -> Unit, onOpenSettings: (() -> Unit)? = null) 
                         .padding(horizontal = 14.dp, vertical = 13.dp),
                 ) {
                     // The primary in the accent, a peer in the colour its trace
-                    // has on the chart, so the list doubles as the legend.
-                    Text(
-                        text = details.serial,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = when {
-                            displayed || row.isCurrent -> MaterialTheme.colorScheme.primary
-                            row.peerColorArgb != null -> androidx.compose.ui.graphics.Color(row.peerColorArgb)
-                            else -> MaterialTheme.colorScheme.onSurface
-                        },
-                    )
+                    // has on the chart, so the list doubles as the legend; a
+                    // hidden sensor is muted, as on the phone.
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        if (selectable) {
+                            androidx.wear.compose.material3.Icon(
+                                imageVector = if (row.isShown) {
+                                    Icons.Rounded.CheckCircle
+                                } else {
+                                    Icons.Rounded.RadioButtonUnchecked
+                                },
+                                contentDescription = stringResource(
+                                    if (row.isShown) R.string.sensor_display_selected
+                                    else R.string.sensor_display_select,
+                                ),
+                                tint = if (row.isShown) identityColor else identityColor.copy(alpha = 0.55f),
+                                modifier = Modifier.padding(end = 6.dp).size(18.dp),
+                            )
+                        }
+                        Text(
+                            text = details.serial,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selectable && !row.isShown) identityColor.copy(alpha = 0.6f) else identityColor,
+                            maxLines = 1,
+                        )
+                    }
                     if (forgetTarget == row.serial) {
                         androidx.wear.compose.material3.Button(
                             onClick = {

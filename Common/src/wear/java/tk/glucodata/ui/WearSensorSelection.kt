@@ -16,9 +16,11 @@ import tk.glucodata.WearSensorSelectionSync
  *
  * The phone's selection ([tk.glucodata.MultiSensorSelection]) is mirrored here
  * with the display preferences; the first entry is the primary, the rest are
- * drawn beside it as peers. Tapping a sensor asks the phone to make it the
- * primary, and applies that at once so the watch does not wait on the round
- * trip.
+ * drawn beside it as peers. The watch has the phone's two controls and no
+ * others: a sensor can be shown or hidden ([toggle], the check on the phone's
+ * sensor card) and a peer can be promoted to the primary ([makePrimary], the
+ * peer chip on the phone's hero). Both apply at once and are then asked of the
+ * phone, so the watch does not wait on the round trip.
  */
 object WearSensorSelection {
     private const val TAG = "WearSensorSelection"
@@ -44,12 +46,26 @@ object WearSensorSelection {
     fun colorOf(sensorId: String?, colors: Map<String, Int> = colors()): Int? =
         colors.entries.firstOrNull { (selected, _) -> SensorIdentity.matches(selected, sensorId) }?.value
 
+    /** True when [sensorId] is one of the sensors on show. */
+    @JvmStatic
+    fun isShown(sensorId: String?): Boolean =
+        selected().any { SensorIdentity.matches(it, sensorId) }
+
     /** Makes [sensorId] the primary, here and on the phone. */
     @JvmStatic
     fun makePrimary(sensorId: String?) {
         val serial = sensorId?.trim()?.takeIf { it.isNotEmpty() } ?: return
         Log.i(TAG, "primary sensor -> $serial")
         WearSensorSelectionSync.requestPrimary(serial)
+        WearGlucoseStore.refresh(force = true)
+    }
+
+    /** Shows or hides [sensorId] on the chart, here and on the phone. */
+    @JvmStatic
+    fun toggle(sensorId: String?) {
+        val serial = sensorId?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        Log.i(TAG, "toggle shown sensor $serial")
+        WearSensorSelectionSync.requestToggle(serial)
         WearGlucoseStore.refresh(force = true)
     }
 }

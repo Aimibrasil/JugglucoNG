@@ -45,3 +45,38 @@ class WearPrefsSyncCodecTests {
         }
     }
 }
+
+/**
+ * The watch's two selection commands on the wire. The first build sent a bare
+ * serial meaning "make primary"; that still has to decode, and anything else
+ * unrecognised must be dropped rather than applied as something.
+ */
+class WearSensorSelectionCommandTests {
+
+    @Test
+    fun bothActionsRoundTrip() {
+        assertEquals(
+            "primary" to "X-222227KT3T",
+            WearSensorSelectionSync.decodeCommand(WearSensorSelectionSync.encodeCommand("primary", "X-222227KT3T")),
+        )
+        assertEquals(
+            "toggle" to "P225043JMV",
+            WearSensorSelectionSync.decodeCommand(WearSensorSelectionSync.encodeCommand("toggle", "P225043JMV")),
+        )
+    }
+
+    @Test
+    fun aBareSerialStillMeansMakePrimary() {
+        assertEquals("primary" to "P225043JMV", WearSensorSelectionSync.decodeCommand("P225043JMV"))
+        assertEquals("primary" to "P225043JMV", WearSensorSelectionSync.decodeCommand("  P225043JMV\n"))
+    }
+
+    @Test
+    fun unknownActionsAndUnusableSerialsAreDropped() {
+        assertEquals(null, WearSensorSelectionSync.decodeCommand("forget:P225043JMV"))
+        assertEquals(null, WearSensorSelectionSync.decodeCommand("toggle:"))
+        assertEquals(null, WearSensorSelectionSync.decodeCommand("toggle:  "))
+        assertEquals(null, WearSensorSelectionSync.decodeCommand(""))
+        assertEquals(null, WearSensorSelectionSync.decodeCommand(null))
+    }
+}

@@ -235,8 +235,9 @@ class MessageReceiver: WearableListenerService() {
                  }
                 }
              MessageSender.MAIN_SENSOR_CMD_PATH -> {
-                 // The watch chose a sensor; the phone follows, and the
-                 // preferences it pushes on the change carry the result back.
+                 // The watch changed its sensor selection; the phone follows,
+                 // and the preferences it pushes on the change carry the
+                 // result back.
                  if (!isWearable) WearSensorSelectionSync.onCommand(data)
                 }
              MessageSender.WEAR_PREFS_PATH -> {
