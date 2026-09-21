@@ -53,6 +53,8 @@ static private final String LOG_ID="Battery";
 
 
 static void batteryscreen(MainActivity context,View parent ) {
+	if(isWearable)
+		return;
 	if(parent!=null)
 		parent.setVisibility(INVISIBLE);
 if(!isWearable) {

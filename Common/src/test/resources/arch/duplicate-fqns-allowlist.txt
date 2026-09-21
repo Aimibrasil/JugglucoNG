@@ -8,7 +8,6 @@
 # fixed but not removed from the list, so the guard would stop noticing it).
 #
 # Removed so far: tk.glucodata.receivers.AlarmLaunchReceiver (T5.1).
-tk.glucodata.Battery
 tk.glucodata.BluetoothGlucoseMeter
 tk.glucodata.Dialogs
 tk.glucodata.Display
