@@ -22,4 +22,12 @@ object CustomAlertManagerController : CustomAlertController {
     override fun dismissAlert(alertId: String) {
         CustomAlertManager.dismissAlert(alertId)
     }
+
+    override fun snoozeAlert(alertId: String, snoozeMinutes: Int) {
+        CustomAlertManager.snoozeAlert(alertId, snoozeMinutes)
+    }
+
+    override fun ignoreAlert(alertId: String) {
+        CustomAlertManager.ignoreAlert(alertId)
+    }
 }
