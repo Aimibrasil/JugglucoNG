@@ -1,11 +1,14 @@
 package tk.glucodata.ui
 
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
 /**
  * The history screen's reading rows carry the dashboard's "Δ": [RowDeltaIndex] is
@@ -15,6 +18,21 @@ import org.junit.Test
  * pairs with another sensor's point.
  */
 class HistoryRowDeltaTests {
+
+    // readingDeltaTexts formats through GlucoseDelta.format, which follows the device
+    // locale's decimal separator (DashboardReadingDeltaTests hit this on a comma-decimal
+    // host). These tests assert a literal ".", so pin the locale rather than the host's.
+    private val originalLocale: Locale = Locale.getDefault()
+
+    @Before
+    fun useDotDecimalLocale() {
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun restoreLocale() {
+        Locale.setDefault(originalLocale)
+    }
 
     private val nowMillis = 1_700_000_000_000L
     private val minute = 60_000L
