@@ -103,13 +103,17 @@ jobs:
       # does so four times over. All-ABI coverage belongs in nightly -- do not
       # read a green run here as proof that armeabi-v7a/x86/x86_64 still build.
       #
-      # assembleMobileRelease is in here for R8: minifyEnabled and shrinkResources
-      # are on for release, and a missing keep rule only ever fails there.
-      - name: Assemble phone debug, wear debug and phone release
+      # assembleMobileRelease and assembleWearRelease are here for R8: minifyEnabled
+      # and shrinkResources are on for release, and a missing keep rule only ever
+      # fails there. T5.1 (plan §2.2) moved phone-only classes into src/main for
+      # the first time, so they now go through R8 on the watch side too -- until
+      # this step existed, nobody built a minified watch APK at all.
+      - name: Assemble phone debug, wear debug, phone release and wear release
         run: |
           ./gradlew \
             :Common:assembleMobileDebug \
             :Common:assembleWearDebug \
             :Common:assembleMobileRelease \
+            :Common:assembleWearRelease \
             -PjugglucoAbi=arm64-v8a \
             --stacktrace
