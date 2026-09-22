@@ -328,6 +328,13 @@ kotlin {
     }
 }
 
+// Room schema export (plan task H1). The JSON under Common/schemas/ is the
+// contract the migration tests compare against; it is committed, and CI fails if
+// a build changes it without that change being committed.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 

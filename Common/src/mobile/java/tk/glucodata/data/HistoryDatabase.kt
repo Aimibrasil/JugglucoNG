@@ -77,7 +77,7 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
         CloneRecoveryImportEntity::class
     ],
     version = 32,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class HistoryDatabase : RoomDatabase() {
     
