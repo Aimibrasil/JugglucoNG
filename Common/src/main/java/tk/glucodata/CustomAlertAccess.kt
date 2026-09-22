@@ -70,15 +70,32 @@ object CustomAlertAccess {
     }
 
     /**
-     * Wear alarm actions. The controller interface only exposes dismissal, so
-     * snooze stops the current alarm and relies on the engine's own re-trigger
-     * spacing; a per-alert timed snooze needs a controller-level API first.
+     * Snooze and ignore are what the notification actions need beyond dismissal.
+     * Like the rest, they no-op when no engine is registered (the watch has none).
      */
     @JvmStatic
-    fun snoozeAlert(alertId: String, snoozeMinutes: Int): Boolean = dismissAlert(alertId)
+    fun snoozeAlert(alertId: String, snoozeMinutes: Int): Boolean {
+        val target = controller
+        if (target == null) {
+            warnMissing("snoozeAlert")
+            return false
+        }
+        return runCatching { target.snoozeAlert(alertId, snoozeMinutes); true }
+            .onFailure { Log.stack(LOG_ID, "snoozeAlert", it) }
+            .getOrDefault(false)
+    }
 
     @JvmStatic
-    fun ignoreAlert(alertId: String): Boolean = dismissAlert(alertId)
+    fun ignoreAlert(alertId: String): Boolean {
+        val target = controller
+        if (target == null) {
+            warnMissing("ignoreAlert")
+            return false
+        }
+        return runCatching { target.ignoreAlert(alertId); true }
+            .onFailure { Log.stack(LOG_ID, "ignoreAlert", it) }
+            .getOrDefault(false)
+    }
 
     // Deliberately not behind doLog: without the engine registered, custom alerts do not fire at
     // all. That is precisely the failure that went unnoticed for as long as this was reflection.

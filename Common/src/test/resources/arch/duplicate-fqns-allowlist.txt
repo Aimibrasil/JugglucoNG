@@ -28,7 +28,6 @@ tk.glucodata.WearOngoingActivity
 tk.glucodata.glucosecomplication.ColorConfig
 tk.glucodata.glucosecomplication.GlucoseValue
 tk.glucodata.nums.AllData
-tk.glucodata.receivers.AlarmActionReceiver
 tk.glucodata.settings.LabelsClass
 tk.glucodata.settings.LibreNumbers
 tk.glucodata.settings.SetColors

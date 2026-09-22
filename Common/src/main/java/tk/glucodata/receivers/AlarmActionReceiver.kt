@@ -12,9 +12,9 @@ import tk.glucodata.alerts.AlertType
 import tk.glucodata.alerts.SnoozeManager
 
 /**
- * Handles notification actions for alerts (snooze, dismiss) on the watch.
- * Wear counterpart of the mobile receiver; custom alerts go through the
- * reflective CustomAlertAccess shim (no-op when CustomAlertManager is absent).
+ * Handles notification actions for alerts (snooze, dismiss, ignore) on both
+ * flavours. Custom alerts go through [CustomAlertAccess], which forwards to the
+ * engine the phone registers at startup and no-ops where none is registered.
  */
 class AlarmActionReceiver : BroadcastReceiver() {
 

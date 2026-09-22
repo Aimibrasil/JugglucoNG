@@ -21,4 +21,8 @@ interface CustomAlertController {
     )
 
     fun dismissAlert(alertId: String)
+
+    fun snoozeAlert(alertId: String, snoozeMinutes: Int)
+
+    fun ignoreAlert(alertId: String)
 }
