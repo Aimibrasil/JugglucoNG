@@ -570,6 +570,150 @@ class AiDexRuntimePolicyTests {
     }
 
     @Test
+    fun cccdStartDelay_holdsTheFirstWriteUntilTheMtuBearerHasBeenQuiet() {
+        // Reconnect on a cached GATT db: services discovered ~50ms after our MTU callback,
+        // the sensor's own exchange still to come. Wait out the rest of the window.
+        assertEquals(
+            700L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 10_000L, nowMs = 10_050L, settleMs = 750L)
+        )
+        // First connect: full discovery took longer than the window, write immediately.
+        assertEquals(
+            0L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 10_000L, nowMs = 11_200L, settleMs = 750L)
+        )
+        assertEquals(
+            0L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 10_000L, nowMs = 10_750L, settleMs = 750L)
+        )
+    }
+
+    @Test
+    fun cccdStartDelay_noMtuCallbackMeansNoHold() {
+        // Stack never delivered onMtuChanged and the fallback started discovery.
+        assertEquals(
+            0L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 0L, nowMs = 10_050L, settleMs = 750L)
+        )
+    }
+
+    @Test
+    fun cccdStartDelay_clockStepBackwardsWaitsAFullWindow() {
+        assertEquals(
+            750L,
+            AiDexRuntimePolicy.cccdStartDelayMs(lastMtuCallbackAtMs = 10_000L, nowMs = 9_000L, settleMs = 750L)
+        )
+    }
+
+    @Test
+    fun mtuExchangeCrossedPendingCccd_onlyWhileAChainWriteIsOutstanding() {
+        assertTrue(
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = AiDexBleManager.Phase.CCCD_CHAIN,
+                cccdWriteInProgress = true,
+                hasPendingCccd = true,
+            )
+        )
+        // Chain queued but not started: the settle window simply restarts.
+        assertFalse(
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = AiDexBleManager.Phase.CCCD_CHAIN,
+                cccdWriteInProgress = false,
+                hasPendingCccd = false,
+            )
+        )
+        // Our own first exchange, before discovery.
+        assertFalse(
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = AiDexBleManager.Phase.DISCOVERING_SERVICES,
+                cccdWriteInProgress = false,
+                hasPendingCccd = false,
+            )
+        )
+        // Post-key-exchange CCCD re-registration is not the setup chain.
+        assertFalse(
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = AiDexBleManager.Phase.KEY_EXCHANGE,
+                cccdWriteInProgress = true,
+                hasPendingCccd = true,
+            )
+        )
+    }
+
+    @Test
+    fun decideMissingCccdCallbackAction_reconnectsAtTheFirstWindowWhenAnMtuExchangeCrossedTheWrite() {
+        assertEquals(
+            AiDexRuntimePolicy.MissingCccdCallbackAction.RECOVER_WEDGED_GATT,
+            AiDexRuntimePolicy.decideMissingCccdCallbackAction(
+                cccdWriteInProgress = true,
+                hasPendingCccd = true,
+                timeoutRetries = 0,
+                maxRetries = 1,
+                canInferComplete = true,
+                mtuExchangeCrossedWrite = true,
+            )
+        )
+        // The callback did arrive after all: nothing pending, nothing to recover.
+        assertEquals(
+            AiDexRuntimePolicy.MissingCccdCallbackAction.IGNORE,
+            AiDexRuntimePolicy.decideMissingCccdCallbackAction(
+                cccdWriteInProgress = false,
+                hasPendingCccd = false,
+                timeoutRetries = 0,
+                maxRetries = 1,
+                canInferComplete = true,
+                mtuExchangeCrossedWrite = true,
+            )
+        )
+    }
+
+    @Test
+    fun shortBondRead_isRereadOnceThenCountsAsAKeyExchangeFailure() {
+        // 19:52 journal: unbonded phone, saved key, F002 answers a lone 00 and the sensor
+        // hangs up 7s later. Before this the loop never touched keyExchangeFailures.
+        assertEquals(
+            AiDexRuntimePolicy.ShortBondReadAction.ACCEPT,
+            AiDexRuntimePolicy.decideShortBondReadAction(replyLength = 17, rereads = 0, maxRereads = 1)
+        )
+        assertEquals(
+            AiDexRuntimePolicy.ShortBondReadAction.REREAD,
+            AiDexRuntimePolicy.decideShortBondReadAction(replyLength = 1, rereads = 0, maxRereads = 1)
+        )
+        assertEquals(
+            AiDexRuntimePolicy.ShortBondReadAction.FAIL_KEY_EXCHANGE,
+            AiDexRuntimePolicy.decideShortBondReadAction(replyLength = 1, rereads = 1, maxRereads = 1)
+        )
+        assertEquals(
+            AiDexRuntimePolicy.ShortBondReadAction.ACCEPT,
+            AiDexRuntimePolicy.decideShortBondReadAction(replyLength = 17, rereads = 1, maxRereads = 1)
+        )
+    }
+
+    @Test
+    fun refusedBondRead_endsInPressPairForAnUnbondedPhoneAndReplaceForABondedOne() {
+        // Three refusals on an unbonded link: hold in broadcast-only, tell the user to Pair;
+        // the Pair button then runs FRESH_PAIR because the saved key is exhausted.
+        assertEquals(
+            AiDexRuntimePolicy.KeyExchangeFailureAction.BROADCAST_ONLY,
+            AiDexRuntimePolicy.decideKeyExchangeFailureAction(
+                consecutiveFailures = 3, maxFailures = 3, usedSavedKey = true, bonded = false,
+            )
+        )
+        assertEquals(
+            AiDexRuntimePolicy.PairKeyStartAction.FRESH_PAIR,
+            AiDexRuntimePolicy.decidePairKeyStartAction(
+                hasSavedPairKey = true, savedKeyExhausted = true, explicitPairRequested = true, bonded = false,
+            )
+        )
+        assertEquals(
+            AiDexRuntimePolicy.KeyExchangeFailureAction.REPLACE_SAVED_KEY,
+            AiDexRuntimePolicy.decideKeyExchangeFailureAction(
+                consecutiveFailures = 3, maxFailures = 3, usedSavedKey = true, bonded = true,
+            )
+        )
+    }
+
+    @Test
     fun decideMissingCccdCallbackAction_waitsThenAssumesComplete() {
         assertEquals(
             AiDexRuntimePolicy.MissingCccdCallbackAction.WAIT,

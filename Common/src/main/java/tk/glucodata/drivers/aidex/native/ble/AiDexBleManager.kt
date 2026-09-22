@@ -199,6 +199,16 @@ class AiDexBleManager(
          * latched, and every later GATT op on that link is rejected until we reconnect.
          */
         private const val MTU_CALLBACK_FALLBACK_MS = 2_000L
+        /**
+         * Quiet time required after the last `onMtuChanged` before the first CCCD write goes
+         * out. The sensor runs a second, peer-initiated MTU exchange shortly after connect; a
+         * Write Request outstanding when it lands never completes and wedges the GATT. See
+         * [AiDexRuntimePolicy.cccdStartDelayMs].
+         */
+        private const val MTU_SETTLE_BEFORE_CCCD_MS = 750L
+        /** Re-reads allowed when F002 returns something other than the 17-byte BOND vector. */
+        private const val BOND_READ_MAX_REREADS = 1
+        private const val BOND_REREAD_DELAY_MS = 400L
         private const val DISCOVERY_RETRY_DELAY_MS = 1_500L
         private const val DISCOVERY_MAX_RETRIES = 2
         private const val HISTORY_PAGE_TIMEOUT_MS = 25_000L
@@ -343,6 +353,12 @@ class AiDexBleManager(
     private var servicesReady = false
     /** Guards against discovering twice when the MTU callback and its fallback both fire. */
     private var serviceDiscoveryStarted = false
+    /** Wall time of the most recent `onMtuChanged` on this connection, ours or the sensor's. */
+    private var lastMtuCallbackAtMs = 0L
+    /** Set when an `onMtuChanged` lands on top of the pending CCCD write; see the watchdog. */
+    private var mtuExchangeCrossedPendingCccd = false
+    /** F002 BOND reads on this connection that came back short (not 17 bytes). */
+    private var shortBondReads = 0
     private var cccdQueue = ArrayDeque<UUID>() // Characteristics to enable notifications on
     private var cccdWriteInProgress = false
     private var cccdChainComplete = false
@@ -564,6 +580,13 @@ class AiDexBleManager(
         beginServiceDiscovery(gatt, "mtu-callback-timeout")
     }
 
+    /** Deferred first CCCD write; runs once the MTU bearer has been quiet long enough. */
+    private val cccdChainStartAfterMtuSettle: Runnable = Runnable {
+        val gatt = mBluetoothGatt ?: return@Runnable
+        if (phase != Phase.CCCD_CHAIN || cccdWriteInProgress || cccdQueue.isEmpty()) return@Runnable
+        writeNextCccd(gatt)
+    }
+
     /** Watchdog: Android must callback after descriptor writes, but some stacks drop CCCD callbacks. */
     private val cccdWriteWatchdog: Runnable = Runnable {
         val pendingUuid = cccdPendingWriteUuid ?: return@Runnable
@@ -575,9 +598,23 @@ class AiDexBleManager(
                 timeoutRetries = cccdMissingCallbackRetries,
                 maxRetries = CCCD_WRITE_CALLBACK_MAX_EXTRA_WAITS,
                 canInferComplete = canInferMissingCccdCallbackComplete(),
+                mtuExchangeCrossedWrite = mtuExchangeCrossedPendingCccd,
             )
         ) {
             AiDexRuntimePolicy.MissingCccdCallbackAction.IGNORE -> Unit
+            AiDexRuntimePolicy.MissingCccdCallbackAction.RECOVER_WEDGED_GATT -> {
+                Log.w(
+                    TAG,
+                    "CCCD $pendingUuid descriptor callback missing after ${CCCD_WRITE_CALLBACK_TIMEOUT_MS}ms " +
+                        "and an MTU exchange crossed the write — GATT is wedged, reconnecting"
+                )
+                mtuExchangeCrossedPendingCccd = false
+                cccdPendingWriteUuid = null
+                cccdWriteInProgress = false
+                cccdMissingCallbackRetries = 0
+                lastInferredCccdUuid = null
+                recoverFromInvalidSetupState("mtu-exchange-crossed-cccd-write")
+            }
             AiDexRuntimePolicy.MissingCccdCallbackAction.WAIT -> {
                 cccdMissingCallbackRetries += 1
                 Log.w(
@@ -1438,7 +1475,11 @@ class AiDexBleManager(
         currentGattOp = null
         servicesReady = false
         serviceDiscoveryStarted = false
+        lastMtuCallbackAtMs = 0L
+        mtuExchangeCrossedPendingCccd = false
+        shortBondReads = 0
         handler.removeCallbacks(mtuDiscoveryFallback)
+        handler.removeCallbacks(cccdChainStartAfterMtuSettle)
         cccdChainComplete = false
         cccdWriteInProgress = false
         cccdPendingWriteUuid = null
@@ -2006,6 +2047,10 @@ class AiDexBleManager(
             lastFreshBroadcastTimeMs = 0L
 
             serviceDiscoveryStarted = false
+            lastMtuCallbackAtMs = 0L
+            mtuExchangeCrossedPendingCccd = false
+            shortBondReads = 0
+            handler.removeCallbacks(cccdChainStartAfterMtuSettle)
             Log.i(TAG, "Connected to ${gatt.device?.address}. Requesting MTU 512...")
             val mtuRequested = runCatching { gatt.requestMtu(512) }.getOrDefault(false)
             handler.removeCallbacks(broadcastAssistRunnable)
@@ -2170,9 +2215,50 @@ class AiDexBleManager(
         } else {
             Log.w(TAG, "onMtuChanged: status=$status mtu=$mtu")
         }
+        lastMtuCallbackAtMs = System.currentTimeMillis()
+
+        if (
+            AiDexRuntimePolicy.mtuExchangeCrossedPendingCccd(
+                phase = phase,
+                cccdWriteInProgress = cccdWriteInProgress,
+                hasPendingCccd = cccdPendingWriteUuid != null,
+            )
+        ) {
+            // The sensor's own exchange landed on top of our outstanding Write Request. That
+            // write is expected never to call back; the watchdog reconnects if it does not,
+            // instead of inferring success and having the next write refused.
+            Log.w(TAG, "MTU exchange crossed pending CCCD write on $cccdPendingWriteUuid — expecting its callback to be lost")
+            mtuExchangeCrossedPendingCccd = true
+            return
+        }
+        if (phase == Phase.CCCD_CHAIN && !cccdWriteInProgress && cccdQueue.isNotEmpty()) {
+            // Chain not started yet: a late exchange restarts the quiet window.
+            scheduleCccdChainStart(gatt, "late-mtu-callback")
+            return
+        }
+
         // The ATT bearer is free again — now it is safe to discover and write CCCDs.
         handler.removeCallbacks(mtuDiscoveryFallback)
         beginServiceDiscovery(gatt, "mtu-callback")
+    }
+
+    /**
+     * Issue the first CCCD write now, or once [MTU_SETTLE_BEFORE_CCCD_MS] has passed since
+     * the last `onMtuChanged`. Sensors that exchange MTU once pay nothing here.
+     */
+    private fun scheduleCccdChainStart(gatt: BluetoothGatt, reason: String) {
+        handler.removeCallbacks(cccdChainStartAfterMtuSettle)
+        val delay = AiDexRuntimePolicy.cccdStartDelayMs(
+            lastMtuCallbackAtMs = lastMtuCallbackAtMs,
+            nowMs = System.currentTimeMillis(),
+            settleMs = MTU_SETTLE_BEFORE_CCCD_MS,
+        )
+        if (delay <= 0L) {
+            writeNextCccd(gatt)
+            return
+        }
+        Log.i(TAG, "Holding first CCCD write ${delay}ms for the MTU exchange to settle ($reason)")
+        handler.postDelayed(cccdChainStartAfterMtuSettle, delay)
     }
 
     /**
@@ -2241,7 +2327,7 @@ class AiDexBleManager(
         cccdPendingWriteUuid = null
         cccdMissingCallbackRetries = 0
 
-        writeNextCccd(gatt)
+        scheduleCccdChainStart(gatt, "services-discovered")
     }
 
     override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
@@ -2285,6 +2371,10 @@ class AiDexBleManager(
         handler.removeCallbacks(cccdWriteWatchdog)
         cccdPendingWriteUuid = null
         cccdMissingCallbackRetries = 0
+        if (mtuExchangeCrossedPendingCccd) {
+            Log.i(TAG, "onDescriptorWrite: CCCD $charUuid callback arrived despite the crossed MTU exchange")
+            mtuExchangeCrossedPendingCccd = false
+        }
 
         if (isAuthRelatedCccdFailure(status)) {
             Log.i(TAG, "onDescriptorWrite: CCCD $charUuid auth/perm fail (status=$status) — re-queuing for retry after bond")
@@ -2504,8 +2594,8 @@ class AiDexBleManager(
 
         when (uuid) {
             CHAR_F002 -> {
-                if (!bondDataRead && phase == Phase.KEY_EXCHANGE && data.size == 17) {
-                    handleBondData(data, gatt)
+                if (!bondDataRead && phase == Phase.KEY_EXCHANGE) {
+                    handleBondReadReply(data, gatt)
                 } else {
                     handleF002Response(data, gatt)
                 }
@@ -3127,6 +3217,39 @@ class AiDexBleManager(
     private fun readBondData(gatt: BluetoothGatt) {
         Log.i(TAG, "Key exchange: reading BOND data from F002")
         enqueueGattOp(GattOp.Read(CHAR_F002))
+    }
+
+    /** The reply to [readBondData]: the 17-byte BOND vector, or the sensor declining to give one. */
+    private fun handleBondReadReply(data: ByteArray, gatt: BluetoothGatt) {
+        when (
+            AiDexRuntimePolicy.decideShortBondReadAction(
+                replyLength = data.size,
+                rereads = shortBondReads,
+                maxRereads = BOND_READ_MAX_REREADS,
+            )
+        ) {
+            AiDexRuntimePolicy.ShortBondReadAction.ACCEPT -> handleBondData(data, gatt)
+            AiDexRuntimePolicy.ShortBondReadAction.REREAD -> {
+                shortBondReads += 1
+                Log.w(
+                    TAG,
+                    "Key exchange: F002 BOND read returned ${data.size} byte(s) " +
+                        "(${AiDexParser.hexString(data)}) — re-reading (${shortBondReads}/$BOND_READ_MAX_REREADS)"
+                )
+                handler.postDelayed({
+                    if (mBluetoothGatt === gatt && phase == Phase.KEY_EXCHANGE && !bondDataRead) readBondData(gatt)
+                }, BOND_REREAD_DELAY_MS)
+            }
+            AiDexRuntimePolicy.ShortBondReadAction.FAIL_KEY_EXCHANGE -> {
+                Log.e(
+                    TAG,
+                    "Key exchange: sensor refused BOND data (${data.size} byte(s) " +
+                        "${AiDexParser.hexString(data)}, saved=$keyExchangeUsingSavedPairKey, " +
+                        "bond=${currentBondState()}) — counting as key exchange failure"
+                )
+                handleKeyExchangeFailure("f002-bond-read-refused")
+            }
+        }
     }
 
     /**
