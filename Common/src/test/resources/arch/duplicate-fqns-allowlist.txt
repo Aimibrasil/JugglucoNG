@@ -1,0 +1,45 @@
+# Classes that exist in both src/mobile and src/wear with the same fully-qualified
+# name. The watch copy is a stub or a diverged fork of the phone one, and nothing
+# checks they agree — change the phone class and the watch build still compiles
+# while the watch feature silently does nothing.
+#
+# This list may only shrink. NoDuplicateFqnTest fails if a new pair appears, and
+# also if an entry here is no longer a duplicate (a stale line means a pair was
+# fixed but not removed from the list, so the guard would stop noticing it).
+#
+# Removed so far: tk.glucodata.receivers.AlarmLaunchReceiver (T5.1).
+tk.glucodata.Battery
+tk.glucodata.BluetoothGlucoseMeter
+tk.glucodata.Dialogs
+tk.glucodata.Display
+tk.glucodata.FloatingConfig
+tk.glucodata.Gadgetbridge
+tk.glucodata.GlucoseAlarms
+tk.glucodata.GlucoseWidget
+tk.glucodata.HealthConnection
+tk.glucodata.IOB
+tk.glucodata.LaunchShit
+tk.glucodata.Libreview
+tk.glucodata.Meal
+tk.glucodata.Menus
+tk.glucodata.MeterList
+tk.glucodata.MirrorSensors
+tk.glucodata.Nightscout
+tk.glucodata.NovoPen.Scan
+tk.glucodata.Specific
+tk.glucodata.Stats
+tk.glucodata.UseWifi
+tk.glucodata.Watch
+tk.glucodata.WearOngoingActivity
+tk.glucodata.Wearos
+tk.glucodata.XInfuus
+tk.glucodata.glucosecomplication.ColorConfig
+tk.glucodata.glucosecomplication.GlucoseValue
+tk.glucodata.nums.AllData
+tk.glucodata.receivers.AlarmActionReceiver
+tk.glucodata.settings.LabelsClass
+tk.glucodata.settings.LibreNumbers
+tk.glucodata.settings.SetColors
+tk.glucodata.settings.Shortcuts
+tk.glucodata.ui.AlarmActivity
+tk.glucodata.ui.ComposeHost
