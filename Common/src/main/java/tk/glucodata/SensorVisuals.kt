@@ -126,6 +126,14 @@ object SensorVisuals {
                 .apply()
         }
         cachedOverrides = updated
+        // The watch paints peer traces in these colours too.
+        if (!Applic.isWearable) runCatching { WearPrefsSync.push() }
+    }
+
+    /** The stored overrides were written by something else (the phone's mirror). */
+    @JvmStatic
+    fun invalidateOverrides() {
+        cachedOverrides = null
     }
 
     private fun normalizedSensorId(sensorId: String?): String? =

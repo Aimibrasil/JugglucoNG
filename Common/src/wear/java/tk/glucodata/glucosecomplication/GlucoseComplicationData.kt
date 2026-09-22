@@ -41,9 +41,13 @@ internal object GlucoseComplicationData {
 
     fun tapAction(): PendingIntent = Notify.mkpending()
 
+    /** The sensor the phone shows first; the complications follow it too. */
+    private fun displaySensor(): String? =
+        runCatching { tk.glucodata.ui.WearSensorSelection.resolve() }.getOrNull()
+
     fun currentReading(): Reading? {
         val snapshot = runCatching {
-            CurrentDisplaySource.resolveCurrent(Notify.glucosetimeout)
+            CurrentDisplaySource.resolveCurrent(Notify.glucosetimeout, displaySensor())
         }.getOrNull() ?: return syncedReading()
         val now = System.currentTimeMillis()
         if (snapshot.timeMillis <= 0L || now - snapshot.timeMillis >= Notify.glucosetimeout) {
@@ -71,8 +75,8 @@ internal object GlucoseComplicationData {
      */
     private fun syncedReading(): Reading? {
         val isMmol = runCatching { Applic.unit == 1 }.getOrDefault(false)
+        val sensor = displaySensor()
         val newest = runCatching {
-            val sensor = tk.glucodata.NotificationHistorySource.resolveSensorSerial()
             tk.glucodata.NotificationHistorySource
                 .getDisplayHistory(System.currentTimeMillis() - Notify.glucosetimeout, isMmol, sensor)
                 .lastOrNull()
@@ -84,7 +88,7 @@ internal object GlucoseComplicationData {
                 tk.glucodata.NotificationHistorySource.getDisplayHistory(
                     newest.timestamp - 35 * 60_000L,
                     isMmol,
-                    tk.glucodata.NotificationHistorySource.resolveSensorSerial(),
+                    sensor,
                 ),
                 false,
                 isMmol,
@@ -97,9 +101,7 @@ internal object GlucoseComplicationData {
             timeMillis = newest.timestamp,
             rate = rate,
             index = 0,
-            sensorId = runCatching {
-                tk.glucodata.NotificationHistorySource.resolveSensorSerial()
-            }.getOrNull(),
+            sensorId = sensor,
         )
     }
 

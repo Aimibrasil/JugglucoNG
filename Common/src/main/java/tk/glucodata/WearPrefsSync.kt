@@ -24,8 +24,21 @@ object WearPrefsSync {
     private const val TYPE_INT = "i"
     private const val TYPE_BOOL = "b"
     private const val TYPE_FLOAT = "f"
+    private const val TYPE_STRING = "s"
 
-    private class Mirrored(val type: String, val default: Any)
+    /** The sensor order the phone displays, primary first; see [MIRRORED]. */
+    const val KEY_SENSOR_SELECTION = "dashboard_multi_sensor_selection_order"
+    private const val KEY_SENSOR_COLORS = "sensor_color_overrides_argb"
+
+    /**
+     * A key that travels. [read] overrides the plain preference read on the
+     * sending side, for values whose stored form is not the effective one.
+     */
+    private class Mirrored(
+        val type: String,
+        val default: Any,
+        val read: (() -> String?)? = null,
+    )
 
     /**
      * The keys the phone owns, with the type each is stored as and the default
@@ -52,7 +65,38 @@ object WearPrefsSync {
         "dashboard_prediction_insulin_sensitivity_mgdl_per_u" to Mirrored(TYPE_FLOAT, 54f),
         "dashboard_prediction_carb_absorption_g_per_h" to Mirrored(TYPE_FLOAT, 35f),
         "dashboard_prediction_horizon_minutes" to Mirrored(TYPE_INT, 120),
+        // Which sensors the phone displays, and in what order. The watch
+        // used to make its own choice — whichever sensor had reported most
+        // recently — so with two live sensors its screens and complications
+        // flipped between them on every reading. The stored preference is
+        // not enough on its own: it is empty until the user reorders, and
+        // then the primary is whatever the phone resolves as its main
+        // sensor. What travels is the effective list the phone draws.
+        KEY_SENSOR_SELECTION to Mirrored(TYPE_STRING, "", read = ::effectiveSensorSelection),
+        // The colours the user pinned to sensors, so a peer trace on the
+        // watch chart is the same colour as on the phone chart.
+        KEY_SENSOR_COLORS to Mirrored(TYPE_STRING, ""),
     )
+
+    /** Phone: the sensors it displays, primary first. */
+    private fun effectiveSensorSelection(): String? = runCatching {
+        val primary = SensorIdentity.resolveMainSensor()
+        selectionToWire(NotificationMultiSensorSource.selectedSensorIds(primary))
+    }.getOrNull()
+
+    /**
+     * The payload is line-based and [MultiSensorSelection] stores its list one
+     * id per line, so the list travels with its own separator instead.
+     */
+    private const val SELECTION_SEPARATOR = ","
+
+    @JvmStatic
+    fun selectionToWire(sensorIds: List<String>): String =
+        sensorIds.map { it.trim() }.filter { it.isNotEmpty() }.joinToString(SELECTION_SEPARATOR)
+
+    @JvmStatic
+    fun selectionFromWire(raw: String): List<String> =
+        raw.split(SELECTION_SEPARATOR).map { it.trim() }.filter { it.isNotEmpty() }
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -64,18 +108,26 @@ object WearPrefsSync {
         val source = prefs(context)
         val text = buildString {
             MIRRORED.forEach { (key, spec) ->
-                val raw = when (spec.type) {
-                    TYPE_INT -> runCatching {
+                val reader = spec.read
+                val raw = when {
+                    reader != null -> reader()
+                    spec.type == TYPE_INT -> runCatching {
                         source.getInt(key, spec.default as Int).toString()
                     }.getOrNull()
-                    TYPE_BOOL -> runCatching {
+                    spec.type == TYPE_BOOL -> runCatching {
                         source.getBoolean(key, spec.default as Boolean).toString()
                     }.getOrNull()
-                    TYPE_FLOAT -> runCatching {
+                    spec.type == TYPE_FLOAT -> runCatching {
                         source.getFloat(key, spec.default as Float).toString()
+                    }.getOrNull()
+                    spec.type == TYPE_STRING -> runCatching {
+                        escapeLine(source.getString(key, spec.default as String).orEmpty())
                     }.getOrNull()
                     else -> null
                 } ?: return@forEach
+                // A string with a line break in it would be read back as two
+                // keys; it is escaped on the way out and restored on the way in.
+                if (raw.contains('\n')) return@forEach
                 append(spec.type).append(':').append(key).append('=').append(raw).append('\n')
             }
         }
@@ -99,6 +151,8 @@ object WearPrefsSync {
 
         val editor = prefs(context).edit()
         var written = 0
+        var sensorSelectionChanged = false
+        var sensorColorsChanged = false
         lines.forEach { line ->
             val typeSplit = line.indexOf(':')
             val valueSplit = line.indexOf('=')
@@ -115,12 +169,57 @@ object WearPrefsSync {
                 TYPE_FLOAT -> raw.toFloatOrNull()
                     ?.takeIf { it.isFinite() }
                     ?.let { editor.putFloat(key, it); written++ }
+                TYPE_STRING -> {
+                    val value = when (key) {
+                        // Stored in the form MultiSensorSelection reads.
+                        KEY_SENSOR_SELECTION -> selectionFromWire(raw).joinToString(MultiSensorSelection.SEPARATOR)
+                        else -> unescapeLine(raw)
+                    }
+                    if (key == KEY_SENSOR_SELECTION && value != prefs(context).getString(key, "")) {
+                        sensorSelectionChanged = true
+                    }
+                    if (key == KEY_SENSOR_COLORS && value != prefs(context).getString(key, "")) {
+                        sensorColorsChanged = true
+                    }
+                    editor.putString(key, value)
+                    written++
+                }
             }
         }
         if (written == 0) return 0
         editor.apply()
+        if (sensorColorsChanged) SensorVisuals.invalidateOverrides()
+        if (sensorSelectionChanged) {
+            MultiSensorSelection.notifyStoredChanged()
+            // The native "current sensor" slot is what the complications and
+            // the watch face resolve through; keep it on the phone's primary.
+            if (Applic.isWearable) WearSensorSelectionSync.alignCurrentSensor()
+        }
         UiRefreshBus.requestDataRefresh()
         return written
+    }
+
+    /** A string value on one payload line: line breaks and backslashes escaped. */
+    @JvmStatic
+    fun escapeLine(value: String): String =
+        value.replace("\\", "\\\\").replace("\n", "\\n")
+
+    @JvmStatic
+    fun unescapeLine(value: String): String {
+        val out = StringBuilder(value.length)
+        var index = 0
+        while (index < value.length) {
+            val c = value[index]
+            if (c == '\\' && index + 1 < value.length) {
+                when (value[index + 1]) {
+                    'n' -> { out.append('\n'); index += 2; continue }
+                    '\\' -> { out.append('\\'); index += 2; continue }
+                }
+            }
+            out.append(c)
+            index++
+        }
+        return out.toString()
     }
 
     // What was last sent, so the periodic re-push stays silent while nothing

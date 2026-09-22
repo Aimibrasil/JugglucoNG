@@ -24,6 +24,8 @@ internal object AiDexRuntimePolicy {
         IGNORE,
         WAIT,
         ASSUME_COMPLETE,
+        /** An MTU exchange crossed this write; its callback is lost and the GATT is wedged. */
+        RECOVER_WEDGED_GATT,
     }
 
     /**
@@ -70,6 +72,28 @@ internal object AiDexRuntimePolicy {
         usedSavedKey && bonded -> KeyExchangeFailureAction.REPLACE_SAVED_KEY
         else -> KeyExchangeFailureAction.BROADCAST_ONLY
     }
+
+    /**
+     * The saved-key exchange reads the 17-byte BOND vector from F002. A sensor that answers
+     * with anything else — the GX-01S gives a single `00` to an unbonded reader, then drops
+     * the link after ~7s with status 19 — has refused, and that refusal has to count as a
+     * key-exchange failure or the saved key is never marked exhausted and neither the
+     * bonded replace-over-F001 path nor the Pair button can ever leave the saved key behind.
+     * One re-read is allowed in case the vector was not ready yet.
+     */
+    fun decideShortBondReadAction(replyLength: Int, rereads: Int, maxRereads: Int): ShortBondReadAction = when {
+        replyLength == BOND_VECTOR_LENGTH -> ShortBondReadAction.ACCEPT
+        rereads < maxRereads -> ShortBondReadAction.REREAD
+        else -> ShortBondReadAction.FAIL_KEY_EXCHANGE
+    }
+
+    enum class ShortBondReadAction {
+        ACCEPT,
+        REREAD,
+        FAIL_KEY_EXCHANGE,
+    }
+
+    const val BOND_VECTOR_LENGTH = 17
 
     fun shouldClearPersistedPairKey(deleteBondPending: Boolean, responseStatus: Int): Boolean =
         deleteBondPending && responseStatus == 0x00
@@ -299,8 +323,12 @@ internal object AiDexRuntimePolicy {
         timeoutRetries: Int,
         maxRetries: Int,
         canInferComplete: Boolean,
+        mtuExchangeCrossedWrite: Boolean = false,
     ): MissingCccdCallbackAction {
         if (!cccdWriteInProgress || !hasPendingCccd) return MissingCccdCallbackAction.IGNORE
+        // Waiting longer, or inferring success, only defers the reconnect that is coming:
+        // the next write on this BluetoothGatt is refused regardless.
+        if (mtuExchangeCrossedWrite) return MissingCccdCallbackAction.RECOVER_WEDGED_GATT
         if (!canInferComplete) return MissingCccdCallbackAction.WAIT
         return if (timeoutRetries < maxRetries) {
             MissingCccdCallbackAction.WAIT
@@ -308,6 +336,40 @@ internal object AiDexRuntimePolicy {
             MissingCccdCallbackAction.ASSUME_COMPLETE
         }
     }
+
+    /**
+     * How long the first CCCD write of a connection must wait after the most recent
+     * `onMtuChanged`, or 0 when it may go out now.
+     *
+     * The GX-01S runs its own ATT MTU exchange a few hundred ms after connecting, on top of
+     * the one we request. If our CCCD Write Request is outstanding when that second exchange
+     * lands, the write's completion is lost: `onDescriptorWrite` never arrives, `mDeviceBusy`
+     * stays latched and every later op on that `BluetoothGatt` is refused until we reconnect —
+     * which replays the same timing and loses the same race. A first connect survives because
+     * full service discovery is slow enough to miss the window; a reconnect on a cached GATT
+     * db is not, so it loops forever at "Configuring notifications". Holding the write until
+     * the bearer has been quiet for [settleMs] costs at most that long per connection.
+     */
+    fun cccdStartDelayMs(lastMtuCallbackAtMs: Long, nowMs: Long, settleMs: Long): Long {
+        if (lastMtuCallbackAtMs <= 0L) return 0L
+        val age = nowMs - lastMtuCallbackAtMs
+        if (age < 0L) return settleMs
+        return (settleMs - age).coerceAtLeast(0L)
+    }
+
+    /**
+     * An `onMtuChanged` landed while a CCCD write was still waiting for its callback. That
+     * write is expected to be dead (see [cccdStartDelayMs]). The link is not torn down on
+     * the spot — a stack that merely reports the exchange late would still complete the
+     * write — but if the callback misses its first window the driver reconnects instead of
+     * inferring success and having the next write refused.
+     */
+    fun mtuExchangeCrossedPendingCccd(
+        phase: AiDexBleManager.Phase,
+        cccdWriteInProgress: Boolean,
+        hasPendingCccd: Boolean,
+    ): Boolean =
+        phase == AiDexBleManager.Phase.CCCD_CHAIN && cccdWriteInProgress && hasPendingCccd
 
     fun shouldRecoverFromBlockedReconnect(
         phase: AiDexBleManager.Phase,
