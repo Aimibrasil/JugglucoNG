@@ -1,0 +1,26 @@
+# Files in src/main that reach mobile- or watch-only code via Class.forName (plan §6 Q1,
+# ArchitectureGateTests). Each needs a ProGuard keep rule that only breaks in a minified build --
+# see ProguardKeepRulesTests -- and src/main should not know a variant class by name at all
+# (plan P1: register the bridge from Application.onCreate instead).
+#
+# Log.java's dynamic lookup is not a phone/watch bridge and is excluded from the scan entirely,
+# not listed here (direction.md §2.3).
+#
+# This list may only shrink: a new file added to it, or a stale line for one already fixed, fails
+# the build (ArchitectureGateTests.classForNameFromMainDoesNotGrow).
+src/main/java/tk/glucodata/CalibrationAccess.kt
+src/main/java/tk/glucodata/CalibrationProfileAccess.kt
+src/main/java/tk/glucodata/CustomAlertAccess.kt
+src/main/java/tk/glucodata/GlucoseUncertaintyAccess.kt
+src/main/java/tk/glucodata/HistoryRepositoryAccess.kt
+src/main/java/tk/glucodata/HistorySyncAccess.kt
+src/main/java/tk/glucodata/JournalAccess.kt
+src/main/java/tk/glucodata/JournalIobAccess.java
+src/main/java/tk/glucodata/LibreviewJournal.java
+src/main/java/tk/glucodata/MainActivity.java
+src/main/java/tk/glucodata/NightPost.java
+src/main/java/tk/glucodata/NotificationChartDrawer.java
+src/main/java/tk/glucodata/Notify.java
+src/main/java/tk/glucodata/OutboundApi.kt
+src/main/java/tk/glucodata/drivers/api/ApiGlucoseSourceManager.kt
+src/main/java/tk/glucodata/drivers/nightscout/NightscoutFollowerManager.kt
