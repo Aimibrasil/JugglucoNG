@@ -287,6 +287,11 @@ private static void confirmunsynced(MainActivity act,Runnable save) {
         }).show();
     }
 static void sendinitwatchapp(Node nod) {
+      if (Applic.isWearable) {
+         // Only the phone initialises the watch app; the watch is the target.
+         // The class is in main so both flavours compile the call.
+         return;
+         }
       var sender=tk.glucodata.MessageSender.getMessageSender();
         if(sender==null) {
          Log.e(LOG_ID,"sendintwatchapp getMessageSender()==null");
