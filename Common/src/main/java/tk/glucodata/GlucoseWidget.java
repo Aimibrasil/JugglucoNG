@@ -194,6 +194,11 @@ public static void oldvalue(long time) {
 
    }
  public static void update() {
+    if (Applic.isWearable) {
+      // The watch has no home-screen widget. This class is compiled into both
+      // apps so main/ can call it; there is nothing to update here.
+      return;
+    }
     try {
     if(used) {
       final long now = SystemClock.elapsedRealtime();
