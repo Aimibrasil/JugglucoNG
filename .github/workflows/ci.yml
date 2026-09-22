@@ -113,3 +113,15 @@ jobs:
             :Common:assembleMobileRelease \
             -PjugglucoAbi=arm64-v8a \
             --stacktrace
+
+      # H1 of the Room track: the schema export is committed. KSP regenerates it
+      # during the build above; if the result differs from what is committed, the
+      # schema changed without its JSON, and every migration test would compare
+      # against a stale contract.
+      - name: Room schema export is committed
+        run: |
+          if [ -n "$(git status --porcelain Common/schemas)" ]; then
+            git status --porcelain Common/schemas
+            echo "::error::Common/schemas changed — commit the regenerated JSON"
+            exit 1
+          fi

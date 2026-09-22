@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [CalibrationEntity::class], version = 5, exportSchema = false)
+@Database(entities = [CalibrationEntity::class], version = 5, exportSchema = true)
 abstract class CalibrationDatabase : RoomDatabase() {
     abstract fun calibrationDao(): CalibrationDao
 
