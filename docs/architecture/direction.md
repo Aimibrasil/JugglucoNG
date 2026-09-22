@@ -14,7 +14,7 @@ This document follows up the first round of refactoring PRs (T0.0–T0.3, T5.1, 
 1. **Merge the safety net now.** T0.0–T0.2 (#373–#375) change no runtime behaviour and give the watch its first working unit-test suite and CI. #375 supersedes draft #294.
 2. **Accept the first T5.1 batch** (#376–#384, 36 → 25 duplicate classes) after a short on-device check (§7). Continue the remaining pairs with the new classification in §4, not "move into `main` and return early on the watch".
 3. **Rework the metrics gate** (#386) so it fails only on structural counts. As written it turns ordinary bug-fix PRs red.
-4. **Park the SettingsStore track** (#387–#397). Keep the branch; do not merge.
+4. **Park the SettingsStore track** (#387–#397). Keep the branch; do not merge. The settings problem is real, but it is solved by a registry that declares each user setting once, including whether it is mirrored to the watch. That registry returns inside the phone↔watch protocol track (§2.4).
 5. **Next structural track: a real Room migration harness** (§5). It is the only area where a mistake destroys user data, and today nothing tests it.
 6. **Then, one track at a time:** registration seams in place of reflection → typed phone↔watch protocol → the watch features the maintainer wants (IOB/COB, standalone Nightscout, journal entry) → the remaining two-sided pairs (§6).
 
@@ -32,7 +32,7 @@ Decided 2026-09-22. A PR that contradicts one of these needs the maintainer's ex
 | D4 | **One structural track open at a time.** After T0 and the first T5.1 batch, the next track is the Room migration harness. | New structural PRs wait until the open track merges or is explicitly parked. Small bug fixes are not structural and are never blocked by this. |
 | D5 | **Review model: pilot plus spot-check.** The maintainer reads the first PR of each recipe in full. Later PRs that apply the same recipe merge on green CI plus a spot-check. | Every mechanical PR names its recipe and links the pilot PR. The areas in §8.3 always get full review. |
 | D6 | **The metrics gate hard-fails only on structural counts.** Everything else is reported. | #386 is reworked as described in §2.3. |
-| D7 | **SettingsStore is parked.** | #387–#397 are closed with the branch kept. Revival conditions are in §2.4. |
+| D7 | **SettingsStore is parked.** | #387–#397 are closed with the branch kept. What replaces them is a settings registry, redirected into the protocol track; §2.4 has the design, and the maintainer confirmed the redirect on 2026-09-23. |
 | D8 | **This directory is where the plan lives.** `docs/architecture/` holds this file, its Russian version, and any future decision records. | Plans kept in chat, gists or local files do not count. If a PR changes the plan, it edits this file. |
 
 Existing project rules that already applied before this document and still apply:
@@ -84,15 +84,55 @@ Rework:
 - Prefer a JUnit source-scanning test in the style of `ProguardKeepRulesTests` over a JUnit test that launches `bash`. If the shell script stays for local use, the test should not depend on it.
 - Take the baseline from `main` at merge time, not from a branch.
 
-### 2.4 T2.1–T2.3 SettingsStore (#387–#397) — parked
+### 2.4 T2.1–T2.3 SettingsStore (#387–#397) — parked, then redirected
 
-The code is careful. In the areas checked, stored types, default values and `apply()` semantics match the old code. The reasons to park it are about priorities, not quality:
+The code is careful. In the areas checked, stored types, default values and `apply()` semantics match the old code. The settings problem it set out to solve is also real. The track is parked because it aimed at the wrong files and left out the part that removes the bugs.
 
-- **It covers the easy part.** It moved 9 small, self-contained prefs files that had no regression history. The actual problem is untouched: 78 raw `getSharedPreferences("tk.glucodata_preferences")` call sites, and about 180 distinct settings getters that go through `Natives` into the native store. The facade has no story for the native side, which is where "state lives in three places" really bites.
-- **It adds churn to alert-path code** (`SnoozeManager`, `CustomAlertRepository`) for little gain.
-- **"Typed" is not enforced.** `get` casts with `as? T` on an erased type parameter, so a stored type mismatch surfaces as a `ClassCastException` at the call site, not as the default. Every read also goes through `SharedPreferences.getAll()`, which copies the whole file's map. That is harmless for small files, but costly on the main prefs file, which is the one that matters.
+**What the prefs files actually hold.** There are 24 of them, and they mix four kinds of data that need different treatment:
 
-Conditions for reviving it: a storage-ownership document exists (§6, Q5); the facade can represent native-backed settings; `get` checks the type against the key's declared class; reads use typed getters; and there is one store instance per process. The tests written for the migrated areas (`SnoozeStoreTest`, `ScheduledBackupStoreTest`, and others) are worth keeping. If any of those areas is touched for another reason, its pure extraction and test can land directly over `SharedPreferences`.
+| Kind | Examples | Where it belongs |
+|---|---|---|
+| User settings | prediction and smoothing options, units, colours, Nightscout and outbound-API configuration, custom sounds | the settings registry described below |
+| Sensor state and secrets | AiDex pair keys, iCan AES keys, MQ per-sensor calibration parameters and packet cursors | the sensor's own records (§6, Q5); never exported, never mirrored to the watch |
+| Runtime state | snooze deadlines, last attempt / last error, BLE error history, dismissed banners, telemetry | next to the component that owns it |
+| Caches | `wear_journal_cache`, cached update metadata | wherever is convenient |
+
+Most of the 9 migrated areas are runtime state, not settings: snooze, BLE error history, readiness dismissals, backup and update bookkeeping, wear routing requests. The real sprawl is untouched. `tk.glucodata_preferences` is opened from 79 call sites that spell out the file name, plus 41 files that each declare their own constant for it, and no key is declared in one place.
+
+**The settings bug with evidence: defaults defined in several places.** `WearPrefsSync` mirrors 10 phone settings to the watch from a hand-kept list that repeats each key's type and default. Its own comment records the failure: the predictive-simulation toggle showed "off" on the watch while it was "on" on the phone, because the watch fell back to a different default. Today the prediction-horizon default (120) is declared separately in four files, and the carb-absorption default (35 g/h) in five. They agree right now; nothing keeps them agreeing. The watch features in D1 add more settings the watch needs from the phone: insulin types and sensitivity, the Nightscout URL and secret. Each would be one more hand-added list entry.
+
+**What the facade does not fix.** Live updates are not the problem: the dashboard re-reads its settings on every `UiRefreshBus` event, which is crude but works. `observe()` solves nothing that is broken today.
+
+**What to build instead: a settings registry.** Each *user setting* is declared once, and every read goes through that declaration. A declaration names:
+
+- the file, the key, the type and the default
+- **scope**: phone only, watch only, or phone-owned and mirrored to the watch
+- **backup/export policy**: included, excluded, or secret
+- a valid range where one exists (`GlucoseDelta.sanitizeIntervalMinutes` is today's hand-written version)
+
+`WearPrefsSync`'s list is then generated from the declarations whose scope is "mirrored", so a key's default cannot disagree with itself. `SettingKey(file, name, default)` from #388 is the right seed; it lacks the policies.
+
+**Pilot:** the 10 prediction and smoothing settings `WearPrefsSync` already mirrors. They are few and already travel to the watch, and moving them removes a bug class that has actually happened. After that, the settings behind the D1 watch features are declared as "mirrored" from their first day. A settings export/import feature later falls out of the backup flag; whether to build it is open question O5.
+
+**Two risks the pilot must handle:**
+
+1. **Unifying a default can change behaviour.** For each key, list every read site and its default *before* moving it. Where two readers disagree, the maintainer decides which default wins. It is a product decision and is never smoothed over inside a refactor.
+2. **An old install may hold a key stored as a different type.** The typed read falls back to the default and logs once. It does not throw.
+
+**Implementation fixes to carry over from the parked code:**
+
+- Check the stored value against the key's declared type instead of `as? T` on an erased type parameter, which lets a mismatch escape as a `ClassCastException` at the call site.
+- Read through typed getters, not `SharedPreferences.getAll()`, which copies the whole file on every read. That is harmless on small files and costly on the main prefs file, which is the one that matters.
+- One store instance per process, registered at startup like the other bridges (P1).
+- Keep the in-memory backend and the contract test; both are good.
+
+**Out of scope:**
+
+- Settings kept in the native store and reached through `Natives` (D3).
+- Sensor state and secrets (Q5).
+- Runtime state. Pure extractions such as `SnoozeStore` are welcome when the area is touched for another reason, with their tests, directly over `SharedPreferences`. They are not settings work and do not need the registry.
+
+The registry is not a separate track. It belongs to Q2 and Q3 (§6), because mirroring settings is part of the phone↔watch protocol, and the watch features need it. From #387–#397, salvage `SettingKey`, the in-memory backend, the contract test, and the per-area tests. Drop the area migrations.
 
 ---
 
@@ -243,11 +283,13 @@ One at a time, in this order, unless the maintainer reorders it. Each item is a 
 
 `SensorOwnershipRuntime` already is the handoff state machine; type its messages, do not rewrite it. The clone/mirror protocol between phones stays separate for now; do not force a shared envelope.
 
-**Q3. D1 watch features** (IOB/COB, standalone Nightscout, journal/meal entry), built on Q2 and following the category W recipe in §4. These are feature PRs with behaviour-change review, not refactors.
+The settings registry from §2.4 lands in this track. It starts with its pilot, the 10 settings `WearPrefsSync` already mirrors. The typed settings message is then generated from the registry, not from a second hand-kept list.
+
+**Q3. D1 watch features** (IOB/COB, standalone Nightscout, journal/meal entry), built on Q2 and following the category W recipe in §4. These are feature PRs with behaviour-change review, not refactors. Every setting these features need on the watch is declared in the settings registry with "mirrored" scope from its first PR. Secrets such as the Nightscout API secret are marked as secret: they travel only if the maintainer agrees that the watch may hold them.
 
 **Q4. Category S duplicates**, ending with `Specific` → per-variant bootstrap. Allow-list goes to empty.
 
-**Q5. Storage-ownership document.** One owner per kind of data. For each, record its identity, authoritative writer, what counts as a duplicate, ordering, clock-rollback handling, reconciliation, and deletion. Write it against today's code: `HistoryRepository` and `CalibrationManager` own Room; the native mmap store owns Libre/Dexcom/native-backed sensors; `VirtualGlucoseSensorBridge` / `VirtualSensorNativeMirror` sit between them; clone recovery is a fourth writer. This document is the precondition for any storage contract and for reviving SettingsStore.
+**Q5. Storage-ownership document.** One owner per kind of data. For each, record its identity, authoritative writer, what counts as a duplicate, ordering, clock-rollback handling, reconciliation, and deletion. Write it against today's code: `HistoryRepository` and `CalibrationManager` own Room; the native mmap store owns Libre/Dexcom/native-backed sensors; `VirtualGlucoseSensorBridge` / `VirtualSensorNativeMirror` sit between them; clone recovery is a fourth writer. It also covers the per-sensor driver state and credentials kept in prefs files today (AiDex pair keys, iCan AES keys, MQ calibration parameters), which the settings registry deliberately excludes. This document is the precondition for any storage contract.
 
 **Not scheduled** (the direction from earlier proposals still holds, but no work starts without a maintainer decision):
 - a manifest of the JNI surface covering both directions, before deleting any "dead" native declaration (C++ calls back into Java, so a Java-side grep cannot prove anything is dead)
@@ -332,6 +374,7 @@ Not decided yet. Do not build anything that depends on them.
 - **O2. Health data on the watch.** Wear OS exposes Health Services, not Health Connect. Whether the watch writes glucose anywhere health-related is a product question.
 - **O3. The native-plugin horizon (D3).** Revisit after Q5 and after the harness has covered a release.
 - **O4. `test/*` integration branches.** Keep them as soak branches that are rebuilt from `main` plus open PRs, or retire them. Either way, they never own a schema version (H5) and are never cherry-picked back into `main`.
+- **O5. Settings export/import.** Android backup is disabled (`allowBackup="false"`), and scheduled backups hold history, journal, foods, insulins and calibrations, but no settings. No export path was found for the settings in prefs files. Nobody checked whether the settings kept in the native store travel with upstream's own sync. With the registry's backup flag, export/import becomes cheap to build. Whether to build it is a product decision.
 
 ---
 
@@ -357,6 +400,13 @@ grep -hoE '"/[a-zA-Z0-9_/-]+"' Common/src/main/java/tk/glucodata/MessageSender.k
 # Composables coupled to JNI / Applic / prefs
 U=Common/src/mobile/java/tk/glucodata/ui
 for p in 'Natives\.' 'Applic\.' 'SharedPreferences'; do echo "$p $(grep -rl "$p" $U | wc -l)"; done
+
+# a setting's default declared in several places (example: prediction horizon, carb absorption)
+grep -rnE 'HORIZON[A-Z_]*DEFAULT\s*=|HORIZON_DEFAULT\s*=|dashboard_prediction_horizon_minutes' Common/src/main/java Common/src/mobile/java Common/src/wear/java
+grep -rnE 'ABSORPTION[A-Z_]*DEFAULT[A-Z_]*\s*=|dashboard_prediction_carb_absorption' Common/src/main/java Common/src/mobile/java Common/src/wear/java
+
+# prefs file names in use
+grep -rhoE '"(tk\.glucodata[a-z_.]*|[a-z_]+_prefs?|[A-Za-z]+Prefs[A-Za-z]*)"' Common/src/main/java Common/src/mobile/java Common/src/wear/java | sort | uniq -c | sort -rn
 
 # shared callers of a duplicate-name class (example: IOB)
 grep -rlE '(^|[^A-Za-z0-9_])IOB(\.[a-zA-Z_]|::| *\(|\.class)' Common/src/main/java
