@@ -53,11 +53,13 @@ jobs:
             :Common:testWearDebugUnitTest \
             --stacktrace
 
-      # T0.3: none of the architecture-debt counts may grow. The baseline in
-      # docs/architecture/metrics-baseline.json only goes down, so improvements
-      # stick and new coupling is visible immediately.
-      - name: Architecture debt ratchet
-        run: ./scripts/arch-metrics.sh --check
+      # T0.3 (plan §2.3): the hard gate is the JUnit tests in Common/src/test/java/tk/glucodata/
+      # arch/ArchitectureGateTests.kt, already run above as part of the unit suites. This step is
+      # report-only -- continue-on-error so a script bug can never turn a real gate red, since
+      # nothing here is a real gate.
+      - name: Architecture debt report (non-blocking)
+        continue-on-error: true
+        run: ./scripts/arch-metrics.sh
 
       # Only on failure, and only the reports -- the HTML report is what makes a
       # red build readable, and it is a few hundred KB.
