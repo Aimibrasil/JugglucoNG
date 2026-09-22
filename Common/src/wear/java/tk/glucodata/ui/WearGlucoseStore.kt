@@ -56,9 +56,25 @@ object WearGlucoseStore {
     /** How often the journal is re-requested; it changes far slower than glucose. */
     private const val JOURNAL_REFRESH_TICKS = 5
 
+    /**
+     * One sensor drawn beside the primary, as the phone's chart draws its
+     * peers: its own lane by its own view mode, in its own colour.
+     */
+    class PeerSeries(
+        val sensorId: String,
+        /** Ascending, oldest first; calibrated and smoothed like [Snapshot.points]. */
+        val points: List<GlucosePoint>,
+        val viewMode: Int,
+        val colorArgb: Int,
+    ) {
+        val isRawMode: Boolean get() = viewMode == 1 || viewMode == 3
+    }
+
     data class Snapshot(
         /** Ascending, oldest first, covering [horizonStartMs] to now. */
         val points: List<GlucosePoint> = emptyList(),
+        /** The other selected sensors, in the phone's order; empty with one sensor. */
+        val peers: List<PeerSeries> = emptyList(),
         /** Calibration anchors as [sensorMgdl, userMgdl, timestampMs] triples. */
         val anchors: DoubleArray = DoubleArray(0),
         val horizonStartMs: Long = 0L,
@@ -87,7 +103,8 @@ object WearGlucoseStore {
                 isMmol == other.isMmol &&
                 viewMode == other.viewMode &&
                 sensorId == other.sensorId &&
-                points === other.points
+                points === other.points &&
+                peers === other.peers
         }
 
         override fun hashCode(): Int = loadedAtMs.hashCode() * 31 + horizonStartMs.hashCode()
@@ -107,18 +124,28 @@ object WearGlucoseStore {
     private const val LOAD_STUCK_AFTER_MS = 45_000L
 
     /**
-     * Calibrated values keyed by reading timestamp, dropped whenever the anchors
-     * or the sensor change.
+     * Calibrated values keyed by reading timestamp, per sensor and lane, dropped
+     * whenever that sensor's anchors change.
      *
      * The history the store reads is uncalibrated — correction happens at display
      * time — so every point has to go through the shared computation. Doing that
      * for a whole horizon on each minute tick would be thousands of fits per
-     * refresh, when in practice only the newest reading is new.
+     * refresh, when in practice only the newest reading is new. One cache per
+     * sensor, because the peers are corrected on the same pass as the primary
+     * and a single shared cache thrashed between them.
      */
-    private val calibratedByTime = HashMap<Long, Float>()
-    private val calibratedRawByTime = HashMap<Long, Float>()
-    @Volatile private var calibrationCacheKey: String? = null
+    private class CalibrationCache(val key: String) {
+        val auto = HashMap<Long, Float>()
+        val raw = HashMap<Long, Float>()
+    }
+    private val calibrationCaches = HashMap<String, CalibrationCache>()
     private const val CALIBRATION_CACHE_MAX = 25_000
+
+    /**
+     * How far back a peer is drawn. The phone caps its peer history to the
+     * recent dashboard window rather than the full horizon, and so does this.
+     */
+    private const val PEER_HORIZON_MS = 72L * HOUR_MS
 
     private val started = AtomicBoolean(false)
     private val loading = AtomicBoolean(false)
@@ -247,6 +274,7 @@ object WearGlucoseStore {
         // whatever native called "main" showed one sensor's readings under
         // another's mode as soon as the user pinned a second sensor.
         val viewMode = viewModeFor(sensor)
+        if (Log.doLog) Log.i(TAG, "selection ${WearSensorSelection.selected()} primary=$sensor mode=$viewMode")
         val isRawMode = viewMode == 1 || viewMode == 3
         val rawPoints = runCatching {
             NotificationHistorySource.getDisplayHistory(horizonStart, isMmol, sensor)
@@ -262,9 +290,15 @@ object WearGlucoseStore {
         // result is not the same as correcting each reading and smoothing those,
         // and the phone corrects at display time before its chart pipeline runs.
         val points = smooth(calibrate(rawPoints, sensor, isRawMode))
+        val peers = loadPeers(maxOf(horizonStart, now - PEER_HORIZON_MS), now, isMmol)
+        synchronized(calibrationCaches) {
+            val live = (peers.map { it.sensorId } + sensor.orEmpty()).toSet()
+            calibrationCaches.keys.retainAll { key -> live.any { key.startsWith("$it|") } }
+        }
 
         _snapshot.value = Snapshot(
             points = points,
+            peers = peers,
             anchors = anchors,
             horizonStartMs = horizonStart,
             isMmol = isMmol,
@@ -272,6 +306,37 @@ object WearGlucoseStore {
             sensorId = sensor,
             loadedAtMs = now,
         )
+    }
+
+    /**
+     * The other selected sensors' series, each through the same pipeline as the
+     * primary: its own view mode, its own anchors, the shared smoothing. The
+     * phone draws every selected sensor on one chart; the watch drew only the
+     * primary, so the second sensor was simply missing from it.
+     */
+    private fun loadPeers(from: Long, now: Long, isMmol: Boolean): List<PeerSeries> {
+        val peers = runCatching { WearSensorSelection.peers() }.getOrDefault(emptyList())
+        if (peers.isEmpty()) return emptyList()
+        val colors = WearSensorSelection.colors()
+        return peers.mapNotNull { peer ->
+            val viewMode = viewModeFor(peer)
+            val isRawMode = viewMode == 1 || viewMode == 3
+            val raw = runCatching {
+                NotificationHistorySource.getDisplayHistory(from, isMmol, peer)
+            }.getOrDefault(emptyList())
+                .filter { it.timestamp in from..now && it.value.isFinite() && it.value > 0f }
+            if (Log.doLog) {
+                Log.i(TAG, "peer $peer mode=$viewMode points=${raw.size} last=${raw.lastOrNull()?.let { "${it.value}/${it.rawValue}" } ?: "-"}")
+            }
+            if (raw.isEmpty()) return@mapNotNull null
+            PeerSeries(
+                sensorId = peer,
+                points = smooth(calibrate(raw, peer, isRawMode)),
+                viewMode = viewMode,
+                colorArgb = WearSensorSelection.colorOf(peer, colors)
+                    ?: runCatching { tk.glucodata.SensorVisuals.colorArgb(peer) }.getOrDefault(0xFF9E9E9E.toInt()),
+            )
+        }
     }
 
     /**
@@ -291,27 +356,25 @@ object WearGlucoseStore {
         if (!hasCalibration) return points
 
         val revision = runCatching { CalibrationAccess.getRevision() }.getOrDefault(0L)
-        val key = "${sensor.orEmpty()}|$isRawMode|$revision"
-        synchronized(calibratedByTime) {
-            if (calibrationCacheKey != key) {
-                calibrationCacheKey = key
-                calibratedByTime.clear()
-                calibratedRawByTime.clear()
-            }
-            if (calibratedByTime.size > CALIBRATION_CACHE_MAX) {
-                calibratedByTime.clear()
-                calibratedRawByTime.clear()
+        val cacheId = "${sensor.orEmpty()}|$isRawMode"
+        val key = "$cacheId|$revision"
+        val cache = synchronized(calibrationCaches) {
+            val existing = calibrationCaches[cacheId]
+            if (existing == null || existing.key != key || existing.auto.size > CALIBRATION_CACHE_MAX) {
+                CalibrationCache(key).also { calibrationCaches[cacheId] = it }
+            } else {
+                existing
             }
         }
 
         fun corrected(value: Float, timestamp: Long, rawLane: Boolean): Float {
             if (!value.isFinite() || value <= 0f) return value
-            val cache = if (rawLane) calibratedRawByTime else calibratedByTime
-            synchronized(calibratedByTime) { cache[timestamp] }?.let { return it }
+            val lane = if (rawLane) cache.raw else cache.auto
+            synchronized(cache) { lane[timestamp] }?.let { return it }
             val result = runCatching {
                 CalibrationAccess.getCalibratedValue(value, timestamp, rawLane, false, sensor)
             }.getOrDefault(value).takeIf { it.isFinite() && it > 0f } ?: value
-            synchronized(calibratedByTime) { cache[timestamp] = result }
+            synchronized(cache) { lane[timestamp] = result }
             return result
         }
 

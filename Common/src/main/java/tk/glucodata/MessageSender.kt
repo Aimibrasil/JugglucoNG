@@ -271,6 +271,10 @@ private fun nodeSendmessage(node:Node,path:String,data:ByteArray) {
     public fun requestToggles() {
         sendmessage(TOGGLE_REQ_PATH, byteArrayOf(1))
      }
+    /** Watch: asks the phone to change its sensor selection (primary, or shown/hidden). */
+    public fun sendMainSensorCommand(data:ByteArray) {
+        sendmessage(MAIN_SENSOR_CMD_PATH,data)
+     }
     /** Watch: asks the phone for the display preferences and colour scheme. */
     public fun requestWearPrefs() {
         sendmessage(WEAR_PREFS_REQ_PATH, byteArrayOf(1))
@@ -345,6 +349,7 @@ companion object {
     const val GLUCOSE_COLORS_PATH = "/glucosecolors"
     const val WEAR_PREFS_PATH = "/displayprefs"
     const val WEAR_PREFS_REQ_PATH = "/displayprefs/req"
+    const val MAIN_SENSOR_CMD_PATH = "/displayprefs/mainsensor"
     const val TOGGLE_STATE_PATH = "/toggles"
     const val TOGGLE_CMD_PATH = "/toggles/set"
     const val TOGGLE_REQ_PATH = "/toggles/req"

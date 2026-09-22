@@ -531,16 +531,14 @@ object WearSync2 {
                     )
                 }
                 if (written > 0) {
-                    // The companion follows the phone's served sensor: after a
-                    // sensor swap the watch's stale current selection otherwise
-                    // sticks to the dead sensor ("No data" with fresh chunks
-                    // landing in the new one).
-                    runCatching {
-                        val current = Natives.lastsensorname()
-                        if (current.isNullOrEmpty() || !current.equals(serial, ignoreCase = true)) {
-                            Natives.setcurrentsensor(serial)
-                        }
-                    }
+                    // The receiver follows the mirrored selection, not the
+                    // sensor this chunk happens to carry: with two sensors
+                    // served in turn, moving the current slot to each chunk's
+                    // sensor made every surface flip between them. With no
+                    // selection yet the served sensor is adopted, so a watch
+                    // still gets off a dead sensor after a swap ("No data"
+                    // with fresh chunks landing in the new one).
+                    WearSensorSelectionSync.alignCurrentSensor(fallback = serial)
                     UiRefreshBus.requestDataRefresh()
                 }
                 if (doLog) Log.i(LOG_ID, "ingested $written/$count triples for $serial final=$final")
