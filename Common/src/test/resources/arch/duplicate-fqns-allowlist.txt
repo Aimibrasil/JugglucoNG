@@ -26,7 +26,6 @@ tk.glucodata.Specific
 tk.glucodata.Stats
 tk.glucodata.Watch
 tk.glucodata.WearOngoingActivity
-tk.glucodata.XInfuus
 tk.glucodata.glucosecomplication.ColorConfig
 tk.glucodata.glucosecomplication.GlucoseValue
 tk.glucodata.nums.AllData
