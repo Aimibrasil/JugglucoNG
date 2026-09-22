@@ -22,7 +22,6 @@ tk.glucodata.Libreview
 tk.glucodata.Meal
 tk.glucodata.Menus
 tk.glucodata.MeterList
-tk.glucodata.MirrorSensors
 tk.glucodata.Nightscout
 tk.glucodata.NovoPen.Scan
 tk.glucodata.Specific
@@ -39,6 +38,5 @@ tk.glucodata.receivers.AlarmActionReceiver
 tk.glucodata.settings.LabelsClass
 tk.glucodata.settings.LibreNumbers
 tk.glucodata.settings.SetColors
-tk.glucodata.settings.Shortcuts
 tk.glucodata.ui.AlarmActivity
 tk.glucodata.ui.ComposeHost
