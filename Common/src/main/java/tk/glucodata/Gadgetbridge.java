@@ -44,6 +44,8 @@ private static float kelvin(float input) {
 static final private float[] speeds= {2, 6, 12, 20, 29, 39, 50, 62, 75, 89, 103, 118,150};
 
 static void sendglucose(String glstr,int mgdl,float gl,float rate,long timmsec)  {
+   if(Applic.isWearable)
+      return;
    WeatherSpec weatherSpec = new WeatherSpec();
    final int code=librecode(rate);
    sendglucose(weatherSpec, glstr, gl, rate, timmsec, code);
@@ -87,6 +89,8 @@ private static void sendglucose(WeatherSpec weatherSpec,String glstr,float gl,fl
         }
 
 static void sendglucose(ExchangeGlucosePayload payload) {
+    if(Applic.isWearable)
+        return;
     sendglucose(new WeatherSpec(), payload.primaryText, (float)payload.primaryDisplayValue,
         payload.trendRate, payload.timeMillis, librecode(payload.trendIndex));
 }
