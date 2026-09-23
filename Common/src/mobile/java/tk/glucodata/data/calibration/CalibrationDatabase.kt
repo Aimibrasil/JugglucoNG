@@ -48,6 +48,17 @@ abstract class CalibrationDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * The real migration chain, in order. The migration tests (plan task H4)
+         * run these exact objects; the builder below uses the same list.
+         */
+        internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5
+        )
+
         fun getInstance(context: Context): CalibrationDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -55,7 +66,7 @@ abstract class CalibrationDatabase : RoomDatabase() {
                     CalibrationDatabase::class.java,
                     "calibration_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(*ALL_MIGRATIONS)
                 .build()
                 INSTANCE = instance
                 instance
