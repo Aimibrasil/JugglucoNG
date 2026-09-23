@@ -768,6 +768,43 @@ abstract class HistoryDatabase : RoomDatabase() {
             )
         }
 
+        /**
+         * The real migration chain, in order. The migration tests (plan task H3)
+         * run these exact objects; the builder below uses the same list.
+         */
+        internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+            MIGRATION_7_8,
+            MIGRATION_8_9,
+            MIGRATION_9_10,
+            MIGRATION_10_11,
+            MIGRATION_11_12,
+            MIGRATION_12_13,
+            MIGRATION_13_14,
+            MIGRATION_14_15,
+            MIGRATION_15_16,
+            MIGRATION_16_17,
+            MIGRATION_17_18,
+            MIGRATION_18_19,
+            MIGRATION_19_30,
+            bridgeCloneToV30(20),
+            bridgeCloneToV30(21),
+            bridgeCloneToV30(22),
+            bridgeCloneToV30(23),
+            bridgeCloneToV30(24),
+            bridgeCloneToV30(25),
+            bridgeCloneToV30(26),
+            bridgeCloneToV30(27),
+            bridgeCloneToV30(28),
+            bridgeCloneToV30(29),
+            MIGRATION_30_31,
+            MIGRATION_31_32
+        )
+
         fun getInstance(context: Context): HistoryDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -775,38 +812,7 @@ abstract class HistoryDatabase : RoomDatabase() {
                     HistoryDatabase::class.java,
                     DATABASE_NAME
                 )
-                .addMigrations(
-                    MIGRATION_2_3,
-                    MIGRATION_3_4,
-                    MIGRATION_4_5,
-                    MIGRATION_5_6,
-                    MIGRATION_6_7,
-                    MIGRATION_7_8,
-                    MIGRATION_8_9,
-                    MIGRATION_9_10,
-                    MIGRATION_10_11,
-                    MIGRATION_11_12,
-                    MIGRATION_12_13,
-                    MIGRATION_13_14,
-                    MIGRATION_14_15,
-                    MIGRATION_15_16,
-                    MIGRATION_16_17,
-                    MIGRATION_17_18,
-                    MIGRATION_18_19,
-                    MIGRATION_19_30,
-                    bridgeCloneToV30(20),
-                    bridgeCloneToV30(21),
-                    bridgeCloneToV30(22),
-                    bridgeCloneToV30(23),
-                    bridgeCloneToV30(24),
-                    bridgeCloneToV30(25),
-                    bridgeCloneToV30(26),
-                    bridgeCloneToV30(27),
-                    bridgeCloneToV30(28),
-                    bridgeCloneToV30(29),
-                    MIGRATION_30_31,
-                    MIGRATION_31_32
-                )
+                .addMigrations(*ALL_MIGRATIONS)
                 .build().also { INSTANCE = it }
             }
 
