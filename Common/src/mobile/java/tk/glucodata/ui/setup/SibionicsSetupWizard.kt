@@ -67,6 +67,19 @@ enum class SibionicsType(val displayNameRes: Int, val subtype: Int, val setupVis
 private fun SibionicsType.toManagedVariant(): SibionicsConstants.Variant =
     SibionicsConstants.Variant.fromLegacySubtype(subtype)
 
+/**
+ * Sibionics 2 split labels carry the probe identifier in AI (21) (e.g. EU2VCZUQPSHD5Q), not the
+ * printed P... serial, so the generation cannot be read off the code. For that type any
+ * structurally valid Sibionics label is accepted and the user's type choice stands; BLE discovery
+ * still only offers Sibionics 2 transmitters. The other types keep the generation check.
+ */
+internal fun SibionicsType.acceptsSetupQr(raw: String?): Boolean =
+    if (this == SibionicsType.SIBIONICS2) {
+        SibionicsRegistry.isSupportedQrPayload(raw)
+    } else {
+        SibionicsRegistry.isSupportedQrPayload(raw, toManagedVariant())
+    }
+
 internal fun SibionicsType.acceptsBleSetupDevice(name: String?): Boolean =
     when (this) {
         SibionicsType.SIBIONICS2 -> SibionicsConstants.isSibionics2TransmitterName(name)
@@ -555,7 +568,7 @@ fun ScanSensorStep(
     val sibionics2Label = stringResource(SibionicsType.SIBIONICS2.displayNameRes)
     val selectedTypeLabel = stringResource(selectedType.displayNameRes)
     val submitManagedQr: (String) -> Boolean = { raw ->
-        if (SibionicsRegistry.isSupportedQrPayload(raw, selectedType.toManagedVariant())) {
+        if (selectedType.acceptsSetupQr(raw)) {
             scanRejection = null
             onManagedEntry(raw, selectedBleDevice)
             true
