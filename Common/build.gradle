@@ -265,6 +265,9 @@ android {
             // reaches a logging statement dies with "Method i in android.util.Log not mocked"
             // instead of testing anything.
             returnDefaultValues = true
+            // Room migration tests run under Robolectric (plan task H3), which needs the
+            // merged resources and assets.
+            includeAndroidResources = true
         }
     }
     dependenciesInfo {
@@ -298,6 +301,12 @@ android {
         wear {
             java.srcDirs += ['src/wearSi/java']
             jniLibs.srcDirs += ['src/wearSi/jniLibs']
+        }
+        // The exported Room schemas are read by MigrationTestHelper through the
+        // variant's assets (plan task H3). Debug only: release never needs them,
+        // and unit tests run against debug.
+        debug {
+            assets.srcDirs += files("$projectDir/schemas")
         }
     }
 }
@@ -426,4 +435,10 @@ dependencies {
     testImplementation 'org.xerial:sqlite-jdbc:3.41.2.2'
     testImplementation 'org.json:json:20260814'
     testImplementation 'com.github.luben:zstd-jni:1.5.7-12'
+    // Room migration tests (plan task H3): a real SQLite under Robolectric, and
+    // MigrationTestHelper to run the production Migration objects against the
+    // exported schemas in Common/schemas.
+    testImplementation 'org.robolectric:robolectric:4.14'
+    testImplementation 'androidx.test:core:1.6.1'
+    testImplementation "androidx.room:room-testing:$room_version"
 }
