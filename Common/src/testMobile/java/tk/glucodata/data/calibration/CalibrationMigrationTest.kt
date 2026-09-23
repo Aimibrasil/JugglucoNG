@@ -35,7 +35,7 @@ class CalibrationMigrationTest {
     @Test
     fun migratesFromTheReleasedV3SchemaToCurrent() {
         helper.createDatabase(DB_NAME, 3).close()
-        helper.runMigrationsAndValidate(DB_NAME, 5, true, *CalibrationDatabase.ALL_MIGRATIONS).close()
+        helper.runMigrationsAndValidate(DB_NAME, CALIBRATION_DATABASE_VERSION, true, *CalibrationDatabase.ALL_MIGRATIONS).close()
     }
 
     @Test
@@ -48,7 +48,7 @@ class CalibrationMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(DB_NAME, 5, true, *CalibrationDatabase.ALL_MIGRATIONS)
+        val migrated = helper.runMigrationsAndValidate(DB_NAME, CALIBRATION_DATABASE_VERSION, true, *CalibrationDatabase.ALL_MIGRATIONS)
 
         migrated.query("SELECT sensorId, sensorValue, userValue, journalEntryId FROM calibrations").use { cursor ->
             assertTrue("the calibration survived", cursor.moveToFirst())

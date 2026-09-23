@@ -41,7 +41,7 @@ class HistoryMigrationTest {
 
     private fun migrate(from: Int) {
         helper.createDatabase(DB_NAME, from).close()
-        helper.runMigrationsAndValidate(DB_NAME, 32, true, *HistoryDatabase.ALL_MIGRATIONS).close()
+        helper.runMigrationsAndValidate(DB_NAME, HISTORY_DATABASE_VERSION, true, *HistoryDatabase.ALL_MIGRATIONS).close()
     }
 
     @Test
@@ -67,7 +67,7 @@ class HistoryMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(DB_NAME, 32, true, *HistoryDatabase.ALL_MIGRATIONS)
+        val migrated = helper.runMigrationsAndValidate(DB_NAME, HISTORY_DATABASE_VERSION, true, *HistoryDatabase.ALL_MIGRATIONS)
 
         migrated.query("SELECT sensorSerial, value, rate FROM history_readings").use { cursor ->
             assertTrue("the reading survived", cursor.moveToFirst())
@@ -93,7 +93,7 @@ class HistoryMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(DB_NAME, 32, true, *HistoryDatabase.ALL_MIGRATIONS)
+        val migrated = helper.runMigrationsAndValidate(DB_NAME, HISTORY_DATABASE_VERSION, true, *HistoryDatabase.ALL_MIGRATIONS)
 
         migrated.query("SELECT sensorSerial, value FROM history_readings").use { cursor ->
             assertTrue("the reading survived", cursor.moveToFirst())
@@ -130,7 +130,7 @@ class HistoryMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(DB_NAME, 32, true, *HistoryDatabase.ALL_MIGRATIONS)
+        val migrated = helper.runMigrationsAndValidate(DB_NAME, HISTORY_DATABASE_VERSION, true, *HistoryDatabase.ALL_MIGRATIONS)
 
         migrated.query("SELECT displayName, carbsGrams, isArchived FROM journal_foods WHERE id = 7").use { cursor ->
             assertTrue("the food survived", cursor.moveToFirst())
@@ -196,7 +196,7 @@ class HistoryMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(DB_NAME, 32, true, *HistoryDatabase.ALL_MIGRATIONS)
+        val migrated = helper.runMigrationsAndValidate(DB_NAME, HISTORY_DATABASE_VERSION, true, *HistoryDatabase.ALL_MIGRATIONS)
 
         migrated.query("SELECT displayName, carbsGrams FROM journal_foods WHERE id = 8").use { cursor ->
             assertTrue("the food survived", cursor.moveToFirst())

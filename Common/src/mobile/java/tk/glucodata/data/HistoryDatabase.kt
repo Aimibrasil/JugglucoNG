@@ -62,6 +62,14 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
  *         here through the steps above, so this is the one place the tables
  *         are guaranteed rather than assumed.
  */
+/**
+ * The current schema version (plan task H5). The migration tests migrate from the
+ * released versions to this one, so raising it without a migration path fails CI.
+ * A version bump also needs its exported schema JSON committed — the CI schema
+ * check in H1 catches that.
+ */
+internal const val HISTORY_DATABASE_VERSION = 32
+
 @Database(
     entities = [
         HistoryReading::class,
@@ -76,7 +84,7 @@ import tk.glucodata.data.journal.JournalPendingDeleteEntity
         CloneJournalRecoveryTombstoneEntity::class,
         CloneRecoveryImportEntity::class
     ],
-    version = 32,
+    version = HISTORY_DATABASE_VERSION,
     exportSchema = true
 )
 abstract class HistoryDatabase : RoomDatabase() {
