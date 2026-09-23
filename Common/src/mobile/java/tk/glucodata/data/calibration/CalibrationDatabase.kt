@@ -7,7 +7,13 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [CalibrationEntity::class], version = 5, exportSchema = true)
+/**
+ * The current schema version (plan task H5). The migration tests migrate from the
+ * released versions to this one, so raising it without a migration path fails CI.
+ */
+internal const val CALIBRATION_DATABASE_VERSION = 5
+
+@Database(entities = [CalibrationEntity::class], version = CALIBRATION_DATABASE_VERSION, exportSchema = true)
 abstract class CalibrationDatabase : RoomDatabase() {
     abstract fun calibrationDao(): CalibrationDao
 

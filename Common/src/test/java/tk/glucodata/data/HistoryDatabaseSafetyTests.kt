@@ -64,7 +64,10 @@ class HistoryDatabaseSafetyTests {
     fun insulinCurveSnapshotMigrationIsRegisteredAndAdditive() {
         val source = historyDatabaseSource()
 
-        assertTrue(source.contains("version = 32"))
+        // The version moved to a constant (plan task H5) so the migration tests
+        // migrate to the current version rather than a hard-coded number.
+        assertTrue(source.contains("const val HISTORY_DATABASE_VERSION = 32"))
+        assertTrue(source.contains("version = HISTORY_DATABASE_VERSION"))
         assertTrue(source.contains("Migration(18, 19)"))
         assertTrue(source.contains("MIGRATION_18_19"))
         assertTrue(source.contains("ALTER TABLE journal_entries ADD COLUMN insulinCurveJsonSnapshot TEXT"))
