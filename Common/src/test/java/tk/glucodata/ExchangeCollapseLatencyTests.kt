@@ -261,4 +261,33 @@ class ExchangeCollapseLatencyTests {
         assertTrue(gate.shouldEmit("a", 0L, 3))
         assertTrue(gate.shouldEmit("a", 0L, 3))
     }
+
+    @Test
+    fun gate_ignoresAReadingThatArrivesOutOfOrder() {
+        val gate = ExchangeUpdateGate()
+
+        assertTrue(gate.shouldEmit("a", base + 3 * minute, 3))
+        // A backfilled reading from the previous interval: not sent, and it must not make the
+        // gate forget that this interval was already sent.
+        assertFalse(gate.shouldEmit("a", base + minute, 3))
+        assertFalse("same interval as the first send", gate.shouldEmit("a", base + 4 * minute, 3))
+        assertTrue("next interval", gate.shouldEmit("a", base + 6 * minute, 3))
+    }
+
+    @Test
+    fun gate_stillSendsTheFirstReadingItSeesEvenIfItIsOld() {
+        val gate = ExchangeUpdateGate()
+
+        assertTrue(gate.shouldEmit("a", base + minute, 3))
+        assertFalse(gate.shouldEmit("a", base, 3))
+    }
+
+    @Test
+    fun gate_outOfOrderOnOneSensorDoesNotAffectAnother() {
+        val gate = ExchangeUpdateGate()
+
+        assertTrue(gate.shouldEmit("a", base + 3 * minute, 3))
+        assertTrue(gate.shouldEmit("b", base + minute, 3))
+        assertFalse(gate.shouldEmit("a", base + minute, 3))
+    }
 }
