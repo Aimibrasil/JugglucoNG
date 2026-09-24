@@ -1,17 +1,21 @@
 package tk.glucodata
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Replays a sensor that reports every minute through the same pieces
- * SuperGattCallback.emitExchangeOutputs uses to build the payload it hands to the
- * xDrip broadcast: prepareRecentPointsForCurrent -> exchangeTargetTimeMillis ->
+ * SuperGattCallback.emitExchangeOutputs uses to decide what an exchange output sends:
+ * exchangeSmoothingMode -> prepareRecentPointsForCurrent -> exchangeTargetTimeMillis ->
  * resolveFromLive -> ExchangeUpdateGate.
  *
- * Shape taken from the field trace: readings every 60 s, each one reaching the
- * callback ~4 s before its own timestamp, smoothing window 3 min.
+ * "Collapse into chunks" thins how OFTEN an exchange output is fed. It must never change WHAT
+ * is sent: the newest reading, under its own timestamp.
+ *
+ * Shape taken from the field trace: readings every 60 s, each one reaching the callback ~4 s
+ * before its own timestamp, smoothing window 3 min.
  */
 class ExchangeCollapseLatencyTests {
     private val minute = 60_000L
@@ -21,6 +25,16 @@ class ExchangeCollapseLatencyTests {
     /** Epoch-aligned to every collapse interval used below (2, 3, 4, 5 min). */
     private val base = 60L * 60 * 60 * minute
 
+    private val steadyState = 6 // skip the warm-up before the first bucket completes
+
+    private data class Settings(
+        val smoothingMinutes: Int = 3,
+        val graphOnly: Boolean = false,
+        val exchangeOnly: Boolean = true,
+        val collapse: Boolean = true,
+        val liveLoopFeed: Boolean = false
+    )
+
     private data class Emission(
         val readingTimeMs: Long,
         val payloadTimeMs: Long,
@@ -28,17 +42,19 @@ class ExchangeCollapseLatencyTests {
         val emitted: Boolean
     )
 
-    /**
-     * @param collapse what the payload is resolved with (the snapshot's collapse flag).
-     * @param gateCollapse what the gate is told; the gate only dedupes when this is true.
-     */
     private fun replay(
-        readings: Int,
-        smoothingMinutes: Int,
-        collapse: Boolean,
-        gateCollapse: Boolean,
+        settings: Settings,
+        readings: Int = 18,
         valueAt: (Int) -> Float = { 100f + it }
     ): List<Emission> {
+        val mode = CurrentDisplaySource.exchangeSmoothingMode(
+            settings.smoothingMinutes, settings.graphOnly, settings.exchangeOnly,
+            settings.collapse, settings.liveLoopFeed
+        )
+        val intervalMinutes = DataSmoothing.exchangeThrottleIntervalMinutes(
+            settings.smoothingMinutes, settings.graphOnly, settings.exchangeOnly,
+            settings.collapse, settings.liveLoopFeed
+        )
         val gate = ExchangeUpdateGate()
         val history = ArrayList<GlucosePoint>()
         val out = ArrayList<Emission>()
@@ -60,12 +76,12 @@ class ExchangeCollapseLatencyTests {
                 current = current,
                 historyStart = 0L,
                 viewMode = 0,
-                smoothAllData = true,
-                smoothingMinutes = smoothingMinutes,
-                collapseChunks = collapse,
+                smoothAllData = mode.smoothAllData,
+                smoothingMinutes = mode.smoothingMinutes,
+                collapseChunks = mode.collapseChunks,
                 nowMillis = stamp - arrivalLeadMs
             )
-            val target = CurrentDisplaySource.exchangeTargetTimeMillis(collapse, processed, stamp)
+            val target = CurrentDisplaySource.exchangeTargetTimeMillis(mode.collapseChunks, processed, stamp)
             val snapshot = requireNotNull(
                 CurrentDisplaySource.resolveFromLive(
                     liveValueText = null,
@@ -85,109 +101,87 @@ class ExchangeCollapseLatencyTests {
                 readingTimeMs = stamp,
                 payloadTimeMs = snapshot.timeMillis,
                 payloadValue = snapshot.primaryValue,
-                emitted = gate.shouldEmit(sensorId, snapshot.timeMillis, gateCollapse)
+                emitted = gate.shouldEmit(sensorId, snapshot.timeMillis, intervalMinutes)
             )
             history += GlucosePoint(stamp, valueAt(k), 0f)
         }
         return out
     }
 
-    private val steadyState = 6 // skip the warm-up before the first bucket completes
+    // --- what the old design did, kept so the reason for the change stays on record ----------
 
     @Test
-    fun collapseOn_sendsOncePerIntervalWithAStaleChunkTimestamp() {
-        val run = replay(readings = 18, smoothingMinutes = 3, collapse = true, gateCollapse = true)
-            .drop(steadyState)
+    fun aCollapsedSnapshotCarriesTheLastPointOfThePreviousChunk() {
+        // Not used for exchange outputs any more: this is why. Two minutes old at a 3 min window.
+        val collapsed = replayCollapsedSnapshot()
+        assertTrue(collapsed.isNotEmpty())
+        collapsed.forEach { assertEquals(2 * minute, it) }
+    }
+
+    /** Ages (reading time - snapshot time) of the readings whose collapsed snapshot moved on. */
+    private fun replayCollapsedSnapshot(): List<Long> {
+        val history = ArrayList<GlucosePoint>()
+        val ages = ArrayList<Long>()
+        var lastSnapshotTime = -1L
+        for (k in 0 until 18) {
+            val stamp = base + k * minute
+            val current = CurrentGlucoseSource.Snapshot(
+                timeMillis = stamp, valueText = "", numericValue = 100f + k, rawNumericValue = Float.NaN,
+                rate = 0f, sensorId = sensorId, sensorGen = 0, index = k, source = "test"
+            )
+            val processed = CurrentDisplaySource.prepareRecentPointsForCurrent(
+                history.toList(), current, 0L, 0, true, 3, true, stamp - arrivalLeadMs
+            )
+            val time = CurrentDisplaySource.exchangeTargetTimeMillis(true, processed, stamp)
+            if (k >= steadyState && time != lastSnapshotTime) ages += stamp - time
+            lastSnapshotTime = time
+            history += GlucosePoint(stamp, 100f + k, 0f)
+        }
+        return ages
+    }
+
+    // --- what exchange outputs do now ----------------------------------------------------------
+
+    @Test
+    fun chunkedTarget_sendsTheFirstReadingOfEachIntervalWithItsOwnTime() {
+        val run = replay(Settings()).drop(steadyState)
 
         val sent = run.filter { it.emitted }
         assertEquals("12 readings, interval 3 min", 4, sent.size)
         sent.forEach {
-            assertEquals(
-                "the payload carries the last point of the previous chunk, not the reading",
-                2 * minute,
-                it.readingTimeMs - it.payloadTimeMs
-            )
+            assertEquals("newest reading, not the previous chunk", it.readingTimeMs, it.payloadTimeMs)
+            assertEquals("first reading of its interval", 0L, it.readingTimeMs % (3 * minute))
         }
     }
 
     @Test
-    fun collapseOn_neverSendsTheNewestReadingsOwnTime() {
-        val run = replay(readings = 18, smoothingMinutes = 3, collapse = true, gateCollapse = true)
-            .drop(steadyState)
+    fun chunkedTarget_neverSendsTheSameIntervalTwice() {
+        val sent = replay(Settings()).filter { it.emitted }
 
-        assertTrue(run.none { it.emitted && it.payloadTimeMs == it.readingTimeMs })
+        assertEquals(sent.size, sent.map { it.readingTimeMs / (3 * minute) }.toSet().size)
+    }
+
+    @Test
+    fun loopFeed_receivesEveryReadingWithItsOwnTimestamp() {
+        val run = replay(Settings(liveLoopFeed = true)).drop(steadyState)
+
+        assertEquals(12, run.count { it.emitted })
+        run.forEach { assertEquals(it.readingTimeMs, it.payloadTimeMs) }
     }
 
     @Test
     fun collapseOff_sendsEveryReadingWithItsOwnTimestamp() {
-        val run = replay(readings = 18, smoothingMinutes = 3, collapse = false, gateCollapse = false)
-            .drop(steadyState)
-
-        assertEquals(12, run.count { it.emitted })
-        run.forEach { assertEquals(it.readingTimeMs, it.payloadTimeMs) }
-    }
-
-    // --- outputs that drive a closed loop (xDrip broadcast, xInfuus) -----------------
-
-    private fun collapseForLoopFeed(collapsePref: Boolean = true) =
-        DataSmoothing.collapseForExchangeSnapshot(
-            smoothingMinutes = 3,
-            graphOnly = false,
-            exchangeOutputsOnly = false,
-            collapseChunks = collapsePref,
-            liveLoopFeed = true
-        )
-
-    @Test
-    fun loopFeed_neverCollapses_whateverTheUserSettingsSay() {
-        for (graphOnly in listOf(false, true)) {
-            for (exchangeOnly in listOf(false, true)) {
-                assertEquals(
-                    false,
-                    DataSmoothing.collapseForExchangeSnapshot(
-                        smoothingMinutes = 3,
-                        graphOnly = graphOnly,
-                        exchangeOutputsOnly = exchangeOnly,
-                        collapseChunks = true,
-                        liveLoopFeed = true
-                    )
-                )
-            }
-        }
-    }
-
-    @Test
-    fun chunkedTargets_keepTheirCollapseDecision() {
-        for (graphOnly in listOf(false, true)) {
-            for (exchangeOnly in listOf(false, true)) {
-                for (pref in listOf(false, true)) {
-                    assertEquals(
-                        DataSmoothing.shouldCollapseExchangeOutputs(3, graphOnly, exchangeOnly, pref),
-                        DataSmoothing.collapseForExchangeSnapshot(3, graphOnly, exchangeOnly, pref, liveLoopFeed = false)
-                    )
-                }
-            }
-        }
-    }
-
-    @Test
-    fun loopFeed_withCollapseOn_receivesEveryReadingWithItsOwnTimestamp() {
-        val collapse = collapseForLoopFeed()
-
-        val run = replay(readings = 18, smoothingMinutes = 3, collapse = collapse, gateCollapse = collapse)
-            .drop(steadyState)
+        val run = replay(Settings(collapse = false)).drop(steadyState)
 
         assertEquals(12, run.count { it.emitted })
         run.forEach { assertEquals(it.readingTimeMs, it.payloadTimeMs) }
     }
 
     @Test
-    fun loopFeed_valueIsSmoothedFromTheWindowBehindTheReading() {
-        val collapse = collapseForLoopFeed()
+    fun valueIsSmoothedFromTheWindowBehindTheReading() {
         val noisy = { k: Int -> 100f + k + if (k % 2 == 0) 4f else -4f }
 
-        val run = replay(readings = 18, smoothingMinutes = 3, collapse = collapse, gateCollapse = collapse, valueAt = noisy)
-            .drop(steadyState)
+        val run = replay(Settings(liveLoopFeed = true), valueAt = noisy).drop(steadyState)
 
         run.forEachIndexed { i, e ->
             val k = steadyState + i
@@ -199,37 +193,72 @@ class ExchangeCollapseLatencyTests {
         }
     }
 
+    // --- settings -> decisions ------------------------------------------------------------------
+
     @Test
-    fun loopFeed_underGraphOnly_goesOutAsMeasuredEvenWithCollapseOn() {
-        // d7f827240 pulls exchange smoothing back on under "graph only" for the sake of collapse.
-        // A loop feed does not collapse, so it has no such reason and honours "graph only".
-        assertEquals(
-            false,
-            DataSmoothing.smoothExchangeSnapshot(3, graphOnly = true, exchangeOutputsOnly = false, collapseChunks = true, liveLoopFeed = true)
-        )
-        assertEquals(
-            true,
-            DataSmoothing.smoothExchangeSnapshot(3, graphOnly = true, exchangeOutputsOnly = false, collapseChunks = true, liveLoopFeed = false)
-        )
-        assertEquals(
-            true,
-            DataSmoothing.smoothExchangeSnapshot(3, graphOnly = false, exchangeOutputsOnly = false, collapseChunks = true, liveLoopFeed = true)
-        )
-        assertEquals(
-            false,
-            DataSmoothing.smoothExchangeSnapshot(0, graphOnly = false, exchangeOutputsOnly = false, collapseChunks = true, liveLoopFeed = true)
-        )
+    fun theExchangeSnapshotIsNeverCollapsed() {
+        for (graphOnly in listOf(false, true)) for (exchangeOnly in listOf(false, true))
+            for (collapse in listOf(false, true)) for (loop in listOf(false, true)) {
+                val mode = CurrentDisplaySource.exchangeSmoothingMode(3, graphOnly, exchangeOnly, collapse, loop)
+                assertFalse("graphOnly=$graphOnly exchangeOnly=$exchangeOnly collapse=$collapse loop=$loop", mode.collapseChunks)
+            }
     }
 
     @Test
-    fun deviceConfig_exchangeOnlyPlusCollapse_loopFeedStaysSmoothedButNotChunked() {
-        // Reported on the affected device: "smooth only exchange outputs" + "collapse into chunks".
-        fun snapshot(liveLoopFeed: Boolean) = Pair(
-            DataSmoothing.smoothExchangeSnapshot(3, graphOnly = false, exchangeOutputsOnly = true, collapseChunks = true, liveLoopFeed = liveLoopFeed),
-            DataSmoothing.collapseForExchangeSnapshot(3, graphOnly = false, exchangeOutputsOnly = true, collapseChunks = true, liveLoopFeed = liveLoopFeed)
-        )
+    fun throttleInterval_followsTheCollapseSettingForChunkedTargets() {
+        fun interval(min: Int, graphOnly: Boolean, exchangeOnly: Boolean, collapse: Boolean) =
+            DataSmoothing.exchangeThrottleIntervalMinutes(min, graphOnly, exchangeOnly, collapse, liveLoopFeed = false)
 
-        assertEquals(Pair(true, true), snapshot(liveLoopFeed = false)) // Nightscout & co. unchanged
-        assertEquals(Pair(true, false), snapshot(liveLoopFeed = true)) // xDrip: smoothed value, real time, every reading
+        assertEquals(3, interval(3, graphOnly = false, exchangeOnly = true, collapse = true))
+        assertEquals(5, interval(13, graphOnly = false, exchangeOnly = true, collapse = true)) // MAX_CHUNK_INTERVAL_MINUTES
+        assertEquals(3, interval(3, graphOnly = true, exchangeOnly = false, collapse = true)) // d7f827240 kept
+        assertEquals(0, interval(3, graphOnly = false, exchangeOnly = true, collapse = false))
+        assertEquals(0, interval(0, graphOnly = false, exchangeOnly = true, collapse = true))
+    }
+
+    @Test
+    fun throttleInterval_isZeroForALoopFeedWhateverTheSettingsSay() {
+        for (graphOnly in listOf(false, true)) for (exchangeOnly in listOf(false, true))
+            assertEquals(
+                0,
+                DataSmoothing.exchangeThrottleIntervalMinutes(3, graphOnly, exchangeOnly, true, liveLoopFeed = true)
+            )
+    }
+
+    @Test
+    fun loopFeed_underGraphOnly_goesOutAsMeasuredEvenWithCollapseOn() {
+        // d7f827240 pulls exchange smoothing back on under "graph only" so collapse has a smoothed
+        // reading to keep. A loop feed is not thinned, so it has no such reason.
+        assertFalse(DataSmoothing.smoothExchangeSnapshot(3, true, false, true, liveLoopFeed = true))
+        assertTrue(DataSmoothing.smoothExchangeSnapshot(3, true, false, true, liveLoopFeed = false))
+        assertTrue(DataSmoothing.smoothExchangeSnapshot(3, false, true, true, liveLoopFeed = true))
+        assertFalse(DataSmoothing.smoothExchangeSnapshot(0, false, false, true, liveLoopFeed = true))
+    }
+
+    // --- the gate -------------------------------------------------------------------------------
+
+    @Test
+    fun gate_withoutAnIntervalLetsEverythingThrough() {
+        val gate = ExchangeUpdateGate()
+        repeat(3) { assertTrue(gate.shouldEmit("a", base + it * minute, 0)) }
+        assertTrue(gate.shouldEmit("a", base, 0)) // same time again: not deduped
+    }
+
+    @Test
+    fun gate_letsOnePayloadPerIntervalThrough_perSensor() {
+        val gate = ExchangeUpdateGate()
+
+        assertTrue(gate.shouldEmit("a", base, 3))
+        assertFalse(gate.shouldEmit("a", base + minute, 3))
+        assertFalse(gate.shouldEmit("a", base + 2 * minute, 3))
+        assertTrue(gate.shouldEmit("a", base + 3 * minute, 3))
+        assertTrue("other sensor has its own interval", gate.shouldEmit("b", base + minute, 3))
+    }
+
+    @Test
+    fun gate_doesNotDedupeAnUnusableTimestamp() {
+        val gate = ExchangeUpdateGate()
+        assertTrue(gate.shouldEmit("a", 0L, 3))
+        assertTrue(gate.shouldEmit("a", 0L, 3))
     }
 }

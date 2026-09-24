@@ -10,7 +10,7 @@ object CurrentDisplaySource {
     private const val MATCH_WINDOW_MS = 60 * 1000L
     private const val MGDL_PER_MMOLL = 18.0182f
 
-    private data class SmoothingMode(
+    internal data class SmoothingMode(
         val smoothAllData: Boolean,
         val smoothingMinutes: Int,
         val collapseChunks: Boolean
@@ -70,9 +70,9 @@ object CurrentDisplaySource {
     }
 
     /**
-     * The exchange snapshot for outputs that feed a closed loop: never collapsed into
-     * chunks, so it is the newest reading under its own timestamp. See
-     * [DataSmoothing.shouldCollapseExchangeSnapshot].
+     * The exchange snapshot for outputs that feed a closed loop: same newest reading, but
+     * "graph only" is honoured (see [DataSmoothing.smoothExchangeSnapshot]) and the output is
+     * never thinned ([DataSmoothing.exchangeThrottleIntervalMinutes]).
      */
     @JvmStatic
     @JvmOverloads
@@ -289,14 +289,35 @@ object CurrentDisplaySource {
     }
 
     private fun exchangeSmoothingMode(liveLoopFeed: Boolean): SmoothingMode {
-        val smoothingMinutes = DataSmoothing.getMinutes(Applic.app)
-        val smoothExchangeData = DataSmoothing.shouldSmoothExchangeSnapshot(Applic.app, liveLoopFeed)
-        return SmoothingMode(
-            smoothAllData = smoothExchangeData,
-            smoothingMinutes = smoothingMinutes,
-            collapseChunks = smoothExchangeData && DataSmoothing.shouldCollapseExchangeSnapshot(Applic.app, liveLoopFeed)
+        val context = Applic.app
+        return exchangeSmoothingMode(
+            smoothingMinutes = DataSmoothing.getMinutes(context),
+            graphOnly = DataSmoothing.isGraphOnly(context),
+            exchangeOutputsOnly = DataSmoothing.smoothOnlyExchangeOutputs(context),
+            collapseChunks = DataSmoothing.collapseChunks(context),
+            liveLoopFeed = liveLoopFeed
         )
     }
+
+    /**
+     * An exchange snapshot is smoothed per the exchange settings but never collapsed: it is the
+     * newest reading under its own timestamp. "Collapse into chunks" is applied as a rate limit
+     * on the way out ([DataSmoothing.exchangeThrottleIntervalMinutes]), not by resolving the
+     * snapshot at the last point of a completed chunk.
+     */
+    internal fun exchangeSmoothingMode(
+        smoothingMinutes: Int,
+        graphOnly: Boolean,
+        exchangeOutputsOnly: Boolean,
+        collapseChunks: Boolean,
+        liveLoopFeed: Boolean
+    ): SmoothingMode = SmoothingMode(
+        smoothAllData = DataSmoothing.smoothExchangeSnapshot(
+            smoothingMinutes, graphOnly, exchangeOutputsOnly, collapseChunks, liveLoopFeed
+        ),
+        smoothingMinutes = smoothingMinutes,
+        collapseChunks = false
+    )
 
     @JvmStatic
     fun getFreshNotGlucose(maxAgeMillis: Long): notGlucose? {
