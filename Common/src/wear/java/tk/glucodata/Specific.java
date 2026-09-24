@@ -65,6 +65,7 @@ final static private String LOG_ID="Specific";
 // see the mobile Specific for why start() is too late after a reboot.
 static void registerBridges() {
     TrendAccess.register(tk.glucodata.logic.TrendEngineVelocityProvider.INSTANCE);
+    tk.glucodata.ui.ComposeHostAccess.register(tk.glucodata.ui.WearComposeHost.INSTANCE);
 }
 
 static void start(Object context) {

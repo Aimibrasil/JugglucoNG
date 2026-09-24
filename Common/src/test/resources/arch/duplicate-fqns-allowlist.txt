@@ -32,4 +32,3 @@ tk.glucodata.settings.LabelsClass
 tk.glucodata.settings.LibreNumbers
 tk.glucodata.settings.SetColors
 tk.glucodata.ui.AlarmActivity
-tk.glucodata.ui.ComposeHost

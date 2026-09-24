@@ -547,17 +547,17 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
     static boolean composeUIActive;
 
     private void initComposeUI() {
-        // Mobile resolves the mobile ComposeHost, wear its own; the legacy
-        // `small` flavor has neither and falls back to the native View UI.
+        // Each flavour registers its Compose host in Specific.registerBridges; the
+        // legacy `small` flavor registers none and falls back to the native View UI.
+        tk.glucodata.ui.ComposeHost host = tk.glucodata.ui.ComposeHostAccess.get();
+        if (host == null) {
+            Log.i(LOG_ID, "Compose UI not found (normal for Legacy)");
+            return;
+        }
         try {
-            Class<?> clazz = Class.forName("tk.glucodata.ui.ComposeHostKt");
-            java.lang.reflect.Method method = clazz.getMethod("setComposeContent",
-                    androidx.appcompat.app.AppCompatActivity.class, android.view.View.class);
-            method.invoke(null, this, curve);
+            host.setComposeContent(this, curve);
             composeUIActive = true;
             Log.i(LOG_ID, "Initialized Compose UI and hid legacy view");
-        } catch (ClassNotFoundException e) {
-            Log.i(LOG_ID, "Compose UI not found (normal for Legacy)");
         } catch (Exception e) {
             Log.e(LOG_ID, "Failed to init Compose UI: " + e);
         }
