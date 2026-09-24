@@ -63,8 +63,7 @@ object NightscoutJournalFollowerImporter {
             ) ?: continue
 
             if (parsed.deleteOnly) {
-                repository.deleteEntriesBySourceRecordIds(parsed.candidateSourceRecordIds)
-                deleted += parsed.candidateSourceRecordIds.size
+                deleted += repository.deleteEntriesBySourceRecordIds(parsed.candidateSourceRecordIds)
                 continue
             }
 
@@ -74,8 +73,7 @@ object NightscoutJournalFollowerImporter {
             }
             val importedIds = parsed.inputs.mapNotNull { it.sourceRecordId }.toSet()
             val staleIds = parsed.candidateSourceRecordIds.filterNot { it in importedIds }
-            repository.deleteEntriesBySourceRecordIds(staleIds)
-            deleted += staleIds.size
+            deleted += repository.deleteEntriesBySourceRecordIds(staleIds)
         }
 
         if (imported > 0 || deleted > 0) {

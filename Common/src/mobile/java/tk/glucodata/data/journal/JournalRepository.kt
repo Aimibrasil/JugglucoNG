@@ -314,17 +314,41 @@ class JournalRepository {
         return adopted
     }
 
-    suspend fun deleteEntriesBySourceRecordIds(sourceRecordIds: List<String>) {
+    /**
+     * Removes what an importer wrote under these names.
+     *
+     * Importers pass every alias a treatment could have been stored under, and most of them
+     * match nothing, so what counts is the rows that actually went. Nothing gone, nothing to
+     * tell anyone. Rows that came from another system are signalled the way their write was:
+     * no Nightscout wake, since nothing is queued for it to send. Waking it anyway closed a
+     * loop — the Nightscout follower's own receive pass deleted its stale aliases, that woke
+     * the uploader, whose next pass received again — three times a second, redrawing the
+     * notification and widgets every time.
+     *
+     * @return how many rows were deleted
+     */
+    suspend fun deleteEntriesBySourceRecordIds(sourceRecordIds: List<String>): Int {
         val ids = sourceRecordIds
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .distinct()
-        if (ids.isNotEmpty()) {
-            dao.deleteEntriesBySourceRecordIds(ids)
-            tk.glucodata.OutboundApiJournalSnapshot.journalChanged()
-            tk.glucodata.data.calibration.JournalCalibrationSync.onJournalChanged()
-            tk.glucodata.NightscoutUploadWake.afterJournalChange()
+        if (ids.isEmpty()) return 0
+        val deleted = database.withTransaction {
+            val rows = dao.getEntriesBySourceRecordIds(ids)
+            if (rows.isNotEmpty()) dao.deleteEntriesBySourceRecordIds(ids)
+            rows
         }
+        if (deleted.isEmpty()) return 0
+        if (sourceRecordDeleteWakesUploads(deleted.map { JournalEntrySource.fromStorage(it.source) })) {
+            tk.glucodata.OutboundApiJournalSnapshot.journalChanged()
+            tk.glucodata.NightscoutUploadWake.afterJournalChange()
+        } else {
+            tk.glucodata.OutboundApiJournalSnapshot.mirroredJournalChanged()
+        }
+        if (deleted.any { it.glucoseValueMgDl != null }) {
+            tk.glucodata.data.calibration.JournalCalibrationSync.onJournalChanged()
+        }
+        return deleted.size
     }
 
     suspend fun deleteEntry(entryId: Long) {
@@ -748,6 +772,10 @@ internal fun preserveMirroredJournalIdentity(
         JournalWriteIdentity(incomingSource, incomingSourceRecordId)
     }
 }
+
+/** Only a deleted row of this device's own is anything for the uploaders to act on. */
+internal fun sourceRecordDeleteWakesUploads(deletedSources: Collection<JournalEntrySource>): Boolean =
+    deletedSources.any { !isExternalJournalMirrorSource(it) }
 
 internal fun isExternalJournalMirrorSource(source: JournalEntrySource): Boolean =
     source == JournalEntrySource.AAPS ||
