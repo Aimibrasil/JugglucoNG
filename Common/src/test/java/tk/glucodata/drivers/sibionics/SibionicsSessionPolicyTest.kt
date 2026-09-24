@@ -390,6 +390,22 @@ class SibionicsSessionPolicyTest {
     }
 
     @Test
+    fun aRestartProvedMidSessionIsDownloadedFromTheStart() {
+        // 20:04: the page that proved the restart was the live idx=1024 alone.
+        assertTrue(
+            SibionicsSessionPolicy.shouldDownloadRestartedSessionFromStart(
+                listOf(sample(1024, now, live = true)),
+            ),
+        )
+        // Our own reset's probe, or a live idx=1: the page already starts the session.
+        assertFalse(SibionicsSessionPolicy.shouldDownloadRestartedSessionFromStart(listOf(sample(1, now, live = true))))
+        assertFalse(
+            SibionicsSessionPolicy.shouldDownloadRestartedSessionFromStart((0..999).map { sample(it, now + it * minute) }),
+        )
+        assertFalse(SibionicsSessionPolicy.shouldDownloadRestartedSessionFromStart(emptyList()))
+    }
+
+    @Test
     fun ourResetIsConfirmedByTheProbesIndexOne() {
         // reset.log: after our reset the next link's idx=1 is the new session.
         val newStart = now + 3 * minute

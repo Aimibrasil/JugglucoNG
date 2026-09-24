@@ -1380,9 +1380,10 @@ class SibionicsBleManager(
         val ordered = entries.sortedBy { it.index }.map { entry ->
             entry to sanitizeSampleTime(entry.eventTimeMs(now))
         }
-        checkSessionRestart(ordered.map { (entry, eventMs) ->
+        val sessionSamples = ordered.map { (entry, eventMs) ->
             SibionicsSessionPolicy.SessionSample(entry.index, eventMs, entry.isLive)
-        })
+        }
+        if (!checkSessionRestart(sessionSamples)) return
         // Counted after the session check, so a restart's reset of the counters
         // does not wipe the page that proved it.
         updateChineseHistoryProgress(ordered.map { (entry, _) -> entry })
@@ -1430,9 +1431,10 @@ class SibionicsBleManager(
         observeCalibrationRevision()
         val now = System.currentTimeMillis()
         val ordered = entries.sortedBy { it.index }
-        checkSessionRestart(ordered.map { entry ->
+        val sessionSamples = ordered.map { entry ->
             SibionicsSessionPolicy.SessionSample(entry.index, entry.eventTimeMs, isV120Current(entry, now))
-        })
+        }
+        if (!checkSessionRestart(sessionSamples)) return
         // Counted after the session check, so a restart's reset of the counters
         // does not wipe the page that proved it.
         updateV120HistoryProgress(ordered)
@@ -1491,11 +1493,16 @@ class SibionicsBleManager(
     /**
      * Runs before a batch reaches the journal or the algorithm. A batch proving a
      * restarted session (see [SibionicsSessionPolicy.restartedSessionStartMs])
-     * clears the tracked one, and the batch is then processed as the new
-     * session's first data - exactly as 1.2.1 did for a live idx<=1.
+     * clears the tracked one. The new session is then downloaded from its first
+     * minute through the ordinary page-by-page backlog path, as for a newly added
+     * sensor: a page that starts mid-session (idx=1024 answering cursor 23437 in
+     * the 2026-09-24 20:04 capture) is set aside and idx=0 requested. A page that
+     * already starts the session is processed as it is.
+     *
+     * @return false when the batch was set aside for that download.
      */
-    private fun checkSessionRestart(samples: List<SibionicsSessionPolicy.SessionSample>) {
-        if (samples.isEmpty()) return
+    private fun checkSessionRestart(samples: List<SibionicsSessionPolicy.SessionSample>): Boolean {
+        if (samples.isEmpty()) return true
         val knownCursor = if (algorithmRehydrating) maxOf(lastIndex, rehydrationTargetIndex) else lastIndex
         val restartedAtMs = SibionicsSessionPolicy.restartedSessionStartMs(
             samples = samples,
@@ -1504,13 +1511,16 @@ class SibionicsBleManager(
             lastSeenMs = latestReadingTimeMs,
             isRehydrating = algorithmRehydrating,
             nowMs = System.currentTimeMillis(),
-        ) ?: return
+        ) ?: return true
         Log.i(
             SibionicsConstants.TAG,
             "sensor session restarted: new start=$restartedAtMs previous start=$startTimeMs " +
                 "cursor=$knownCursor page idx=${samples.first().index}..${samples.last().index}",
         )
         resetForSensorRestart()
+        if (!SibionicsSessionPolicy.shouldDownloadRestartedSessionFromStart(samples)) return true
+        scheduleReconnect("new sensor session; downloading it from idx=0", BACKLOG_RECONNECT_DELAY_MS)
+        return false
     }
 
     private fun markUnrequestedPage(index: Int) {

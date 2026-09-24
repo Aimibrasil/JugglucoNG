@@ -73,6 +73,16 @@ internal object SibionicsSessionPolicy {
         return null
     }
 
+    /**
+     * Whether a page that proved a restart must be set aside so the new session can
+     * be downloaded from its first minute, the way a newly added sensor is. True
+     * when the page starts mid-session: a stale cursor is answered with the
+     * sensor's current record, and processing that on a fresh algorithm would
+     * leave every earlier minute of the session out of history.
+     */
+    fun shouldDownloadRestartedSessionFromStart(samples: List<SessionSample>): Boolean =
+        samples.isNotEmpty() && samples.none { it.index <= 1 }
+
     fun shouldRebaseNativeWindow(hadStartTime: Boolean, index: Int): Boolean =
         !hadStartTime && index >= 0
 
