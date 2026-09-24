@@ -548,21 +548,11 @@ class NightscoutFollowerManager(
     }
 
     private fun importRemoteTreatments(): Int {
-        val method = runCatching {
-            val type = Class.forName("tk.glucodata.data.journal.NightscoutJournalFollowerImporter")
-            type.getMethod("importTreatments", String::class.java, String::class.java)
-        }.getOrElse { error ->
-            if (error !is ClassNotFoundException) {
-                Log.w(TAG, "Nightscout journal importer unavailable: ${error.message}")
-            }
-            return 0
-        }
-
         fun importBatch(label: String, body: () -> String): Int =
             runCatching {
                 val json = body()
                 if (json.isBlank() || json == "[]") 0
-                else method.invoke(null, SerialNumber, json) as? Int ?: 0
+                else tk.glucodata.NightscoutTreatmentImportAccess.importTreatments(SerialNumber, json)
             }.getOrElse { error ->
                 Log.w(TAG, "Nightscout $label import ignored: ${error.message}")
                 0

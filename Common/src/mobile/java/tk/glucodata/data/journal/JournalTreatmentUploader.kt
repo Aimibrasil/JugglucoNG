@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import tk.glucodata.Applic
+import tk.glucodata.JournalTreatmentUploadBridge
 import tk.glucodata.Log
 import tk.glucodata.Natives
 import tk.glucodata.NightPost
@@ -25,7 +26,7 @@ import java.util.Locale
  * deletes are queued in journal_pending_deletes so they survive process death.
  */
 @Keep
-object JournalTreatmentUploader {
+object JournalTreatmentUploader : JournalTreatmentUploadBridge {
     private const val LOG_ID = "JournalTreatmentUploader"
     private const val ID_PREFIX = "jng-j-"
     private const val LOOKBACK_MILLIS = 30L * 24 * 60 * 60 * 1000  // mirrors C++ nighttimeback (30 days)
@@ -221,9 +222,8 @@ object JournalTreatmentUploader {
         return false
     }
 
-    @JvmStatic
     @Keep
-    fun uploadAll(useV3: Boolean): Boolean = runBlocking {
+    override fun uploadAll(useV3: Boolean): Boolean = runBlocking {
         try {
             uploadInternal(useV3)
         } catch (th: Throwable) {
@@ -232,9 +232,8 @@ object JournalTreatmentUploader {
         }
     }
 
-    @JvmStatic
     @Keep
-    fun getReceiveTreatments(): Boolean =
+    override fun getReceiveTreatments(): Boolean =
         Applic.app.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
             .getBoolean(PREF_RECEIVE_TREATMENTS, false)
 

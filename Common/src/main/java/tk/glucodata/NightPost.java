@@ -438,26 +438,18 @@ private static long uploadtime=System.currentTimeMillis();
 
 /**
  * Uploads journal-derived treatments (insulin / carbs / fingerstick) to Nightscout.
- * Replaces the legacy native uploadtreatments() path. Looked up via reflection so
- * the wearable build (which doesn't include the journal Room database) can no-op.
+ * Replaces the legacy native uploadtreatments() path. The phone registers its
+ * implementation from Specific.registerBridges (plan P1/Q1); the wearable build
+ * (which doesn't include the journal Room database) registers nothing and this
+ * no-ops.
  */
 @Keep
 static public boolean uploadJournalTreatments(boolean useV3) {
     try {
-        Class<?> uploader = Class.forName("tk.glucodata.data.journal.JournalTreatmentUploader");
-        if(!Natives.getpostTreatments()) {
-            java.lang.reflect.Method receiveMethod = uploader.getMethod("getReceiveTreatments");
-            if(!Boolean.TRUE.equals(receiveMethod.invoke(null))) {
-                return true;
-                }
+        if(!Natives.getpostTreatments() && !JournalTreatmentUploadAccess.getReceiveTreatments()) {
+            return true;
             }
-        java.lang.reflect.Method method = uploader.getMethod("uploadAll", boolean.class);
-        Object result = method.invoke(null, useV3);
-        return Boolean.TRUE.equals(result);
-        }
-    catch(ClassNotFoundException nfe) {
-        // Wearable build: no journal DB compiled in. Treat as success.
-        return true;
+        return JournalTreatmentUploadAccess.uploadAll(useV3);
         }
     catch(Throwable th) {
         Log.e(LOG_ID,"uploadJournalTreatments error:\n"+stackline(th));
