@@ -377,10 +377,6 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
     public static String previousglucosesensorid = null;
     private static final ExchangeUpdateGate exchangeUpdateGate = new ExchangeUpdateGate();
 
-    private static boolean shouldEmitExchangeUpdate(String sensorId, long payloadTimeMs, boolean collapseChunks) {
-        return exchangeUpdateGate.shouldEmit(sensorId, payloadTimeMs, collapseChunks);
-    }
-
     static public void initAlarmTalk() {
         if (glucosealarms == null)
             glucosealarms = new tk.glucodata.GlucoseAlarms(Applic.app);
@@ -792,19 +788,21 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
         final ExchangeGlucosePayload exchangePayload = shouldResolveExchangePayload
                 ? ExchangeGlucosePayload.resolve(SerialNumber, gl, rate, timmsec, sensorgen, primaryText)
                 : null;
-        final boolean collapseExchangeUpdates = DataSmoothing.shouldCollapseExchangeOutputs(app);
+        // "Collapse into chunks" only thins how often these are fed; the payload is always the newest
+        // reading under its own timestamp.
+        final int exchangeIntervalMinutes = DataSmoothing.exchangeThrottleIntervalMinutes(app, false);
         final boolean shouldEmitExchangeUpdate =
                 exchangePayload != null
-                && shouldEmitExchangeUpdate(exchangePayload.getSensorId(), exchangePayload.getTimeMillis(), collapseExchangeUpdates);
-        // xDrip broadcast and xInfuus are what closed loops (AAPS) dose from. They always get the
-        // newest reading under its own timestamp: never held back for a chunk to complete and never
-        // stamped with the chunk's last point. Their pace is the mininterval throttle below.
+                && exchangeUpdateGate.shouldEmit(exchangePayload.getSensorId(), exchangePayload.getTimeMillis(), exchangeIntervalMinutes);
+        // xDrip broadcast and xInfuus are what closed loops (AAPS) dose from: every reading, never
+        // thinned. Only its smoothing can differ from the chunked outputs ("graph only" + collapse).
         final boolean loopFeedWanted = shouldBroadcastMinuteUpdate
                 && (Natives.getxbroadcast() || (!isWearable && Natives.getlibrelinkused()));
         final ExchangeGlucosePayload loopFeedPayload = !loopFeedWanted ? null
-                : (collapseExchangeUpdates || exchangePayload == null)
-                        ? ExchangeGlucosePayload.resolve(SerialNumber, gl, rate, timmsec, sensorgen, primaryText, true)
-                        : exchangePayload;
+                : (exchangePayload != null
+                        && DataSmoothing.shouldSmoothExchangeSnapshot(app, true) == DataSmoothing.shouldSmoothExchangeSnapshot(app, false))
+                        ? exchangePayload
+                        : ExchangeGlucosePayload.resolve(SerialNumber, gl, rate, timmsec, sensorgen, primaryText, true);
 
         if (Natives.getJugglucobroadcast() && shouldEmitExchangeUpdate)
             JugglucoSend.broadcastglucose(SerialNumber, exchangePayload, alarm);

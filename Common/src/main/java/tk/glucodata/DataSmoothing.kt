@@ -141,15 +141,16 @@ object DataSmoothing {
     }
 
     /**
-     * Collapse decision for the reading handed to an output that feeds a closed loop
-     * (xDrip broadcast, xInfuus — AAPS and friends dose from it). Such an output has to see
-     * the newest reading under its real timestamp: collapsing holds the reading back until
-     * its chunk completes and stamps it with the chunk's last point, up to two intervals old.
-     * Chunked targets (Nightscout, the outbound API, ...) keep their setting.
+     * How often, in minutes, an exchange output is fed: 0 means every reading.
+     *
+     * "Collapse into chunks" thins the *rate* of what leaves the phone; it never changes what is
+     * sent. Whatever is sent is the newest reading under its own timestamp — the payload is not
+     * built from the last point of a completed chunk, which would be up to two intervals old.
+     * Outputs a closed loop doses from (xDrip broadcast, xInfuus) are never thinned.
      */
     @JvmStatic
-    fun shouldCollapseExchangeSnapshot(context: Context, liveLoopFeed: Boolean): Boolean =
-        collapseForExchangeSnapshot(
+    fun exchangeThrottleIntervalMinutes(context: Context, liveLoopFeed: Boolean): Int =
+        exchangeThrottleIntervalMinutes(
             smoothingMinutes = getMinutes(context),
             graphOnly = isGraphOnly(context),
             exchangeOutputsOnly = smoothOnlyExchangeOutputs(context),
@@ -158,9 +159,9 @@ object DataSmoothing {
         )
 
     /**
-     * Whether the reading handed to that output is smoothed at all. Without collapse there is
-     * nothing to pull smoothing back on under "graph only" (see [shouldSmoothExchangeOutputs]),
-     * so a loop feed honours "graph only" and goes out as measured.
+     * Whether the reading handed to an exchange output is smoothed at all. A loop feed is not
+     * thinned, so there is nothing to pull smoothing back on under "graph only" for (see
+     * [shouldSmoothExchangeOutputs]): it honours "graph only" and goes out as measured.
      */
     @JvmStatic
     fun shouldSmoothExchangeSnapshot(context: Context, liveLoopFeed: Boolean): Boolean =
@@ -372,14 +373,20 @@ object DataSmoothing {
         )
     }
 
-    internal fun collapseForExchangeSnapshot(
+    internal fun exchangeThrottleIntervalMinutes(
         smoothingMinutes: Int,
         graphOnly: Boolean,
         exchangeOutputsOnly: Boolean,
         collapseChunks: Boolean,
         liveLoopFeed: Boolean
-    ): Boolean = !liveLoopFeed &&
+    ): Int = if (
+        !liveLoopFeed &&
         shouldCollapseExchangeOutputs(smoothingMinutes, graphOnly, exchangeOutputsOnly, collapseChunks)
+    ) {
+        collapseIntervalMinutes(smoothingMinutes)
+    } else {
+        0
+    }
 
     internal fun smoothExchangeSnapshot(
         smoothingMinutes: Int,
