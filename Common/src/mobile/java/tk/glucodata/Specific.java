@@ -36,6 +36,7 @@ public class Specific {
 	static void registerBridges() {
 		TrendAccess.register(tk.glucodata.logic.TrendEngineVelocityProvider.INSTANCE);
 		CustomAlertAccess.register(tk.glucodata.logic.CustomAlertManagerController.INSTANCE);
+		JournalAccess.register(tk.glucodata.data.journal.WearJournalBridge.INSTANCE);
 	}
 
 	static void start(Application context) {
