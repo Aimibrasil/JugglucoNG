@@ -16,7 +16,6 @@ src/main/java/tk/glucodata/HistoryRepositoryAccess.kt
 src/main/java/tk/glucodata/HistorySyncAccess.kt
 src/main/java/tk/glucodata/JournalIobAccess.java
 src/main/java/tk/glucodata/LibreviewJournal.java
-src/main/java/tk/glucodata/MainActivity.java
 src/main/java/tk/glucodata/NightPost.java
 src/main/java/tk/glucodata/NotificationChartDrawer.java
 src/main/java/tk/glucodata/Notify.java
