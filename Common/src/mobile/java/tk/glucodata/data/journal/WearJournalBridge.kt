@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import tk.glucodata.Applic
+import tk.glucodata.JournalBridge
 import tk.glucodata.Log
 import tk.glucodata.NotificationHistorySource
 import tk.glucodata.WearJournalSync
@@ -15,12 +16,12 @@ import java.nio.charset.StandardCharsets
  * Phone side of the watch journal. Encodes what the watch shows and applies what
  * it sends back.
  *
- * Reached reflectively from `tk.glucodata.JournalAccess` in src/main, because the
- * journal's Room layer only exists in this source set. Encoding lives here so the
- * reflective surface stays two byte-array methods wide — see the wire format in
+ * Registered as a [JournalBridge] from the mobile `Specific.registerBridges()`
+ * (plan P1/Q1); the journal's Room layer only exists in this source set. Encoding
+ * lives here so the shared surface stays byte-array wide — see the wire format in
  * [WearJournalSync].
  */
-object WearJournalBridge {
+object WearJournalBridge : JournalBridge {
     private const val LOG_ID = "WearJournalBridge"
     private const val PREFS_NAME = "tk.glucodata_preferences"
     private const val JOURNAL_ENABLED_KEY = "dashboard_journal_enabled"
@@ -32,15 +33,13 @@ object WearJournalBridge {
 
     private fun prefs() = Applic.app?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    @JvmStatic
-    fun isJournalEnabled(): Boolean = prefs()?.getBoolean(JOURNAL_ENABLED_KEY, false) ?: false
+    override fun isJournalEnabled(): Boolean = prefs()?.getBoolean(JOURNAL_ENABLED_KEY, false) ?: false
 
     /**
      * Encoded journal for the watch, or null when the journal is switched off —
      * the watch then hides the feature rather than showing an empty list.
      */
-    @JvmStatic
-    fun serveEntries(fromMs: Long): ByteArray? {
+    override fun serveEntries(fromMs: Long): ByteArray? {
         if (!isJournalEnabled()) return null
         return runCatching {
             runBlocking {
@@ -59,8 +58,7 @@ object WearJournalBridge {
     }
 
     /** Applies an add or delete the watch sent. */
-    @JvmStatic
-    fun applyCommand(data: ByteArray): Boolean {
+    override fun applyCommand(data: ByteArray): Boolean {
         if (!isJournalEnabled()) {
             Log.w(LOG_ID, "ignoring watch journal command: journal disabled")
             return false

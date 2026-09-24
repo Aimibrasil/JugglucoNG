@@ -2,41 +2,33 @@ package tk.glucodata
 
 /**
  * Bridge from src/main to the phone's journal, which lives in the mobile source
- * set only. Same pattern as [CalibrationAccess]: resolved by name, absent on
- * wear and other variants without the journal.
+ * set only (plan P1/Q1).
  *
- * The facade on the mobile side does its own encoding, so the reflective surface
- * is two methods taking and returning byte arrays rather than journal types.
+ * The phone registers its [JournalBridge] from [Specific.registerBridges]; the
+ * watch registers nothing, and the shared caller sees the absence as
+ * null/false (P2).
+ *
+ * This used to resolve `tk.glucodata.data.journal.WearJournalBridge` by name.
+ * R8 renames those members in release builds, so the watch journal silently did
+ * nothing there; explicit registration leaves ordinary interface calls behind.
  */
 object JournalAccess {
-    private const val CLASS_NAME = "tk.glucodata.data.journal.WearJournalBridge"
+    @Volatile
+    private var bridge: JournalBridge? = null
 
-    private val holder by lazy { runCatching { Class.forName(CLASS_NAME) }.getOrNull() }
-    private val instance by lazy { runCatching { holder?.getField("INSTANCE")?.get(null) }.getOrNull() }
-
-    private val serveEntriesMethod by lazy {
-        runCatching { holder?.getMethod("serveEntries", Long::class.javaPrimitiveType) }.getOrNull()
-    }
-    private val applyCommandMethod by lazy {
-        runCatching { holder?.getMethod("applyCommand", ByteArray::class.java) }.getOrNull()
-    }
-    private val isEnabledMethod by lazy {
-        runCatching { holder?.getMethod("isJournalEnabled") }.getOrNull()
+    /** Registered at startup, before the watch can ask for the journal. */
+    @JvmStatic
+    fun register(bridge: JournalBridge) {
+        this.bridge = bridge
     }
 
     /** Encoded journal payload, or null when there is no journal to serve. */
     @JvmStatic
-    fun serveEntries(fromMs: Long): ByteArray? = runCatching {
-        serveEntriesMethod?.invoke(instance, fromMs) as? ByteArray
-    }.getOrNull()
+    fun serveEntries(fromMs: Long): ByteArray? = bridge?.serveEntries(fromMs)
 
     @JvmStatic
-    fun applyCommand(data: ByteArray): Boolean = runCatching {
-        applyCommandMethod?.invoke(instance, data) as? Boolean
-    }.getOrNull() ?: false
+    fun applyCommand(data: ByteArray): Boolean = bridge?.applyCommand(data) ?: false
 
     @JvmStatic
-    fun isJournalEnabled(): Boolean = runCatching {
-        isEnabledMethod?.invoke(instance) as? Boolean
-    }.getOrNull() ?: false
+    fun isJournalEnabled(): Boolean = bridge?.isJournalEnabled() ?: false
 }
