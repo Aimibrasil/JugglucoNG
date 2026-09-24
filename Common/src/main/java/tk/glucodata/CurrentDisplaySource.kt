@@ -65,7 +65,27 @@ object CurrentDisplaySource {
             maxAgeMillis = maxAgeMillis,
             preferredSensorId = preferredSensorId,
             historyWindowMs = historyWindowMs,
-            smoothingMode = exchangeSmoothingMode()
+            smoothingMode = exchangeSmoothingMode(liveLoopFeed = false)
+        )
+    }
+
+    /**
+     * The exchange snapshot for outputs that feed a closed loop: never collapsed into
+     * chunks, so it is the newest reading under its own timestamp. See
+     * [DataSmoothing.shouldCollapseExchangeSnapshot].
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun resolveCurrentForLoopFeed(
+        maxAgeMillis: Long = Notify.glucosetimeout,
+        preferredSensorId: String? = null,
+        historyWindowMs: Long = DEFAULT_HISTORY_WINDOW_MS
+    ): Snapshot? {
+        return resolveCurrentInternal(
+            maxAgeMillis = maxAgeMillis,
+            preferredSensorId = preferredSensorId,
+            historyWindowMs = historyWindowMs,
+            smoothingMode = exchangeSmoothingMode(liveLoopFeed = true)
         )
     }
 
@@ -104,11 +124,11 @@ object CurrentDisplaySource {
             liveNumericValue = current?.numericValue ?: Float.NaN,
             liveCalibratedValue = current?.calibratedNumericValue ?: Float.NaN,
             rate = current?.rate ?: Float.NaN,
-            targetTimeMillis = if (smoothingMode.collapseChunks) {
-                processedPoints.lastOrNull()?.timestamp ?: current?.timeMillis ?: 0L
-            } else {
-                current?.timeMillis ?: processedPoints.lastOrNull()?.timestamp ?: 0L
-            },
+            targetTimeMillis = exchangeTargetTimeMillis(
+                collapseChunks = smoothingMode.collapseChunks,
+                processedPoints = processedPoints,
+                liveTimeMillis = current?.timeMillis
+            ),
             sensorId = resolvedSensorId,
             sensorGen = current?.sensorGen ?: 0,
             index = current?.index ?: 0,
@@ -219,6 +239,22 @@ object CurrentDisplaySource {
         return initialSnapshot.copy(rate = canonicalRate)
     }
 
+    /**
+     * The timestamp a snapshot is resolved for. With collapse on, the series has been cut
+     * down to the last point of each *completed* bucket, so the newest surviving point is up
+     * to one interval behind the live reading and the snapshot carries that point's time.
+     * With it off the live reading's own time wins.
+     */
+    internal fun exchangeTargetTimeMillis(
+        collapseChunks: Boolean,
+        processedPoints: List<GlucosePoint>,
+        liveTimeMillis: Long?
+    ): Long = if (collapseChunks) {
+        processedPoints.lastOrNull()?.timestamp ?: liveTimeMillis ?: 0L
+    } else {
+        liveTimeMillis ?: processedPoints.lastOrNull()?.timestamp ?: 0L
+    }
+
     internal fun prepareRecentPointsForCurrent(
         recentPoints: List<GlucosePoint>,
         current: CurrentGlucoseSource.Snapshot?,
@@ -226,14 +262,16 @@ object CurrentDisplaySource {
         viewMode: Int,
         smoothAllData: Boolean,
         smoothingMinutes: Int,
-        collapseChunks: Boolean
+        collapseChunks: Boolean,
+        nowMillis: Long = System.currentTimeMillis()
     ): List<GlucosePoint> {
         val pointsWithCurrent = mergeLivePoint(recentPoints, current, historyStart, viewMode)
         return if (smoothAllData) {
             DataSmoothing.smoothNativePoints(
                 pointsWithCurrent,
                 smoothingMinutes,
-                collapseChunks
+                collapseChunks,
+                nowMillis
             )
         } else {
             pointsWithCurrent
@@ -250,13 +288,13 @@ object CurrentDisplaySource {
         )
     }
 
-    private fun exchangeSmoothingMode(): SmoothingMode {
+    private fun exchangeSmoothingMode(liveLoopFeed: Boolean): SmoothingMode {
         val smoothingMinutes = DataSmoothing.getMinutes(Applic.app)
-        val smoothExchangeData = DataSmoothing.shouldSmoothExchangeOutputs(Applic.app)
+        val smoothExchangeData = DataSmoothing.shouldSmoothExchangeSnapshot(Applic.app, liveLoopFeed)
         return SmoothingMode(
             smoothAllData = smoothExchangeData,
             smoothingMinutes = smoothingMinutes,
-            collapseChunks = smoothExchangeData && DataSmoothing.collapseChunks(Applic.app)
+            collapseChunks = smoothExchangeData && DataSmoothing.shouldCollapseExchangeSnapshot(Applic.app, liveLoopFeed)
         )
     }
 
