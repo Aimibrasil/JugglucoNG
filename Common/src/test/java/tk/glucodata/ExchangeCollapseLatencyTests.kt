@@ -290,4 +290,33 @@ class ExchangeCollapseLatencyTests {
         assertTrue(gate.shouldEmit("b", base + minute, 3))
         assertFalse(gate.shouldEmit("a", base + minute, 3))
     }
+
+    @Test
+    fun gate_sendsTheNextReadingAfterTheIntervalGrows() {
+        val gate = ExchangeUpdateGate()
+
+        assertTrue(gate.shouldEmit("a", base, 3))
+        // 3 -> 5 minutes: the 5-minute count is far below the stored 3-minute one. Compared
+        // across lengths it would stay behind for years and the outputs would go silent.
+        assertTrue("first reading after the change sends", gate.shouldEmit("a", base + minute, 5))
+        assertFalse("then one per 5-minute interval", gate.shouldEmit("a", base + 2 * minute, 5))
+    }
+
+    @Test
+    fun gate_sendsTheNextReadingAfterTheIntervalShrinks() {
+        val gate = ExchangeUpdateGate()
+
+        assertTrue(gate.shouldEmit("a", base, 5))
+        assertTrue("first reading after the change sends", gate.shouldEmit("a", base + minute, 3))
+        assertTrue("next 3-minute interval", gate.shouldEmit("a", base + 3 * minute + minute, 3))
+    }
+
+    @Test
+    fun gate_turningCollapseOffAndOnAgainKeepsGoing() {
+        val gate = ExchangeUpdateGate()
+
+        assertTrue(gate.shouldEmit("a", base, 3))
+        assertTrue("collapse off: everything sends", gate.shouldEmit("a", base + minute, 0))
+        assertTrue("collapse back on, a later interval", gate.shouldEmit("a", base + 6 * minute, 3))
+    }
 }
