@@ -375,15 +375,10 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
     public static notGlucose previousglucose = null;
     static float previousglucosevalue = 0.0f;
     public static String previousglucosesensorid = null;
-    private static final ConcurrentHashMap<String, Long> lastCollapsedExchangeTimeMs = new ConcurrentHashMap<>();
+    private static final ExchangeUpdateGate exchangeUpdateGate = new ExchangeUpdateGate();
 
     private static boolean shouldEmitExchangeUpdate(String sensorId, long payloadTimeMs, boolean collapseChunks) {
-        if (!collapseChunks || payloadTimeMs <= 0L) {
-            return true;
-        }
-        final String key = (sensorId != null && !sensorId.isEmpty()) ? sensorId : "<unknown>";
-        final Long previous = lastCollapsedExchangeTimeMs.put(key, payloadTimeMs);
-        return previous == null || previous.longValue() != payloadTimeMs;
+        return exchangeUpdateGate.shouldEmit(sensorId, payloadTimeMs, collapseChunks);
     }
 
     static public void initAlarmTalk() {
@@ -801,6 +796,15 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
         final boolean shouldEmitExchangeUpdate =
                 exchangePayload != null
                 && shouldEmitExchangeUpdate(exchangePayload.getSensorId(), exchangePayload.getTimeMillis(), collapseExchangeUpdates);
+        // xDrip broadcast and xInfuus are what closed loops (AAPS) dose from. They always get the
+        // newest reading under its own timestamp: never held back for a chunk to complete and never
+        // stamped with the chunk's last point. Their pace is the mininterval throttle below.
+        final boolean loopFeedWanted = shouldBroadcastMinuteUpdate
+                && (Natives.getxbroadcast() || (!isWearable && Natives.getlibrelinkused()));
+        final ExchangeGlucosePayload loopFeedPayload = !loopFeedWanted ? null
+                : (collapseExchangeUpdates || exchangePayload == null)
+                        ? ExchangeGlucosePayload.resolve(SerialNumber, gl, rate, timmsec, sensorgen, primaryText, true)
+                        : exchangePayload;
 
         if (Natives.getJugglucobroadcast() && shouldEmitExchangeUpdate)
             JugglucoSend.broadcastglucose(SerialNumber, exchangePayload, alarm);
@@ -835,12 +839,19 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
         if (shouldBroadcastMinuteUpdate) {
             nexttime = tim + mininterval;
             if (!isWearable) {
-                if (Natives.getlibrelinkused() && shouldEmitExchangeUpdate)
-                    XInfuus.sendGlucoseBroadcast(exchangePayload.getSensorId(), exchangePayload.getPrimaryMgdl(), exchangePayload.getRate(), exchangePayload.getTimeMillis(), sensorstartmsec);
+                if (Natives.getlibrelinkused() && loopFeedPayload != null)
+                    XInfuus.sendGlucoseBroadcast(loopFeedPayload.getSensorId(), loopFeedPayload.getPrimaryMgdl(), loopFeedPayload.getRate(), loopFeedPayload.getTimeMillis(), sensorstartmsec);
                 // SendNSClient.broadcastglucose(mgdl, rate, timmsec);
             }
-            if (Natives.getxbroadcast() && shouldEmitExchangeUpdate)
-                SendLikexDrip.broadcastglucose(exchangePayload, sensorstartmsec);
+            if (Natives.getxbroadcast() && loopFeedPayload != null) {
+                if (doLog)
+                    Log.i(LOG_ID, "xdrip send collapse=" + DataSmoothing.collapseChunks(app)
+                            + " smoothMin=" + DataSmoothing.getMinutes(app)
+                            + " graphOnly=" + DataSmoothing.isGraphOnly(app)
+                            + " exchangeOnly=" + DataSmoothing.smoothOnlyExchangeOutputs(app)
+                            + " payloadAgeMs=" + (System.currentTimeMillis() - loopFeedPayload.getTimeMillis()));
+                SendLikexDrip.broadcastglucose(loopFeedPayload, sensorstartmsec);
+            }
             if (!isWearable) {
                 if (doWearInt && shouldEmitExchangeUpdate)
                     tk.glucodata.WearInt.sendglucose(exchangePayload, alarm);

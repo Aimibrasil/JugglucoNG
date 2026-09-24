@@ -140,6 +140,38 @@ object DataSmoothing {
         )
     }
 
+    /**
+     * Collapse decision for the reading handed to an output that feeds a closed loop
+     * (xDrip broadcast, xInfuus — AAPS and friends dose from it). Such an output has to see
+     * the newest reading under its real timestamp: collapsing holds the reading back until
+     * its chunk completes and stamps it with the chunk's last point, up to two intervals old.
+     * Chunked targets (Nightscout, the outbound API, ...) keep their setting.
+     */
+    @JvmStatic
+    fun shouldCollapseExchangeSnapshot(context: Context, liveLoopFeed: Boolean): Boolean =
+        collapseForExchangeSnapshot(
+            smoothingMinutes = getMinutes(context),
+            graphOnly = isGraphOnly(context),
+            exchangeOutputsOnly = smoothOnlyExchangeOutputs(context),
+            collapseChunks = collapseChunks(context),
+            liveLoopFeed = liveLoopFeed
+        )
+
+    /**
+     * Whether the reading handed to that output is smoothed at all. Without collapse there is
+     * nothing to pull smoothing back on under "graph only" (see [shouldSmoothExchangeOutputs]),
+     * so a loop feed honours "graph only" and goes out as measured.
+     */
+    @JvmStatic
+    fun shouldSmoothExchangeSnapshot(context: Context, liveLoopFeed: Boolean): Boolean =
+        smoothExchangeSnapshot(
+            smoothingMinutes = getMinutes(context),
+            graphOnly = isGraphOnly(context),
+            exchangeOutputsOnly = smoothOnlyExchangeOutputs(context),
+            collapseChunks = collapseChunks(context),
+            liveLoopFeed = liveLoopFeed
+        )
+
     @JvmStatic
     fun setMinutes(context: Context, minutes: Int) {
         val sanitized = sanitizeMinutes(minutes)
@@ -194,10 +226,12 @@ object DataSmoothing {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun smoothNativePoints(
         points: List<GlucosePoint>?,
         smoothingMinutes: Int,
-        collapseChunks: Boolean
+        collapseChunks: Boolean,
+        nowMillis: Long = System.currentTimeMillis()
     ): List<GlucosePoint> {
         if (points.isNullOrEmpty()) {
             return emptyList()
@@ -208,7 +242,7 @@ object DataSmoothing {
         }
         if (points.size < 3) {
             return if (collapseChunks) {
-                collapsePointsForDisplay(points, collapseIntervalMinutes(sanitizedMinutes))
+                collapsePointsForDisplay(points, collapseIntervalMinutes(sanitizedMinutes), nowMillis)
             } else {
                 points
             }
@@ -230,7 +264,7 @@ object DataSmoothing {
         }
 
         return if (collapseChunks) {
-            collapsePointsForDisplay(smoothed, collapseIntervalMinutes(sanitizedMinutes))
+            collapsePointsForDisplay(smoothed, collapseIntervalMinutes(sanitizedMinutes), nowMillis)
         } else {
             smoothed
         }
@@ -337,6 +371,28 @@ object DataSmoothing {
             collapseChunks = collapseChunks
         )
     }
+
+    internal fun collapseForExchangeSnapshot(
+        smoothingMinutes: Int,
+        graphOnly: Boolean,
+        exchangeOutputsOnly: Boolean,
+        collapseChunks: Boolean,
+        liveLoopFeed: Boolean
+    ): Boolean = !liveLoopFeed &&
+        shouldCollapseExchangeOutputs(smoothingMinutes, graphOnly, exchangeOutputsOnly, collapseChunks)
+
+    internal fun smoothExchangeSnapshot(
+        smoothingMinutes: Int,
+        graphOnly: Boolean,
+        exchangeOutputsOnly: Boolean,
+        collapseChunks: Boolean,
+        liveLoopFeed: Boolean
+    ): Boolean = shouldSmoothExchangeOutputs(
+        smoothingMinutes = smoothingMinutes,
+        graphOnly = graphOnly,
+        exchangeOutputsOnly = exchangeOutputsOnly,
+        collapseChunks = collapseChunks && !liveLoopFeed
+    )
 
     private fun setLastEnabledMinutes(context: Context, minutes: Int) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
