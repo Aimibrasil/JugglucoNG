@@ -536,6 +536,28 @@ object SibionicsRegistry {
         }.apply()
     }
 
+    /**
+     * Records a detected sensor restart in one synchronous write: cursor 0, the
+     * reset algorithm state, and no start time or last reading - the state of a
+     * newly added sensor. One edit, committed, because a partial or lost write is
+     * the failure this guards: a cleared start time beside the old cursor and
+     * algorithm restores a session in which the new one's indices sit behind the
+     * old cursor and cannot prove a restart either, so every reading is dropped.
+     */
+    fun saveSessionRestart(context: Context, sensorId: String, state: ByteArray): Boolean =
+        prefs(context).edit().apply {
+            putInt(PREF_LAST_INDEX_PREFIX + sensorId, 0)
+            if (state.isEmpty()) {
+                remove(PREF_ALGORITHM_STATE_PREFIX + sensorId)
+            } else {
+                putString(PREF_ALGORITHM_STATE_PREFIX + sensorId, Base64.getEncoder().encodeToString(state))
+            }
+            remove(PREF_START_TIME_PREFIX + sensorId)
+            remove(PREF_LAST_READING_TIME_PREFIX + sensorId)
+            remove(PREF_LAST_GLUCOSE_MGDL_PREFIX + sensorId)
+            remove(PREF_LAST_RAW_MGDL_PREFIX + sensorId)
+        }.commit()
+
     fun clearAlgorithmState(context: Context, sensorId: String) {
         prefs(context).edit().remove(PREF_ALGORITHM_STATE_PREFIX + sensorId).apply()
     }

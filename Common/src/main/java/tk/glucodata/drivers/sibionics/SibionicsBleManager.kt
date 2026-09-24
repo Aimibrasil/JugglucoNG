@@ -110,8 +110,11 @@ class SibionicsBleManager(
         private const val ALGORITHM_REBUILD_BACKFILL_DEBOUNCE_MS = 3_000L
         // Ceiling on how long [historyTransferActive] may keep deferring a rebuild. A
         // sensor that streams backlog forever without ever delivering a current sample
-        // must not postpone the rebuild indefinitely.
-        private const val ALGORITHM_REBUILD_MAX_DEFERRAL_MS = 120_000L
+        // must not postpone the rebuild indefinitely. A full wear is ~23 000 samples
+        // at ~1000 per link, so the ceiling has to cover a whole fetch...
+        private const val ALGORITHM_REBUILD_MAX_DEFERRAL_MS = 15L * 60L * 1000L
+        // ...while a transfer that stops delivering pages is over well before that.
+        private const val ALGORITHM_REBUILD_TRANSFER_STALL_MS = 30_000L
         private const val LOCAL_REBUILD_FORMAT_VERSION = 6
         // Android allows one GATT operation in flight; the V120 handshake answers
         // each sensor prompt within milliseconds of the last write, so the second
@@ -137,6 +140,10 @@ class SibionicsBleManager(
         // live will come on a connection that asked for old data, so move on.
         private const val JOURNAL_BACKFILL_PAGE_SETTLE_MS = 5_000L
         private const val POST_RESET_DISCARD_TIMEOUT_MS = 15_000L
+        // No automatic reset for this long after one was sent. A reset that took
+        // moves the start date and is not due again for weeks; one the sensor
+        // ignored must not be re-sent every maintenance check.
+        private const val AUTO_RESET_BACKOFF_MS = 6L * 60L * 60L * 1000L
         private const val RESET_COMFORT_RECHECK_MS = 15L * 60L * 1000L
         private const val NATIVE_STREAM_CAPACITY_MINUTES = 46 * 24 * 60
 
@@ -249,6 +256,7 @@ class SibionicsBleManager(
      */
     @Volatile private var historyTransferActive: Boolean = false
     @Volatile private var firstDeferredRebuildMs: Long = 0L
+    @Volatile private var lastHistoryPageMs: Long = 0L
     @Volatile private var lastLiveAlgorithmIndexSeen: Int = -1
     @Volatile private var startTimeMs: Long = 0L
     @Volatile private var latestReadingTimeMs: Long = 0L
@@ -266,6 +274,17 @@ class SibionicsBleManager(
     @Volatile private var startupRecoveryRunning: Boolean = false
     private var startupRecoveryGeneration: Long = 0L
     @Volatile private var preserveResumeStateOnRemoval: Boolean = false
+    /**
+     * The next data request asks for idx=1 instead of the cursor: set when a reset
+     * went out. A restarted sensor answers from its new session, which
+     * [checkSessionRestart] recognises; one that ignored the command answers from
+     * the tracked session, and the link after goes back to the cursor. Nothing
+     * about the tracked session is discarded until then.
+     */
+    private var sessionProbeNext: Boolean = false
+    private var connectionIsSessionProbe: Boolean = false
+    private var loggedStaleLiveThisConnection: Boolean = false
+    @Volatile private var autoResetNotBeforeMs: Long = 0L
 
     @Volatile private var algorithm = SibionicsAlgorithmContext(serial)
     private val authTimeoutRunnable = Runnable {
@@ -422,6 +441,12 @@ class SibionicsBleManager(
         latestReadingTimeMs = time
         latestGlucoseMgdl = glucose
         latestRawMgdl = raw
+        // Everything the session checks in checkSessionRestart() start from.
+        Log.i(
+            SibionicsConstants.TAG,
+            "session state: start=$startTimeMs cursor=$lastIndex lastReading=$latestReadingTimeMs " +
+                "serial=$SerialNumber",
+        )
         sessionKey = SibionicsProtocol.deriveSessionKey(variant)
         rebuildAfterNextSourceSample = algorithmSelection != SibionicsAlgorithmSelection.STOCK
         constatstatusstr = disconnectedStatus()
@@ -751,6 +776,8 @@ class SibionicsBleManager(
                 unrequestedPageSeenThisConnection = false
                 unrequestedPageCountedThisConnection = false
                 connectionRequestedBackfillPage = false
+                connectionIsSessionProbe = false
+                loggedStaleLiveThisConnection = false
                 handler.removeCallbacks(backfillPageSettleRunnable)
                 clearPendingWrite()
                 phase = Phase.DISCOVERING
@@ -1121,7 +1148,6 @@ class SibionicsBleManager(
                 handler.removeCallbacks(chineseProbeTimeoutRunnable)
                 handler.removeCallbacks(chineseDataTimeoutRunnable)
                 phase = Phase.STREAMING
-                updateChineseHistoryProgress(result.entries)
                 processChineseEntries(result.entries)
                 scheduleChinesePoll()
                 scheduleStreamingTimeout()
@@ -1161,7 +1187,6 @@ class SibionicsBleManager(
                 handler.removeCallbacks(handshakeTimeoutRunnable)
                 phase = Phase.STREAMING
                 armHighPriorityCap()
-                updateV120HistoryProgress(result.entries)
                 processV120Entries(result.entries)
                 scheduleStreamingTimeout()
             }
@@ -1355,6 +1380,13 @@ class SibionicsBleManager(
         val ordered = entries.sortedBy { it.index }.map { entry ->
             entry to sanitizeSampleTime(entry.eventTimeMs(now))
         }
+        val sessionSamples = ordered.map { (entry, eventMs) ->
+            SibionicsSessionPolicy.SessionSample(entry.index, eventMs, entry.isLive)
+        }
+        if (!checkSessionRestart(sessionSamples)) return
+        // Counted after the session check, so a restart's reset of the counters
+        // does not wipe the page that proved it.
+        updateChineseHistoryProgress(ordered.map { (entry, _) -> entry })
         // Every page is journal input, including ones behind the cursor: a
         // backfill fetches exactly those, and the journal de-duplicates by index.
         sampleJournal?.appendAll(ordered.map { (entry, eventMs) ->
@@ -1382,8 +1414,11 @@ class SibionicsBleManager(
         flushAlgorithmCheckpointIfDirty()
         storeAndPublish(emitted)
         maybeScheduleInitialLocalRebuild()
-        val hasLive = entries.any { it.isLive }
-        if (!hasLive) historyTransferActive = true
+        val hasLive = ordered.any { (entry, _) -> entry.isLive }
+        if (!hasLive) {
+            historyTransferActive = true
+            lastHistoryPageMs = System.currentTimeMillis()
+        }
         updateHistoryStatus(resultHasLive = hasLive)
         afterEntryBatch(hasLive)
     }
@@ -1396,6 +1431,13 @@ class SibionicsBleManager(
         observeCalibrationRevision()
         val now = System.currentTimeMillis()
         val ordered = entries.sortedBy { it.index }
+        val sessionSamples = ordered.map { entry ->
+            SibionicsSessionPolicy.SessionSample(entry.index, entry.eventTimeMs, isV120Current(entry, now))
+        }
+        if (!checkSessionRestart(sessionSamples)) return
+        // Counted after the session check, so a restart's reset of the counters
+        // does not wipe the page that proved it.
+        updateV120HistoryProgress(ordered)
         sampleJournal?.appendAll(ordered.map { entry ->
             SibionicsSourceSample(
                 index = entry.index,
@@ -1421,8 +1463,11 @@ class SibionicsBleManager(
         flushAlgorithmCheckpointIfDirty()
         storeAndPublish(emitted)
         maybeScheduleInitialLocalRebuild()
-        val hasLive = entries.any { isV120Current(it, now) }
-        if (!hasLive) historyTransferActive = true
+        val hasLive = ordered.any { isV120Current(it, now) }
+        if (!hasLive) {
+            historyTransferActive = true
+            lastHistoryPageMs = System.currentTimeMillis()
+        }
         updateHistoryStatus(resultHasLive = hasLive)
         afterEntryBatch(hasLive)
     }
@@ -1434,6 +1479,48 @@ class SibionicsBleManager(
     private fun afterEntryBatch(hasLive: Boolean) {
         noteUnrequestedPage()
         advanceJournalBackfill(hasLive)
+        if (connectionIsSessionProbe) {
+            // The idx=1 probe was answered from the session we already track: a
+            // restart would have cleared the flag in resetForSensorRestart(). The
+            // reset did not take (or has not yet). Its old pages are no use, so
+            // hand the next link back to the cursor.
+            connectionIsSessionProbe = false
+            Log.w(SibionicsConstants.TAG, "session probe: sensor still on session start=$startTimeMs")
+            scheduleReconnect("session probe answered by the tracked session", BACKLOG_RECONNECT_DELAY_MS)
+        }
+    }
+
+    /**
+     * Runs before a batch reaches the journal or the algorithm. A batch proving a
+     * restarted session (see [SibionicsSessionPolicy.restartedSessionStartMs])
+     * clears the tracked one. The new session is then downloaded from its first
+     * minute through the ordinary page-by-page backlog path, as for a newly added
+     * sensor: a page that starts mid-session (idx=1024 answering cursor 23437 in
+     * the 2026-09-24 20:04 capture) is set aside and idx=0 requested. A page that
+     * already starts the session is processed as it is.
+     *
+     * @return false when the batch was set aside for that download.
+     */
+    private fun checkSessionRestart(samples: List<SibionicsSessionPolicy.SessionSample>): Boolean {
+        if (samples.isEmpty()) return true
+        val knownCursor = if (algorithmRehydrating) maxOf(lastIndex, rehydrationTargetIndex) else lastIndex
+        val restartedAtMs = SibionicsSessionPolicy.restartedSessionStartMs(
+            samples = samples,
+            knownStartMs = startTimeMs,
+            knownCursor = knownCursor,
+            lastSeenMs = latestReadingTimeMs,
+            isRehydrating = algorithmRehydrating,
+            nowMs = System.currentTimeMillis(),
+        ) ?: return true
+        Log.i(
+            SibionicsConstants.TAG,
+            "sensor session restarted: new start=$restartedAtMs previous start=$startTimeMs " +
+                "cursor=$knownCursor page idx=${samples.first().index}..${samples.last().index}",
+        )
+        resetForSensorRestart()
+        if (!SibionicsSessionPolicy.shouldDownloadRestartedSessionFromStart(samples)) return true
+        scheduleReconnect("new sensor session; downloading it from idx=0", BACKLOG_RECONNECT_DELAY_MS)
+        return false
     }
 
     private fun markUnrequestedPage(index: Int) {
@@ -1554,14 +1641,23 @@ class SibionicsBleManager(
         live: Boolean,
     ): EmittedReading? {
         if (index < 0 || eventMs <= 0L) return null
-        // Repeated history pages may begin at index 1. A current index-1 sample is
-        // the evidence that the physical sensor actually restarted.
-        if (SibionicsSessionPolicy.isConfirmedIndexRestart(index, lastIndex, live, algorithmRehydrating)) {
-            resetForSensorRestart()
-        }
+        // Session restarts are decided per batch, before the journal, in
+        // checkSessionRestart(); by here every sample belongs to the tracked session.
         if (!rawMmol.isFinite() || rawMmol <= 0f) return null
         if (!live && lastIndex > 0 && index < lastIndex) return null
-        if (live && lastLiveAlgorithmIndexSeen >= 0 && index <= lastLiveAlgorithmIndexSeen) return null
+        if (live && lastLiveAlgorithmIndexSeen >= 0 && index <= lastLiveAlgorithmIndexSeen) {
+            // Normal for a repeated notification; the only trace of a sensor
+            // whose index went backwards without being recognised as a restart.
+            if (!loggedStaleLiveThisConnection && index < lastLiveAlgorithmIndexSeen) {
+                loggedStaleLiveThisConnection = true
+                Log.w(
+                    SibionicsConstants.TAG,
+                    "dropping live idx=$index behind processed idx=$lastLiveAlgorithmIndexSeen " +
+                        "(session start=$startTimeMs)",
+                )
+            }
+            return null
+        }
         if (!algorithmRehydrating && lastIndex > 0 && index > lastIndex) {
             // Not a loss of state: the state behind lastIndex is still exact. The
             // page is dropped and lastIndex asked for again on the next connection;
@@ -1776,25 +1872,31 @@ class SibionicsBleManager(
         val now = System.currentTimeMillis()
         if (firstDeferredRebuildMs == 0L) firstDeferredRebuildMs = now
         val deferredForMs = now - firstDeferredRebuildMs
+        val sinceLastPageMs = if (lastHistoryPageMs > 0L) now - lastHistoryPageMs else 0L
         if (!SibionicsSessionPolicy.shouldDeferRebuildForHistoryTransfer(
                 historyTransferActive = historyTransferActive,
                 isRehydrating = algorithmRehydrating,
                 deferredForMs = deferredForMs,
                 maxDeferralMs = ALGORITHM_REBUILD_MAX_DEFERRAL_MS,
+                sinceLastPageMs = sinceLastPageMs,
+                stallMs = ALGORITHM_REBUILD_TRANSFER_STALL_MS,
             )
         ) {
             Log.i(
                 SibionicsConstants.TAG,
-                "algorithm rebuild deferral cap reached after ${deferredForMs}ms; " +
-                    "rebuilding mid-transfer",
+                "algorithm rebuild deferred ${deferredForMs}ms, last page ${sinceLastPageMs}ms ago; " +
+                    "rebuilding now",
             )
             firstDeferredRebuildMs = 0L
             return false
         }
-        scheduleAlgorithmRebuild(
-            "history transfer in progress",
-            delayMs = ALGORITHM_REBUILD_BACKFILL_DEBOUNCE_MS,
-        )
+        if (deferredForMs == 0L) {
+            Log.i(SibionicsConstants.TAG, "algorithm rebuild deferred until the history transfer ends")
+        }
+        // Re-check later for the same generation: nothing about the requested
+        // rebuild changed, so neither the generation nor the log should.
+        handler.removeCallbacks(rebuildLaunchRunnable)
+        handler.postDelayed(rebuildLaunchRunnable, ALGORITHM_REBUILD_BACKFILL_DEBOUNCE_MS)
         return true
     }
 
@@ -2075,6 +2177,15 @@ class SibionicsBleManager(
         lastIndex = 0
         lastIndexDirty = true
         algorithmStateDirty = true
+        // A replay of the previous session has nothing left to replay into.
+        algorithmRehydrating = false
+        rehydrationExpectedIndex = -1
+        rehydrationTargetIndex = 0
+        historyReceivedCount = 0
+        historyTotalCount = 0
+        historySeenIndices.clear()
+        sessionProbeNext = false
+        connectionIsSessionProbe = false
         lastLiveAlgorithmIndexSeen = -1
         lastLiveIndexSeen = -1
         startTimeMs = 0L
@@ -2087,7 +2198,20 @@ class SibionicsBleManager(
         journalBackfillTurn = false
         unrequestedPageConnections = 0
         Applic.app?.let { context ->
-            SibionicsRegistry.clearStartTimeMs(context, SerialNumber)
+            // Persisted here, not left to the end of the batch: a restart proved
+            // mid-session returns before anything else is written, and a process
+            // killed before the next page would otherwise restore the old cursor
+            // and algorithm without a start time - a state that can neither take
+            // the new session's readings nor detect the restart again. The journal
+            // was cleared above, first, so a crash before this commit leaves the old
+            // session intact and the restart is simply detected again.
+            val snapshot = synchronized(algorithmLock) { algorithm.snapshot() }
+            if (SibionicsRegistry.saveSessionRestart(context, SerialNumber, snapshot)) {
+                lastIndexDirty = false
+                algorithmStateDirty = false
+            } else {
+                Log.w(SibionicsConstants.TAG, "could not persist the sensor restart; will retry with the next batch")
+            }
             SibionicsRegistry.clearResetMaintenanceState(context, SerialNumber)
             SibionicsResetReminder.cancel(context, SerialNumber)
             HistorySyncAccess.markSensorReset(SerialNumber)
@@ -2378,6 +2502,14 @@ class SibionicsBleManager(
      * instead so the live stream is never starved for the length of the transfer.
      */
     private fun nextDataRequestIndex(): Int {
+        val probe = sessionProbeNext && lastIndex > 1
+        sessionProbeNext = false
+        connectionIsSessionProbe = probe
+        if (probe) {
+            connectionRequestedBackfillPage = false
+            Log.i(SibionicsConstants.TAG, "session probe: requesting idx=1 instead of cursor idx=$lastIndex")
+            return 1
+        }
         val gap = journalBackfillFromIndex
         val turn = journalBackfillTurn
         if (gap > 0) journalBackfillTurn = !turn
@@ -2421,43 +2553,31 @@ class SibionicsBleManager(
         return ok
     }
 
+    /**
+     * The command reached the GATT stack, which is not the sensor restarting, so
+     * nothing about the tracked session is discarded here. 1.2.1 set the cursor to
+     * 1 at this point; a sensor that had not restarted then served its old idx=1
+     * as the "new" session - old start date, the whole wear re-downloaded as fresh
+     * data. The next link asks for idx=1 instead ([sessionProbeNext]): a restarted
+     * sensor answers from its new session and [checkSessionRestart] switches to it.
+     */
     private fun markResetSent() {
         handler.removeCallbacks(resetMaintenanceRunnable)
         discardNotificationsUntilResetDisconnect = true
         loggedDiscardedPostResetNotification = false
         handler.removeCallbacks(postResetDiscardTimeoutRunnable)
         handler.postDelayed(postResetDiscardTimeoutRunnable, POST_RESET_DISCARD_TIMEOUT_MS)
-        rebuildGeneration++
-        synchronized(algorithmLock) { algorithm.reset() }
-        sampleJournal?.clear()
-        lastIndex = 1
-        lastIndexDirty = true
-        algorithmStateDirty = true
-        algorithmRehydrating = false
-        rehydrationExpectedIndex = -1
-        rehydrationTargetIndex = 0
-        lastLiveAlgorithmIndexSeen = -1
-        lastLiveIndexSeen = -1
-        startTimeMs = 0L
-        latestReadingTimeMs = 0L
-        latestGlucoseMgdl = Float.NaN
-        latestRawMgdl = Float.NaN
-        historyReceivedCount = 0
-        historyTotalCount = 0
-        historySeenIndices.clear()
-        historyTransferActive = false
-        firstDeferredRebuildMs = 0L
         autoResetScheduled = false
+        autoResetNotBeforeMs = System.currentTimeMillis() + AUTO_RESET_BACKOFF_MS
+        sessionProbeNext = true
         Applic.app?.let {
-            val snapshot = synchronized(algorithmLock) { algorithm.snapshot() }
-            SibionicsRegistry.saveAlgorithmCheckpoint(it, SerialNumber, lastIndex, snapshot)
-            SibionicsRegistry.clearStartTimeMs(it, SerialNumber)
             SibionicsRegistry.clearResetMaintenanceState(it, SerialNumber)
             SibionicsResetReminder.cancel(it, SerialNumber)
-            HistorySyncAccess.markSensorReset(SerialNumber)
         }
-        lastIndexDirty = false
-        algorithmStateDirty = false
+        Log.i(
+            SibionicsConstants.TAG,
+            "reset sent; keeping session start=$startTimeMs idx=$lastIndex until the sensor shows a new one",
+        )
         setStatus("Reset sent")
         UiRefreshBus.requestStatusRefresh()
     }
@@ -2581,6 +2701,13 @@ class SibionicsBleManager(
         if (variant != SibionicsConstants.Variant.SIBIONICS2 ||
             autoResetScheduled || pendingResetCommand || startTimeMs <= 0L
         ) return
+        if (System.currentTimeMillis() < autoResetNotBeforeMs) {
+            // A reset went out recently. If the sensor ignored it the start date is
+            // still the old session's and would ask for another one straight away.
+            handler.removeCallbacks(resetMaintenanceRunnable)
+            handler.postDelayed(resetMaintenanceRunnable, RESET_COMFORT_RECHECK_MS)
+            return
+        }
         val context = Applic.app ?: return
         val now = System.currentTimeMillis()
         val decision = SibionicsResetPolicy.evaluate(

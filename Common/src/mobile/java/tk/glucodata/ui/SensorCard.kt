@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import tk.glucodata.ui.util.ConnectedButtonGroup
+import tk.glucodata.ui.util.inDisplayUnit
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -1719,7 +1720,9 @@ fun SensorCard(
             abs(System.currentTimeMillis() - snapshot.timeMillis) <= Notify.glucosetimeout &&
                 snapshot.primaryStr.isNotBlank()
         }
-        val persistedSnapshot = latestPersistedReading?.let { point ->
+        // Room holds mg/dL; resolveIncomingReading() takes display units. Unconverted,
+        // a mmol/L user saw "66,0" or "118,8" whenever this was the newest source.
+        val persistedSnapshot = latestPersistedReading?.inDisplayUnit(tk.glucodata.ui.util.GlucoseFormatter.isMmolApp())?.let { point ->
             val value = point.value.takeIf { it.isFinite() && it > 0.1f }
                 ?: point.rawValue.takeIf { it.isFinite() && it > 0.1f }
                 ?: return@let null
