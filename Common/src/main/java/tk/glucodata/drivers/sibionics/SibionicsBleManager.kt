@@ -2198,7 +2198,20 @@ class SibionicsBleManager(
         journalBackfillTurn = false
         unrequestedPageConnections = 0
         Applic.app?.let { context ->
-            SibionicsRegistry.clearStartTimeMs(context, SerialNumber)
+            // Persisted here, not left to the end of the batch: a restart proved
+            // mid-session returns before anything else is written, and a process
+            // killed before the next page would otherwise restore the old cursor
+            // and algorithm without a start time - a state that can neither take
+            // the new session's readings nor detect the restart again. The journal
+            // was cleared above, first, so a crash before this commit leaves the old
+            // session intact and the restart is simply detected again.
+            val snapshot = synchronized(algorithmLock) { algorithm.snapshot() }
+            if (SibionicsRegistry.saveSessionRestart(context, SerialNumber, snapshot)) {
+                lastIndexDirty = false
+                algorithmStateDirty = false
+            } else {
+                Log.w(SibionicsConstants.TAG, "could not persist the sensor restart; will retry with the next batch")
+            }
             SibionicsRegistry.clearResetMaintenanceState(context, SerialNumber)
             SibionicsResetReminder.cancel(context, SerialNumber)
             HistorySyncAccess.markSensorReset(SerialNumber)
