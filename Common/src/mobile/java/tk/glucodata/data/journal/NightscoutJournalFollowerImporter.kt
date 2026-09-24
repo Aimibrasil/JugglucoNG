@@ -7,15 +7,15 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import tk.glucodata.Applic
 import tk.glucodata.Log
+import tk.glucodata.NightscoutTreatmentImportBridge
 import tk.glucodata.data.HistoryDatabase
 
 @Keep
-object NightscoutJournalFollowerImporter {
+object NightscoutJournalFollowerImporter : NightscoutTreatmentImportBridge {
     private const val LOG_ID = "NightscoutJournalFollowerImporter"
 
-    @JvmStatic
     @Keep
-    fun importTreatments(sensorId: String, treatmentsJson: String): Int = runBlocking {
+    override fun importTreatments(sensorId: String, treatmentsJson: String): Int = runBlocking {
         withContext(Dispatchers.IO) {
             runCatching { importInternal(sensorId, treatmentsJson) }
                 .onFailure { Log.e(LOG_ID, "importTreatments failed: ${Log.stackline(it)}") }

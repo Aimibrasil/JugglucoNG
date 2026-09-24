@@ -16,9 +16,7 @@ src/main/java/tk/glucodata/HistoryRepositoryAccess.kt
 src/main/java/tk/glucodata/HistorySyncAccess.kt
 src/main/java/tk/glucodata/JournalIobAccess.java
 src/main/java/tk/glucodata/LibreviewJournal.java
-src/main/java/tk/glucodata/NightPost.java
 src/main/java/tk/glucodata/NotificationChartDrawer.java
 src/main/java/tk/glucodata/Notify.java
 src/main/java/tk/glucodata/OutboundApi.kt
 src/main/java/tk/glucodata/drivers/api/ApiGlucoseSourceManager.kt
-src/main/java/tk/glucodata/drivers/nightscout/NightscoutFollowerManager.kt
