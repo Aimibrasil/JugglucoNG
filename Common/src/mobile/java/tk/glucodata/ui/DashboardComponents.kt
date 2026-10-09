@@ -250,7 +250,7 @@ fun DashboardCombinedHeader(
     showDelta: Boolean = false,
     showReadingAge: Boolean = false,
     deltaIntervalMinutes: Int = tk.glucodata.GlucoseDelta.DEFAULT_INTERVAL_MINUTES,
-    peerReadings: List<tk.glucodata.ui.viewmodel.DashboardViewModel.PeerCurrentReading> = emptyList(),
+    peerReadings: List<PeerCurrentReading> = emptyList(),
     onPeerReadingClick: (String) -> Unit = {},
     onHeroClick: () -> Unit = {},
     // The alarm quiet window: 0 = none, and then nothing is drawn. A running one
@@ -435,7 +435,19 @@ fun DashboardCombinedHeader(
                 }
         }
     }
-    val secondaryText = dvs?.secondaryStr
+    val selectedPeerReadings = peerReadings.filter { peer ->
+        activeSensors.any { tk.glucodata.SensorIdentity.matches(it, peer.sensorId) }
+    }
+    val secondaryPeer = SecondarySensorDisplay.fallback(dvs, sensorName, selectedPeerReadings)
+    val remainingPeers = selectedPeerReadings.filterNot { it == secondaryPeer }
+    val secondaryPeerColor = secondaryPeer?.let { peer ->
+        val colors = tk.glucodata.SensorVisuals.distinctColorArgbMap(activeSensors)
+        val identityColor = Color(colors.entries.firstOrNull { (id, _) ->
+            tk.glucodata.SensorIdentity.matches(id, peer.sensorId)
+        }?.value ?: tk.glucodata.SensorVisuals.colorArgb(peer.sensorId))
+        lerpColor(glucoseContentColor, identityColor, tk.glucodata.SensorVisuals.PEER_TEXT_BLEND)
+    }
+    val secondaryText = dvs?.secondaryStr ?: secondaryPeer?.primaryStr
     val tertiaryText = dvs?.tertiaryStr
     val hasSecondary = secondaryText != null
     val hasTertiary = tertiaryText != null
@@ -559,7 +571,7 @@ fun DashboardCombinedHeader(
                 // read as a balanced cluster), and the hero CARD is pinned to the
                 // single-sensor content height (heroContentMinHeight below) so it
                 // never grows or shrinks — the scaled cluster just centers inside it.
-                val isMultiHero = peerReadings.isNotEmpty()
+                val isMultiHero = remainingPeers.isNotEmpty()
                 val singleValue = !hasSecondary && !hasTertiary
                 val heroMultiSensorScale = if (isMultiHero) 0.74f else 1f
                 // Single-sensor padding defines the target card height. Multi mode
@@ -774,9 +786,9 @@ fun DashboardCombinedHeader(
                             }
                         }
 
-                        if (peerReadings.isNotEmpty()) {
+                        if (remainingPeers.isNotEmpty()) {
                             DashboardHeroPeerStrip(
-                                peerReadings = peerReadings,
+                                peerReadings = remainingPeers,
                                 selectedSensorIds = activeSensors,
                                 contentColor = glucoseContentColor,
                                 onPeerClick = onPeerReadingClick,
@@ -813,6 +825,8 @@ fun DashboardCombinedHeader(
                                 tertiaryStackStyle = tertiaryThreeValueStyle,
                                 contentColor = glucoseContentColor,
                                 primaryColor = heroValueColor,
+                                secondaryColor = secondaryPeerColor ?: glucoseContentColor.copy(alpha = 0.80f),
+                                onSecondaryClick = secondaryPeer?.let { peer -> { onPeerReadingClick(peer.sensorId) } },
                                 deltaText = heroDeltaText.takeIf { singleDeltaFits }
                             )
 
@@ -827,9 +841,9 @@ fun DashboardCombinedHeader(
                             )
                         }
 
-                        if (peerReadings.isNotEmpty()) {
+                        if (remainingPeers.isNotEmpty()) {
                             DashboardHeroPeerStrip(
-                                peerReadings = peerReadings,
+                                peerReadings = remainingPeers,
                                 selectedSensorIds = activeSensors,
                                 contentColor = glucoseContentColor,
                                 onPeerClick = onPeerReadingClick,
@@ -1130,7 +1144,7 @@ private fun HeroTrendWithDelta(
  */
 @Composable
 private fun DashboardHeroPeerStrip(
-    peerReadings: List<tk.glucodata.ui.viewmodel.DashboardViewModel.PeerCurrentReading>,
+    peerReadings: List<PeerCurrentReading>,
     selectedSensorIds: List<String>,
     contentColor: Color,
     onPeerClick: (String) -> Unit,
@@ -1232,6 +1246,8 @@ private fun DashboardHeroValueCluster(
     contentColor: Color,
     modifier: Modifier = Modifier,
     primaryColor: Color = contentColor,
+    secondaryColor: Color = contentColor.copy(alpha = 0.80f),
+    onSecondaryClick: (() -> Unit)? = null,
     deltaText: String? = null
 ) {
     val hasSecondary = secondaryText != null
@@ -1239,7 +1255,7 @@ private fun DashboardHeroValueCluster(
     val hasThreeValues = hasSecondary && hasTertiary
     val pairText = secondaryText ?: tertiaryText
     val inlinePairColor = if (hasSecondary) {
-        contentColor.copy(alpha = 0.80f)
+        secondaryColor
     } else {
         contentColor.copy(alpha = 0.60f)
     }
