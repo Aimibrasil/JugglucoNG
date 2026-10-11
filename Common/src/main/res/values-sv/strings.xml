@@ -2935,6 +2935,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ssl_port">SSL-port</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Offset: %1$s</string>
+    <string name="choose_color">Välj färg</string>
     <string name="data_smoothing_window_desc">Ett längre tidsfönster jämnar ut fler svängningar</string>
     <string name="data_smoothing_scope_all">Alla värden</string>
     <string name="data_smoothing_graph_only_collapse_desc">Även skickade värden jämnas ut</string>

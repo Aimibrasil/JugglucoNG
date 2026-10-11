@@ -3120,6 +3120,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="ssl_port">Dekedda SSL</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Deminta: %1$s</string>
+    <string name="choose_color">Dooro midab</string>
     <string name="data_smoothing_window_desc">Waqti dheer wuxuu si ka badan u simaa isbeddellada</string>
     <string name="data_smoothing_scope_all">Dhammaan qiimayaasha</string>
     <string name="data_smoothing_graph_only_collapse_desc">Cabbirrada la diro sidoo kale waa la simayaa</string>

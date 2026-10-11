@@ -3021,6 +3021,7 @@ Az OK megnyomása létrehoz egy kapcsolatot ezen a telefonon, és megjelenít eg
     <string name="ssl_port">SSL-port</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Eltolás: %1$s</string>
+    <string name="choose_color">Szín kiválasztása</string>
     <string name="data_smoothing_window_desc">A hosszabb időablak jobban kisimítja az ingadozásokat</string>
     <string name="data_smoothing_scope_all">Minden értékre</string>
     <string name="data_smoothing_graph_only_collapse_desc">A küldött értékeket is simítja</string>

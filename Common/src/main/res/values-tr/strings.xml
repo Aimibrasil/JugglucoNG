@@ -2963,6 +2963,7 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="ssl_port">SSL portu</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Ofset: %1$s</string>
+    <string name="choose_color">Renk seç</string>
     <string name="data_smoothing_window_desc">Daha uzun pencereler dalgalanmaları daha fazla yumuşatır</string>
     <string name="data_smoothing_scope_all">Tüm değerler</string>
     <string name="data_smoothing_graph_only_collapse_desc">Gönderilen ölçümler de yumuşatılır</string>
