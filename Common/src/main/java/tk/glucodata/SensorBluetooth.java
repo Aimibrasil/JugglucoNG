@@ -1327,6 +1327,10 @@ public class SensorBluetooth {
             if (active != null && active.length > 0) {
                 blueone.setDevices(active);
             }
+            // With no native sensors setDevices() is skipped, and with it the managed
+            // callbacks removeDevices() just freed; a Nightscout follower would stay gone.
+            tk.glucodata.drivers.nightscout.NightscoutFollowerRegistry.INSTANCE
+                    .ensureFollowerRunning(Applic.app);
             return true;
         } catch (Throwable t) {
             Log.stack(LOG_ID, "syncNativeDevicesNoBluetooth", t);
