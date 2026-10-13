@@ -3189,6 +3189,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ssl_port">SSL port</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Offset: %1$s</string>
+    <string name="voice_chime_title">Chime before glucose</string>
+    <string name="voice_chime_desc">A short tone first, so you are listening when the value is spoken</string>
     <string name="choose_color">Choose color</string>
     <string name="data_smoothing_window_desc">Longer windows smooth out more fluctuations</string>
     <string name="data_smoothing_scope_all">Everywhere</string>

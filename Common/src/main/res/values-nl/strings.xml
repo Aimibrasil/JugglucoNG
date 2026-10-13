@@ -2980,6 +2980,8 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="ssl_port">SSL-poort</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Offset: %1$s</string>
+    <string name="voice_chime_title">Signaal vóór glucose</string>
+    <string name="voice_chime_desc">Eerst een korte toon, zodat je luistert als de waarde wordt uitgesproken</string>
     <string name="choose_color">Kleur kiezen</string>
     <string name="data_smoothing_window_desc">Een langer venster vlakt schommelingen sterker af</string>
     <string name="data_smoothing_scope_all">Alle waarden</string>

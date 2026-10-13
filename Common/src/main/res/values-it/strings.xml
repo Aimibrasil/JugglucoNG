@@ -2927,6 +2927,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ssl_port">Porta SSL</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Compensazione: %1$s</string>
+    <string name="voice_chime_title">Segnale prima della glicemia</string>
+    <string name="voice_chime_desc">Prima un breve suono, per essere in ascolto quando viene letto il valore</string>
     <string name="choose_color">Scegli colore</string>
     <string name="data_smoothing_window_desc">Una finestra più lunga attenua maggiormente le oscillazioni</string>
     <string name="data_smoothing_scope_all">Tutti i valori</string>
