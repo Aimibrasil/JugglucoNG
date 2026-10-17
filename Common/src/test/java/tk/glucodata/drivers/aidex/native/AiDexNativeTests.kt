@@ -272,6 +272,27 @@ class SerialCryptoTests {
     }
 
     @Test
+    fun testIndiaSerialUsesBareSerialChallengeAndIvForNewAndStoredSensors() {
+        val name = "IndiaX-22222E7T6K"
+        val canonical = requireNotNull(AiDexSerialIdentity.canonicalFromAdvertisement(name))
+        val recovered = requireNotNull(AiDexSerialIdentity.advertisedProtocolSerialForMacFallback(
+            storedSensorId = "X-4038020A4517",
+            address = "40:38:02:0A:45:17",
+            advertisedName = name,
+        ))
+        val expectedChallenge = SerialCrypto.deriveSecret("22222E7T6K")
+        val expectedIv = SerialCrypto.deriveIv("22222E7T6K")
+        val macChallenge = AiDexKeyExchange("X-4038020A4517").getChallenge()
+        for (serial in listOf(name, canonical, recovered)) {
+            val exchange = AiDexKeyExchange(serial)
+            assertEquals("22222E7T6K", exchange.bareSerial)
+            assertArrayEquals(expectedChallenge, exchange.getChallenge())
+            assertArrayEquals(expectedIv, exchange.snIv)
+            assertFalse(macChallenge.contentEquals(exchange.getChallenge()))
+        }
+    }
+
+    @Test
     fun testDeriveSecretAndIV_Length() {
         val secret = SerialCrypto.deriveSecret("22222689WH")
         val iv = SerialCrypto.deriveIv("22222689WH")
@@ -824,6 +845,7 @@ class AdvertisementTests {
         assertTrue(AiDexOpcodes.isAiDexDevice("AiDEX X-2222267V4E"))
         assertTrue(AiDexOpcodes.isAiDexDevice("AiDEX X-22222689WH"))
         assertTrue(AiDexOpcodes.isAiDexDevice("Smart-22222BZTJ3"))
+        assertTrue(AiDexOpcodes.isAiDexDevice("IndiaX-22222E7T6K"))
     }
 
     @Test

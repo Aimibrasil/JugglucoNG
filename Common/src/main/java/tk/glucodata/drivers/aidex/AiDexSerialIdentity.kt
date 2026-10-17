@@ -20,8 +20,9 @@ object AiDexSerialIdentity {
             "([A-Z0-9]{$MIN_SERIAL_LENGTH,$MAX_SERIAL_LENGTH})(?=\$|\\s)",
         RegexOption.IGNORE_CASE,
     )
+    // A family word may carry the generation letter glued to it, as in "IndiaX-22222E7T6K".
     private val familyPrefixed = Regex(
-        "(?:^|\\s)(?:AIDEX|LINX|LUMI|VISTA|SMART)\\s*[-_]?\\s*" +
+        "(?:^|\\s)(?:AIDEX|LINX|LUMI|VISTA|SMART|INDIA)\\s*(?:[A-Z]\\s*-|[-_])?\\s*" +
             "([A-Z0-9]{$MIN_SERIAL_LENGTH,$MAX_SERIAL_LENGTH})(?=\$|\\s)",
         RegexOption.IGNORE_CASE,
     )
