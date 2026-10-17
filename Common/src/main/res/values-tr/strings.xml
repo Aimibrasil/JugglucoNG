@@ -2971,6 +2971,13 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="ssl_port">SSL portu</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Ofset: %1$s</string>
+
+    <!-- AiDex Auto algorithm selection -->
+    <string name="aidex_stock_calibration">Fabrika kalibrasyonu</string>
+    <string name="aidex_stock_calibration_desc">Sensörün glikoz okumalarını kullan</string>
+    <string name="aidex_adaptive_v2_desc">Olası aralıkla ham sinyalden uyarlanabilir tahmin</string>
+    <string name="aidex_algorithm_rebuilding">Sensör geçmişi yeniden hesaplanıyor</string>
+    <string name="aidex_algorithm_failed">Sensör geçmişi yeniden hesaplanamadı</string>
     <string name="voice_chime_title">Glikozdan önce sinyal</string>
     <string name="voice_chime_desc">Önce kısa bir ses, böylece değer okunurken dinliyor olursunuz</string>
     <string name="choose_color">Renk seç</string>

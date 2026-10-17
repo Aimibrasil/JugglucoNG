@@ -2933,6 +2933,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="ssl_port">Porta SSL</string>
     <string name="calibration_cf_value">CF: %1$s</string>
     <string name="calibration_offset_value">Compensazione: %1$s</string>
+
+    <!-- AiDex Auto algorithm selection -->
+    <string name="aidex_stock_calibration">Calibrazione di fabbrica</string>
+    <string name="aidex_stock_calibration_desc">Usa le letture di glucosio del sensore</string>
+    <string name="aidex_adaptive_v2_desc">Stima adattiva dal segnale grezzo con un intervallo probabile</string>
+    <string name="aidex_algorithm_rebuilding">Ricalcolo della cronologia del sensore</string>
+    <string name="aidex_algorithm_failed">Impossibile ricalcolare la cronologia del sensore</string>
     <string name="voice_chime_title">Segnale prima della glicemia</string>
     <string name="voice_chime_desc">Prima un breve suono, per essere in ascolto quando viene letto il valore</string>
     <string name="choose_color">Scegli colore</string>
