@@ -4220,7 +4220,7 @@ public class Notify {
                         ? iobLine
                         : new android.text.SpannableStringBuilder(iobLine).append(" · ").append(sensorStatusText);
         }
-        // The "Δ" readout: measured change over the last ~5 minutes — a raw
+        // Signed change over the selected interval — a raw
         // number to sanity-check the estimated arrow against. Leftmost, right
         // next to the arrow. Walks back to the first point old enough for the
         // window; the tail can hold near-duplicates (persisted vs live
@@ -4245,11 +4245,16 @@ public class Notify {
             if (doLog)
                 Log.i(LOG_ID, "notification delta=" + deltaText
                         + " points=" + nativePoints.size()
-                        + " gap=" + (previous == null ? -1L : (newest.timestamp - previous.timestamp)));
+                        + " gap=" + (previous == null ? -1L : (newest.timestamp - previous.timestamp))
+                        + " mode=" + viewMode + " mmol=" + isMmol
+                        + " newest=" + newest.timestamp + ":" + newestValue
+                        + " previous=" + (previous == null ? -1L : previous.timestamp) + ":" + previousValue
+                        + " displayed=" + (fallbackDisplay == null ? -1L : fallbackDisplay.getTimeMillis())
+                        + ":" + displayGlucoseValue);
             if (!deltaText.isEmpty()) {
                 newStatusText = (newStatusText == null || newStatusText.length() == 0)
-                        ? "Δ " + deltaText
-                        : new android.text.SpannableStringBuilder("Δ ").append(deltaText)
+                        ? deltaText
+                        : new android.text.SpannableStringBuilder(deltaText)
                                 .append(" · ").append(newStatusText);
             }
         }
