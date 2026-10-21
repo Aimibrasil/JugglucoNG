@@ -2,8 +2,10 @@ package tk.glucodata.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LocalContentColor
@@ -16,10 +18,12 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -51,9 +55,7 @@ enum class TabGlyph { STATISTICS, JOURNAL, DASHBOARD, SENSORS, SETTINGS, OTHER }
  *
  * The arrival plays once per switch and never for the selection the icon first sees, so
  * opening the app or rotating it is still. Until the navigation graph has a route,
- * [selectionKnown] is false and nothing is recorded: the first real route is not a switch.
- * The arrivals are deliberately small: each piece starts partly formed and settles with
- * little overshoot, a flourish for the eye to catch rather than a show to watch. Leaving a tab only cross-fades back to the outlined glyph; the
+ * [selectionKnown] is false and nothing is recorded: the first real route is not a switch. Leaving a tab only cross-fades back to the outlined glyph; the
  * eye belongs on the tab being entered. The pieces move on under-damped springs and the
  * fades on critically damped ones, the split [tk.glucodata.ui.util.ExpressiveMotion] keeps.
  */
@@ -83,11 +85,11 @@ fun TabIcon(
         label = "TabIconFill"
     )
     val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.9f else 1f,
+        targetValue = if (pressed) 0.84f else 1f,
         animationSpec = if (pressed) {
             spring(dampingRatio = 1f, stiffness = 1600f)
         } else {
-            spring(dampingRatio = 0.6f, stiffness = 700f)
+            spring(dampingRatio = 0.4f, stiffness = 700f)
         },
         label = "TabIconPress"
     )
@@ -128,7 +130,7 @@ fun TabIcon(
                         when (glyph) {
                             TabGlyph.STATISTICS -> drawStatistics(layer, u, parts)
                             TabGlyph.DASHBOARD -> drawDashboard(layer, u, parts)
-                            TabGlyph.SENSORS -> drawSensors(layer, parts, clips)
+                            TabGlyph.SENSORS -> drawSensors(layer, u, parts, clips, tint)
                             TabGlyph.SETTINGS -> drawSettings(layer, parts)
                             TabGlyph.JOURNAL -> drawJournal(layer, u, parts, clips)
                             TabGlyph.OTHER -> with(layer) { drawGlyph() }
@@ -164,10 +166,10 @@ private fun bouncy(dampingRatio: Float, stiffness: Float): AnimationSpec<Float> 
 
 private suspend fun playArrival(glyph: TabGlyph, parts: List<Animatable<Float, *>>, pop: Animatable<Float, *>) {
     coroutineScope {
-        // Every arrival starts in the same frame, so no piece flashes at rest first.
+        // Every arrival starts from nothing in the same frame, so no piece flashes at rest first.
         parts.forEach { it.snapTo(0f) }
-        pop.snapTo(0.92f)
-        launch { pop.animateTo(1f, bouncy(0.6f, 600f)) }
+        pop.snapTo(if (glyph == TabGlyph.SETTINGS) 0.9f else 0.82f)
+        launch { pop.animateTo(1f, bouncy(0.45f, 520f)) }
 
         fun stagger(index: Int, delayMillis: Long, spec: AnimationSpec<Float>) = launch {
             delay(delayMillis)
@@ -177,32 +179,32 @@ private suspend fun playArrival(glyph: TabGlyph, parts: List<Animatable<Float, *
         when (glyph) {
             TabGlyph.STATISTICS -> {
                 // Bars spring up from the baseline, left to right.
-                for (i in 0 until 3) stagger(i, i * 40L, bouncy(0.65f, 500f))
+                for (i in 0 until 3) stagger(i, i * 55L, bouncy(0.42f, 420f))
                 parts[3].snapTo(1f)
             }
             TabGlyph.DASHBOARD -> {
                 // The two legend rules stretch out, then the trend line draws itself across.
-                stagger(0, 0L, bouncy(0.8f, 600f))
-                stagger(1, 35L, bouncy(0.8f, 600f))
-                stagger(2, 50L, bouncy(0.95f, 380f))
+                stagger(0, 0L, bouncy(0.6f, 520f))
+                stagger(1, 45L, bouncy(0.6f, 520f))
+                stagger(2, 70L, bouncy(0.88f, 240f))
                 parts[3].snapTo(1f)
             }
             TabGlyph.SENSORS -> {
-                // The dot pops and each wave follows outward.
-                stagger(0, 0L, bouncy(0.55f, 700f))
-                stagger(1, 50L, bouncy(0.7f, 560f))
-                stagger(2, 100L, bouncy(0.7f, 560f))
-                parts[3].snapTo(1f)
+                // The dot pops, each wave follows outward, and a faint ping rolls off the edge.
+                stagger(0, 0L, bouncy(0.38f, 700f))
+                stagger(1, 70L, bouncy(0.5f, 520f))
+                stagger(2, 140L, bouncy(0.5f, 520f))
+                stagger(3, 150L, tween(durationMillis = 620, easing = FastOutSlowInEasing))
             }
             TabGlyph.SETTINGS -> {
-                // A quarter turn that settles with a small overshoot.
-                stagger(0, 0L, bouncy(0.65f, 320f))
+                // A half turn that overshoots and settles like a ratchet.
+                stagger(0, 0L, bouncy(0.42f, 210f))
                 for (i in 1 until PART_COUNT) parts[i].snapTo(1f)
             }
             TabGlyph.JOURNAL -> {
                 // The note's lines are written top to bottom while the pen scribbles.
-                for (i in 0 until 3) stagger(i, 30L + i * 50L, bouncy(0.95f, 420f))
-                stagger(3, 0L, bouncy(0.45f, 420f))
+                for (i in 0 until 3) stagger(i, 40L + i * 75L, bouncy(0.9f, 300f))
+                stagger(3, 0L, bouncy(0.22f, 330f))
             }
             TabGlyph.OTHER -> parts.forEach { it.snapTo(1f) }
         }
@@ -217,7 +219,7 @@ private fun DrawScope.drawStatistics(layer: GlyphLayer, u: Float, parts: List<An
     for (i in 0 until 3) {
         val left = statisticsBars[i * 2] * u
         val right = statisticsBars[i * 2 + 1] * u
-        val height = lerp(0.35f, 1f, parts[i].value).coerceAtLeast(0f)
+        val height = lerp(0.1f, 1f, parts[i].value).coerceAtLeast(0f)
         clipRect(left = left - 0.5f * u, top = 0f, right = right + 0.5f * u, bottom = size.height) {
             scale(scaleX = 1f, scaleY = height, pivot = Offset((left + right) / 2f, baseline)) {
                 with(layer) { drawGlyph() }
@@ -231,17 +233,17 @@ private fun DrawScope.drawDashboard(layer: GlyphLayer, u: Float, parts: List<Ani
     val start = 4f * u
     val rules = floatArrayOf(12f, 16f, 16f, 20f)
     for (i in 0 until 2) {
-        val stretch = lerp(0.4f, 1f, parts[i].value).coerceAtLeast(0f)
+        val stretch = parts[i].value.coerceAtLeast(0f)
         clipRect(left = 0f, top = rules[i * 2] * u, right = size.width, bottom = rules[i * 2 + 1] * u) {
             scale(scaleX = stretch, scaleY = 1f, pivot = Offset(start, center.y)) {
                 with(layer) { drawGlyph() }
             }
         }
     }
-    val draw = lerp(0.25f, 1f, parts[2].value)
+    val draw = parts[2].value
     val reveal = start + (16f * u + u) * draw.coerceIn(0f, 1f)
     clipRect(left = 0f, top = 0f, right = reveal, bottom = 12f * u) {
-        translate(top = (1f - draw) * 1.5f * u) {
+        translate(top = (1f - draw) * 3f * u) {
             with(layer) { drawGlyph() }
         }
     }
@@ -274,21 +276,33 @@ private class GlyphClips(glyph: TabGlyph, u: Float, width: Float, height: Float,
 
 private fun DrawScope.drawSensors(
     layer: GlyphLayer,
+    u: Float,
     parts: List<Animatable<Float, *>>,
     clips: GlyphClips,
+    tint: Color,
 ) {
+    val ping = parts[3].value
+    if (ping < 1f) {
+        drawCircle(
+            color = tint,
+            radius = lerp(2f, 13f, ping) * u,
+            center = center,
+            alpha = 0.45f * (1f - ping),
+            style = Stroke(width = lerp(2f, 0.6f, ping) * u)
+        )
+    }
     for (i in 0 until 3) {
         val p = parts[i].value
         clipPath(clips.sensorRings[i]) {
-            scale(lerp(if (i == 0) 0.5f else 0.8f, 1f, p).coerceAtLeast(0f), pivot = center) {
-                with(layer) { drawGlyph(alpha = if (i == 0) 1f else lerp(0.3f, 1f, p).coerceIn(0f, 1f)) }
+            scale(lerp(if (i == 0) 0f else 0.55f, 1f, p).coerceAtLeast(0f), pivot = center) {
+                with(layer) { drawGlyph(alpha = if (i == 0) 1f else p.coerceIn(0f, 1f)) }
             }
         }
     }
 }
 
 private fun DrawScope.drawSettings(layer: GlyphLayer, parts: List<Animatable<Float, *>>) {
-    rotate(degrees = (1f - parts[0].value) * -90f, pivot = center) {
+    rotate(degrees = (1f - parts[0].value) * -180f, pivot = center) {
         with(layer) { drawGlyph() }
     }
 }
@@ -301,7 +315,7 @@ private fun DrawScope.drawJournal(layer: GlyphLayer, u: Float, parts: List<Anima
     val pen = clips.journalPen ?: return
     clipPath(pen, clipOp = ClipOp.Difference) {
         for (i in 0 until 3) {
-            val reveal = 3f * u + 11.5f * u * lerp(0.3f, 1f, parts[i].value).coerceIn(0f, 1f)
+            val reveal = 3f * u + 11.5f * u * parts[i].value.coerceIn(0f, 1f)
             clipRect(left = 0f, top = journalLines[i * 2] * u, right = reveal, bottom = journalLines[i * 2 + 1] * u) {
                 with(layer) { drawGlyph() }
             }
@@ -309,8 +323,8 @@ private fun DrawScope.drawJournal(layer: GlyphLayer, u: Float, parts: List<Anima
     }
     // The clip moves with the pen, so a swing never cuts it off against the lines.
     val scribble = 1f - parts[3].value
-    translate(left = scribble * -1.5f * u, top = scribble * 0.5f * u) {
-        rotate(degrees = scribble * -14f, pivot = Offset(12f * u, 21f * u)) {
+    translate(left = scribble * -2.5f * u, top = scribble * 1f * u) {
+        rotate(degrees = scribble * -24f, pivot = Offset(12f * u, 21f * u)) {
             clipPath(pen) {
                 with(layer) { drawGlyph() }
             }

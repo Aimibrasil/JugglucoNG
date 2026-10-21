@@ -31,12 +31,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.NavigationItemIconPosition
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarArrangement
-import androidx.compose.material3.ShortNavigationBarDefaults
 import androidx.compose.material3.ShortNavigationBarItem
-import androidx.compose.material3.ShortNavigationBarItemDefaults
-import androidx.compose.material3.WideNavigationRailDefaults
-import androidx.compose.material3.WideNavigationRailItemDefaults
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.key
@@ -843,13 +838,6 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
         onNavigate(route)
     }
 
-    // The bar and the rail share one travelling indicator pill (NavigationIndicator.kt); the
-    // items' own pills are transparent so only their press ripples remain.
-    val navItemColors = ShortNavigationBarItemDefaults.colors()
-    val indicatorColor = navItemColors.selectedIndicatorColor
-    val barItemColors = navItemColors.copy(selectedIndicatorColor = Color.Transparent)
-    val railItemColors = WideNavigationRailItemDefaults.colors().copy(selectedIndicatorColor = Color.Transparent)
-
     // One NavHost in one place for both orientations. Rotation is handled by this activity
     // (configChanges), so the composition survives it; two NavHosts — one beside a rail, one
     // above a bar — meant every rotation disposed the open screen and rebuilt it from scratch.
@@ -858,17 +846,8 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // Child screens apply their own insets.
         bottomBar = {
             if (!isLandscape) {
-                val indicator = rememberNavigationIndicatorState(selectedNavRoute, Orientation.Horizontal)
                 Box {
-                    ShortNavigationBar(
-                        modifier = Modifier.navigationIndicatorHost(
-                            state = indicator,
-                            containerColor = ShortNavigationBarDefaults.containerColor,
-                            indicatorColor = indicatorColor
-                        ),
-                        containerColor = Color.Transparent,
-                        arrangement = ShortNavigationBarArrangement.EqualWeight
-                    ) {
+                    ShortNavigationBar(arrangement = ShortNavigationBarArrangement.EqualWeight) {
                         navItems.forEach { item ->
                             key(item.route) {
                                 val isSelected = item.route == selectedNavRoute
@@ -884,8 +863,7 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
                                             description = item.label,
                                             glyph = item.glyph,
                                             pressed = pressed,
-                                            selectionKnown = selectionKnown,
-                                            modifier = Modifier.navigationIndicatorAnchor(indicator, item.route)
+                                            selectionKnown = selectionKnown
                                         )
                                     },
                                     label = {
@@ -893,7 +871,6 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
                                     },
                                     selected = isSelected,
                                     onClick = { onNavItemClick(item.route) },
-                                    colors = barItemColors,
                                     interactionSource = interactionSource
                                 )
                             }
@@ -908,18 +885,8 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
             if (isLandscape) {
                 // The collapsed wide rail, the expressive partner of the portrait ShortNavigationBar.
                 // Centred, for the thumb on a phone held sideways.
-                val indicator = rememberNavigationIndicatorState(selectedNavRoute, Orientation.Vertical)
-                val railColors = WideNavigationRailDefaults.colors()
                 Box {
-                    WideNavigationRail(
-                        modifier = Modifier.navigationIndicatorHost(
-                            state = indicator,
-                            containerColor = railColors.containerColor,
-                            indicatorColor = indicatorColor
-                        ),
-                        colors = railColors.copy(containerColor = Color.Transparent),
-                        arrangement = Arrangement.Center
-                    ) {
+                    WideNavigationRail(arrangement = Arrangement.Center) {
                         navItems.forEach { item ->
                             key(item.route) {
                                 val isSelected = item.route == selectedNavRoute
@@ -935,14 +902,12 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
                                             description = item.label,
                                             glyph = item.glyph,
                                             pressed = pressed,
-                                            selectionKnown = selectionKnown,
-                                            modifier = Modifier.navigationIndicatorAnchor(indicator, item.route)
+                                            selectionKnown = selectionKnown
                                         )
                                     },
                                     label = { FontScaleCap { Text(item.label) } },
                                     selected = isSelected,
                                     onClick = { onNavItemClick(item.route) },
-                                    colors = railItemColors,
                                     interactionSource = interactionSource
                                 )
                             }
