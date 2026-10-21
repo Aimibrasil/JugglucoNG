@@ -50,7 +50,7 @@ class NavigationTick internal constructor(context: Context) {
     }.getOrNull()
 
     private companion object {
-        const val CLICK_SCALE = 0.6f
+        const val CLICK_SCALE = 0.5f
     }
 }
 

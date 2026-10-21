@@ -223,7 +223,7 @@ read at 18dp.
 - Top-level navigation fades (200ms).
 - Navigation bar and rail keep the stock in-place indicator; the chosen icon acts out its
   glyph once (`TabIcon`), never on launch or rotation. A switch ticks with
-  `NavigationTick`, one `PRIMITIVE_CLICK` at 0.6, only on vibrators that support it.
+  `NavigationTick`, one `PRIMITIVE_CLICK` at 0.5, only on vibrators that support it.
 - Attention motion is brief and repeats with rest: the signal-quality glyph shakes in
   half-second bursts every four seconds, not continuously.
 - An animation that runs while nothing changes is a bug: it costs battery and frames.
