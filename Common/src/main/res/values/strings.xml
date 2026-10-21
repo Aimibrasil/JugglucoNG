@@ -1086,7 +1086,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="aidex_sensor_desc" translatable="false">X, Vista, Smart, Lumi</string>
     <string name="ottai_sensor" translatable="false">Ottai / Syai</string>
     <string name="ottai_sensor_desc" translatable="false">M8, X1</string>
-    <string name="medtrum_sensor" translatable="false">Medtrum EasySense</string>
+    <string name="medtrum_sensor" translatable="false">Medtrum TouchCare</string>
+    <string name="medtrum_sensor_models" translatable="false">S9 MD3660</string>
     <string name="medtrum_sensor_desc">Enter the serial number printed on the patch (hexadecimal)</string>
     <string name="medtrum_setup_saved_title">Sensor saved</string>
     <string name="medtrum_setup_searching">Not connected yet. The patch connects on its own when it is in range.</string>
