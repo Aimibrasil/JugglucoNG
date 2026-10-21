@@ -40,8 +40,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.key
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material3.WideNavigationRail
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.WideNavigationRailItem
@@ -836,9 +834,12 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
     val selectedNavRoute = navItems.firstOrNull {
         it.route == currentRoute || it.route == getParentRoute(currentRoute)
     }?.route
-    val haptics = LocalHapticFeedback.current
+    // Before the graph has its first route nothing is selected yet; the icons must not
+    // read that first selection as a tab switch.
+    val selectionKnown = currentRoute != null
+    val navigationTick = rememberNavigationTick()
     val onNavItemClick = { route: String ->
-        if (route != selectedNavRoute) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+        if (route != selectedNavRoute) navigationTick.play()
         onNavigate(route)
     }
 
@@ -883,6 +884,7 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
                                             description = item.label,
                                             glyph = item.glyph,
                                             pressed = pressed,
+                                            selectionKnown = selectionKnown,
                                             modifier = Modifier.navigationIndicatorAnchor(indicator, item.route)
                                         )
                                     },
@@ -933,6 +935,7 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
                                             description = item.label,
                                             glyph = item.glyph,
                                             pressed = pressed,
+                                            selectionKnown = selectionKnown,
                                             modifier = Modifier.navigationIndicatorAnchor(indicator, item.route)
                                         )
                                     },

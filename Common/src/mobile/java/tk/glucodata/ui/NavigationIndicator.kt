@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
@@ -22,7 +23,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.pow
@@ -31,9 +32,8 @@ import kotlin.math.pow
  * One active-indicator pill for the whole navigation bar or rail, which travels to the
  * chosen item instead of each item fading its own pill in place.
  *
- * It moves like a drop of liquid: the edge facing the destination leaps ahead on a stiff
- * spring while the trailing edge follows on a soft one, so the pill stretches across the
- * gap, thins as it stretches, and bulges a little as the trailing edge lands. The stock
+ * The edge facing the destination leads on a slightly stiffer spring than the trailing
+ * edge, so the pill stretches a little across the gap and thins slightly as it does. The stock
  * per-item indicators are made transparent by the caller; their press ripples stay.
  *
  * Items report where their icons sit with [navigationIndicatorAnchor]; the bar or rail
@@ -89,56 +89,64 @@ fun rememberNavigationIndicatorState(selectedRoute: String?, axis: Orientation):
         }
     }
 
-    LaunchedEffect(state, target) {
-        val goal = target
-        if (goal == null) {
-            state.alpha.animateTo(0f, spring(dampingRatio = 1f, stiffness = 1600f))
-            return@LaunchedEffect
-        }
-        if (!state.shown) {
-            // The app opening, or the bar arriving after a rotation, is not a switch.
-            state.shown = true
-            state.left.snapTo(goal.left)
-            state.top.snapTo(goal.top)
-            state.right.snapTo(goal.right)
-            state.bottom.snapTo(goal.bottom)
-            state.alpha.snapTo(1f)
-            return@LaunchedEffect
-        }
-        val growing = state.alpha.value == 0f
-        if (growing) {
-            // Back from a screen that belongs to no tab: grow the pill out of the icon's
-            // centre rather than sliding in from wherever it last was.
-            state.left.snapTo(goal.center.x - state.restSize.width * 0.2f)
-            state.right.snapTo(goal.center.x + state.restSize.width * 0.2f)
-            state.top.snapTo(goal.top)
-            state.bottom.snapTo(goal.bottom)
-        }
-        val horizontal = state.axis == Orientation.Horizontal
-        val forward = if (horizontal) {
-            goal.center.x >= (state.left.value + state.right.value) / 2f
-        } else {
-            goal.center.y >= (state.top.value + state.bottom.value) / 2f
-        }
-        val across = spring<Float>(dampingRatio = 0.8f, stiffness = 380f)
-        val lead = if (growing) across else spring(dampingRatio = 0.62f, stiffness = 720f)
-        val trail = if (growing) across else spring(dampingRatio = 0.68f, stiffness = 240f)
-        coroutineScope {
-            launch { state.alpha.animateTo(1f, spring(dampingRatio = 1f, stiffness = 1600f)) }
-            if (horizontal) {
-                launch { state.left.animateTo(goal.left, if (forward) trail else lead) }
-                launch { state.right.animateTo(goal.right, if (forward) lead else trail) }
-                launch { state.top.animateTo(goal.top, across) }
-                launch { state.bottom.animateTo(goal.bottom, across) }
-            } else {
-                launch { state.top.animateTo(goal.top, if (forward) trail else lead) }
-                launch { state.bottom.animateTo(goal.bottom, if (forward) lead else trail) }
-                launch { state.left.animateTo(goal.left, across) }
-                launch { state.right.animateTo(goal.right, across) }
-            }
-        }
+    // One collector for the state's lifetime. Each new target launches fresh springs that
+    // interrupt the running ones while they are still running, so a tap mid-flight keeps the
+    // pill's momentum; restarting the effect would cancel them first, and a cancelled
+    // Animatable forgets its velocity.
+    LaunchedEffect(state) {
+        snapshotFlow { target }.collect { goal -> state.moveTo(goal, this) }
     }
     return state
+}
+
+private suspend fun NavigationIndicatorState.moveTo(goal: Rect?, scope: CoroutineScope) {
+    val opaque = spring<Float>(dampingRatio = 1f, stiffness = 1600f)
+    if (goal == null) {
+        scope.launch { alpha.animateTo(0f, opaque) }
+        return
+    }
+    if (!shown) {
+        // The app opening, or the bar arriving after a rotation, is not a switch.
+        shown = true
+        left.snapTo(goal.left)
+        top.snapTo(goal.top)
+        right.snapTo(goal.right)
+        bottom.snapTo(goal.bottom)
+        alpha.snapTo(1f)
+        return
+    }
+    val growing = alpha.value == 0f
+    if (growing) {
+        // Back from a screen that belongs to no tab: grow the pill out of the icon's
+        // centre rather than sliding in from wherever it last was.
+        left.snapTo(goal.center.x - restSize.width * 0.2f)
+        right.snapTo(goal.center.x + restSize.width * 0.2f)
+        top.snapTo(goal.top)
+        bottom.snapTo(goal.bottom)
+    }
+    val horizontal = axis == Orientation.Horizontal
+    val forward = if (horizontal) {
+        goal.center.x >= (left.value + right.value) / 2f
+    } else {
+        goal.center.y >= (top.value + bottom.value) / 2f
+    }
+    // The trailing edge lags only a little behind the leading one: a hint of stretch, not
+    // a rubber band. Both settle with a small overshoot.
+    val across = spring<Float>(dampingRatio = 0.85f, stiffness = 500f)
+    val lead = if (growing) across else spring(dampingRatio = 0.8f, stiffness = 600f)
+    val trail = if (growing) across else spring(dampingRatio = 0.85f, stiffness = 400f)
+    scope.launch { alpha.animateTo(1f, opaque) }
+    if (horizontal) {
+        scope.launch { left.animateTo(goal.left, if (forward) trail else lead) }
+        scope.launch { right.animateTo(goal.right, if (forward) lead else trail) }
+        scope.launch { top.animateTo(goal.top, across) }
+        scope.launch { bottom.animateTo(goal.bottom, across) }
+    } else {
+        scope.launch { top.animateTo(goal.top, if (forward) trail else lead) }
+        scope.launch { bottom.animateTo(goal.bottom, if (forward) lead else trail) }
+        scope.launch { left.animateTo(goal.left, across) }
+        scope.launch { right.animateTo(goal.right, across) }
+    }
 }
 
 private fun Rect.inflate(size: Size) = Rect(
@@ -168,10 +176,9 @@ fun Modifier.navigationIndicatorHost(
         val rest = state.restSize
         val width = (state.right.value - state.left.value).coerceAtLeast(0f)
         val height = (state.bottom.value - state.top.value).coerceAtLeast(0f)
-        // Squash and stretch: the pill keeps roughly its area, thinning across the direction
-        // of travel while it is drawn out and fattening for a moment as it lands.
+        // While drawn out the pill thins slightly across the direction of travel.
         val stretch = if (state.axis == Orientation.Horizontal) width / rest.width else height / rest.height
-        val thickness = if (stretch > 0f) (1f / stretch).pow(0.3f).coerceIn(0.72f, 1.1f) else 1f
+        val thickness = if (stretch > 0f) (1f / stretch).pow(0.15f).coerceIn(0.9f, 1f) else 1f
         val drawn = if (state.axis == Orientation.Horizontal) {
             Size(width, height * thickness)
         } else {
