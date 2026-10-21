@@ -31,7 +31,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.NavigationItemIconPosition
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarArrangement
+import androidx.compose.material3.ShortNavigationBarDefaults
 import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.ShortNavigationBarItemDefaults
+import androidx.compose.material3.WideNavigationRailDefaults
+import androidx.compose.material3.WideNavigationRailItemDefaults
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.key
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material3.WideNavigationRail
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.WideNavigationRailItem
@@ -807,16 +817,37 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
     }
 
     // Define items for use in both Bar and Rail
-    data class NavItem(val route: String, val label: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector)
+    data class NavItem(
+        val route: String,
+        val label: String,
+        val selectedIcon: ImageVector,
+        val unselectedIcon: ImageVector,
+        val glyph: TabGlyph
+    )
     val navItems = buildList {
-        add(NavItem("stats", stringResource(R.string.statistics_title), Icons.Filled.BarChart, Icons.Outlined.BarChart))
+        add(NavItem("stats", stringResource(R.string.statistics_title), Icons.Filled.BarChart, Icons.Outlined.BarChart, TabGlyph.STATISTICS))
         if (showJournalNav) {
-            add(NavItem("journal", stringResource(R.string.journal_title), Icons.Filled.EditNote, Icons.Outlined.EditNote))
+            add(NavItem("journal", stringResource(R.string.journal_title), Icons.Filled.EditNote, Icons.Outlined.EditNote, TabGlyph.JOURNAL))
         }
-        add(NavItem("dashboard", stringResource(R.string.dashboard), Icons.Filled.LegendToggle, Icons.Outlined.LegendToggle))
-        add(NavItem("sensors", stringResource(R.string.sensor), Icons.Filled.Sensors, Icons.Outlined.Sensors))
-        add(NavItem("settings", stringResource(R.string.settings), Icons.Filled.Settings, Icons.Outlined.Settings))
+        add(NavItem("dashboard", stringResource(R.string.dashboard), Icons.Filled.LegendToggle, Icons.Outlined.LegendToggle, TabGlyph.DASHBOARD))
+        add(NavItem("sensors", stringResource(R.string.sensor), Icons.Filled.Sensors, Icons.Outlined.Sensors, TabGlyph.SENSORS))
+        add(NavItem("settings", stringResource(R.string.settings), Icons.Filled.Settings, Icons.Outlined.Settings, TabGlyph.SETTINGS))
     }
+    val selectedNavRoute = navItems.firstOrNull {
+        it.route == currentRoute || it.route == getParentRoute(currentRoute)
+    }?.route
+    val haptics = LocalHapticFeedback.current
+    val onNavItemClick = { route: String ->
+        if (route != selectedNavRoute) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+        onNavigate(route)
+    }
+
+    // The bar and the rail share one travelling indicator pill (NavigationIndicator.kt); the
+    // items' own pills are transparent so only their press ripples remain.
+    val navItemColors = ShortNavigationBarItemDefaults.colors()
+    val indicatorColor = navItemColors.selectedIndicatorColor
+    val barItemColors = navItemColors.copy(selectedIndicatorColor = Color.Transparent)
+    val railItemColors = WideNavigationRailItemDefaults.colors().copy(selectedIndicatorColor = Color.Transparent)
 
     // One NavHost in one place for both orientations. Rotation is handled by this activity
     // (configChanges), so the composition survives it; two NavHosts — one beside a rail, one
@@ -826,28 +857,44 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // Child screens apply their own insets.
         bottomBar = {
             if (!isLandscape) {
+                val indicator = rememberNavigationIndicatorState(selectedNavRoute, Orientation.Horizontal)
                 Box {
-                    ShortNavigationBar(arrangement = ShortNavigationBarArrangement.EqualWeight) {
+                    ShortNavigationBar(
+                        modifier = Modifier.navigationIndicatorHost(
+                            state = indicator,
+                            containerColor = ShortNavigationBarDefaults.containerColor,
+                            indicatorColor = indicatorColor
+                        ),
+                        containerColor = Color.Transparent,
+                        arrangement = ShortNavigationBarArrangement.EqualWeight
+                    ) {
                         navItems.forEach { item ->
-                            val isSelected = currentRoute == item.route || getParentRoute(currentRoute) == item.route
-                            ShortNavigationBarItem(
-                                iconPosition = NavigationItemIconPosition.Top,
-                                icon = {
-                                    TabIcon(
-                                        isSelected = isSelected,
-                                        selectedIcon = item.selectedIcon,
-                                        unselectedIcon = item.unselectedIcon,
-                                        description = item.label,
-                                        isDashboard = item.route == "dashboard",
-                                        isStatistics = item.route == "stats"
-                                    )
-                                },
-                                label = {
-                                    FontScaleCap { AdaptiveNavigationLabel(item.label) }
-                                },
-                                selected = isSelected,
-                                onClick = { onNavigate(item.route) }
-                            )
+                            key(item.route) {
+                                val isSelected = item.route == selectedNavRoute
+                                val interactionSource = remember { MutableInteractionSource() }
+                                val pressed by interactionSource.collectIsPressedAsState()
+                                ShortNavigationBarItem(
+                                    iconPosition = NavigationItemIconPosition.Top,
+                                    icon = {
+                                        TabIcon(
+                                            isSelected = isSelected,
+                                            selectedIcon = item.selectedIcon,
+                                            unselectedIcon = item.unselectedIcon,
+                                            description = item.label,
+                                            glyph = item.glyph,
+                                            pressed = pressed,
+                                            modifier = Modifier.navigationIndicatorAnchor(indicator, item.route)
+                                        )
+                                    },
+                                    label = {
+                                        FontScaleCap { AdaptiveNavigationLabel(item.label) }
+                                    },
+                                    selected = isSelected,
+                                    onClick = { onNavItemClick(item.route) },
+                                    colors = barItemColors,
+                                    interactionSource = interactionSource
+                                )
+                            }
                         }
                     }
                     NavigationTapCatcherLayer(navigationTapCatcher)
@@ -859,26 +906,43 @@ fun MainApp(themeMode: ThemeMode, onThemeChanged: (ThemeMode) -> Unit) {
             if (isLandscape) {
                 // The collapsed wide rail, the expressive partner of the portrait ShortNavigationBar.
                 // Centred, for the thumb on a phone held sideways.
+                val indicator = rememberNavigationIndicatorState(selectedNavRoute, Orientation.Vertical)
+                val railColors = WideNavigationRailDefaults.colors()
                 Box {
-                    WideNavigationRail(arrangement = Arrangement.Center) {
+                    WideNavigationRail(
+                        modifier = Modifier.navigationIndicatorHost(
+                            state = indicator,
+                            containerColor = railColors.containerColor,
+                            indicatorColor = indicatorColor
+                        ),
+                        colors = railColors.copy(containerColor = Color.Transparent),
+                        arrangement = Arrangement.Center
+                    ) {
                         navItems.forEach { item ->
-                            val isSelected = currentRoute == item.route || getParentRoute(currentRoute) == item.route
-                            WideNavigationRailItem(
-                                railExpanded = false,
-                                icon = {
-                                    TabIcon(
-                                        isSelected = isSelected,
-                                        selectedIcon = item.selectedIcon,
-                                        unselectedIcon = item.unselectedIcon,
-                                        description = item.label,
-                                        isDashboard = item.route == "dashboard",
-                                        isStatistics = item.route == "stats"
-                                    )
-                                },
-                                label = { FontScaleCap { Text(item.label) } },
-                                selected = isSelected,
-                                onClick = { onNavigate(item.route) }
-                            )
+                            key(item.route) {
+                                val isSelected = item.route == selectedNavRoute
+                                val interactionSource = remember { MutableInteractionSource() }
+                                val pressed by interactionSource.collectIsPressedAsState()
+                                WideNavigationRailItem(
+                                    railExpanded = false,
+                                    icon = {
+                                        TabIcon(
+                                            isSelected = isSelected,
+                                            selectedIcon = item.selectedIcon,
+                                            unselectedIcon = item.unselectedIcon,
+                                            description = item.label,
+                                            glyph = item.glyph,
+                                            pressed = pressed,
+                                            modifier = Modifier.navigationIndicatorAnchor(indicator, item.route)
+                                        )
+                                    },
+                                    label = { FontScaleCap { Text(item.label) } },
+                                    selected = isSelected,
+                                    onClick = { onNavItemClick(item.route) },
+                                    colors = railItemColors,
+                                    interactionSource = interactionSource
+                                )
+                            }
                         }
                     }
                     NavigationTapCatcherLayer(navigationTapCatcher)

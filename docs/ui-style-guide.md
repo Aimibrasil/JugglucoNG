@@ -221,6 +221,9 @@ read at 18dp.
 - Springs from `ExpressiveMotion`: the spatial springs (position, size, corners) may
   overshoot; the effects springs (alpha, colour) never do.
 - Top-level navigation fades (200ms).
+- The navigation bar and rail share one indicator pill (`NavigationIndicator.kt`) that
+  travels to the chosen tab, its leading edge ahead of its trailing one, and the chosen
+  icon acts out its glyph once (`TabIcon`); neither plays on launch or rotation.
 - Attention motion is brief and repeats with rest: the signal-quality glyph shakes in
   half-second bursts every four seconds, not continuously.
 - An animation that runs while nothing changes is a bug: it costs battery and frames.
