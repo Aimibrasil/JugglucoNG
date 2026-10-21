@@ -12,13 +12,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * The tick under a tab switch: the shortest, sharpest primitive the vibrator has, at low
- * strength, so it reads as a crisp tap rather than a buzz. (`PRIMITIVE_LOW_TICK` is softer
- * but low-frequency, which feels duller and longer.)
+ * The tap under a tab switch: one short, hard-edged click.
  *
- * It plays only where it can be rendered cleanly. A device whose actuator supports
- * `PRIMITIVE_TICK` has the kind of motor that makes a crisp, faint tap; an older or
- * cheaper motor would turn the same request into a dull buzz, so those devices get nothing.
+ * `PRIMITIVE_CLICK` is the one primitive built as a single sharp pulse. The tick primitives,
+ * especially at low strength, smear into a soft buzz on many actuators (the Pixel 8 Pro's
+ * among them), which reads as mush rather than a punch. Strength stays well above the
+ * point where the pulse loses its edge; below that a lighter tap only gets vaguer.
+ *
+ * It plays only where it can be rendered cleanly. A device whose actuator supports the
+ * composition primitives has the kind of motor that makes a crisp tap; an older or cheaper
+ * motor would turn the same request into a dull buzz, so those devices get nothing.
  * It is sent as touch feedback, so the system's touch-vibration setting and intensity
  * still decide whether and how strongly it is felt.
  */
@@ -32,7 +35,7 @@ class NavigationTick internal constructor(context: Context) {
         runCatching {
             vibrator.vibrate(
                 VibrationEffect.startComposition()
-                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, TICK_SCALE)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, CLICK_SCALE)
                     .compose(),
                 VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH)
             )
@@ -43,11 +46,11 @@ class NavigationTick internal constructor(context: Context) {
     private fun capableVibrator(context: Context): Vibrator? = runCatching {
         context.getSystemService(VibratorManager::class.java)?.defaultVibrator
             ?.takeIf { it.hasVibrator() }
-            ?.takeIf { it.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_TICK) }
+            ?.takeIf { it.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_CLICK) }
     }.getOrNull()
 
     private companion object {
-        const val TICK_SCALE = 0.3f
+        const val CLICK_SCALE = 0.6f
     }
 }
 
