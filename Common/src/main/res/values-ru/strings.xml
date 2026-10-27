@@ -3076,6 +3076,9 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="medtrum_setup_device_rejected">Это устройство не является трансмиттером Medtrum. Убедитесь, что трансмиттер рядом, и повторите попытку.</string>
 
     <string name="alert_sound_volume">Громкость звука тревоги</string>
+    <string name="stream_history_mode">Поток+История</string>
+    <string name="history_stream_mode">История+Поток</string>
+    <string name="libre_history_mode_caption">История — собственное значение датчика, сохраняется каждые 15 минут и отстаёт от потока примерно на 16 минут. Пока история за минуту не пришла, вместо неё используется поток.</string>
     <string name="watch_forwarding_section">Через уведомления телефона</string>
     <string name="watch_forwarding_title">Передача показаний</string>
     <string name="watch_forwarding_standard">Стандартный Android</string>
