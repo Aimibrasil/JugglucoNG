@@ -62,33 +62,36 @@ fun ExpandableSettingsCard(
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Column {
-            Row(
+            AdaptiveTrailingRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onExpandedChange(!expanded) }
                     .heightIn(min = 72.dp)
                     .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconTile(icon = icon, tint = tint)
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = title, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        modifier = Modifier.padding(top = 2.dp),
-                        text = summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                trailingContent = {
+                    Icon(
+                        imageVector = Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.graphicsLayer { rotationZ = chevronRotation }
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.graphicsLayer { rotationZ = chevronRotation }
-                )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconTile(icon = icon, tint = tint)
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = title, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            modifier = Modifier.padding(top = 2.dp),
+                            text = summary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
             AnimatedVisibility(
@@ -136,29 +139,31 @@ fun DisclosingSwitchCard(
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Column {
-            Row(
+            AdaptiveTrailingRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(enabled = enabled) { onCheckedChange(!checked) }
                     .heightIn(min = 72.dp)
                     .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconTile(icon = icon, tint = tint)
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = title, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        modifier = Modifier.padding(top = 2.dp),
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                trailingContent = {
+                    StyledSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
                 }
-                Spacer(Modifier.width(12.dp))
-                StyledSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconTile(icon = icon, tint = tint)
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = title, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            modifier = Modifier.padding(top = 2.dp),
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
             AnimatedVisibility(
@@ -258,38 +263,39 @@ fun SettingsItem(
         shape = if (animatePosition) animatedCardShape(position) else cardShape(position),
         color = MaterialTheme.colorScheme.surfaceContainerHigh // restored color
     ) {
-        Row(
+        AdaptiveTrailingRow(
             modifier = Modifier
                 .heightIn(min = 72.dp) // M3 Two-line item standard
                 .padding(horizontal = 16.dp, vertical = 16.dp), // Coherent spacing
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (icon != null) {
-                // An untinted row keeps a bare glyph on the card colour: the tile's wash is
-                // what says "this row belongs to a coloured group".
-                val tint = iconTint ?: MaterialTheme.colorScheme.onSurfaceVariant
-                IconTile(
-                    icon = icon,
-                    tint = tint,
-                    containerColor = if (iconTint != null) tint.copy(alpha = IconTileDefaults.ContainerAlpha) else Color.Transparent,
-                )
-                Spacer(Modifier.width(IconTileDefaults.Gap))
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium) // Heavier weight (500) for legibility
-                if (subtitle != null) {
-                    Text(
-                        subtitle,
-                        style = subtitleStyle ?: MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            trailingContent = {
+                if (trailingContent != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) { trailingContent() }
                 }
             }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) {
+                    // An untinted row keeps a bare glyph on the card colour: the tile's wash is
+                    // what says "this row belongs to a coloured group".
+                    val tint = iconTint ?: MaterialTheme.colorScheme.onSurfaceVariant
+                    IconTile(
+                        icon = icon,
+                        tint = tint,
+                        containerColor = if (iconTint != null) tint.copy(alpha = IconTileDefaults.ContainerAlpha) else Color.Transparent,
+                    )
+                    Spacer(Modifier.width(IconTileDefaults.Gap))
+                }
 
-            if (trailingContent != null) {
-                Spacer(Modifier.width(12.dp))
-                trailingContent()
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium) // Heavier weight (500) for legibility
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            style = subtitleStyle ?: MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }
@@ -414,42 +420,44 @@ fun MasterSwitchCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
+        AdaptiveTrailingRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 84.dp)
                 .clickable(enabled = enabled) { onCheckedChange(!checked) }
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconTile(
-                icon = icon,
-                tint = if (checked) iconTint else MaterialTheme.colorScheme.onSurfaceVariant,
-                containerColor = if (checked) {
-                    iconTint.copy(alpha = IconTileDefaults.ContainerAlpha)
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                },
-            )
-
-            Spacer(modifier = Modifier.width(IconTileDefaults.Gap))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMediumEmphasized,)
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            trailingContent = {
+                StyledSwitch(
+                    checked = checked,
+                    enabled = enabled,
+                    onCheckedChange = onCheckedChange
                 )
             }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconTile(
+                    icon = icon,
+                    tint = if (checked) iconTint else MaterialTheme.colorScheme.onSurfaceVariant,
+                    containerColor = if (checked) {
+                        iconTint.copy(alpha = IconTileDefaults.ContainerAlpha)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
+                )
 
-            StyledSwitch(
-                checked = checked,
-                enabled = enabled,
-                onCheckedChange = onCheckedChange
-            )
+                Spacer(modifier = Modifier.width(IconTileDefaults.Gap))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMediumEmphasized,)
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
@@ -477,18 +485,20 @@ fun AlarmItem(
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
+            AdaptiveTrailingRow(
+                trailingContent = {
+                    StyledSwitch(
+                        checked = enabled,
+                        onCheckedChange = null
+                    )
+                }
+            ) {
+                Column {
                     Text(title, style = MaterialTheme.typography.bodyLarge)
                     if (enabled) {
                         Text("$displayValue $unit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
-                Spacer(Modifier.width(16.dp))
-                StyledSwitch(
-                    checked = enabled,
-                    onCheckedChange = null
-                )
             }
 
             // Expandable content
@@ -504,7 +514,10 @@ fun AlarmItem(
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.alert_mode), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         FilterChip(
                             selected = soundMode == 0,
                             onClick = { onSoundChange(0) },
