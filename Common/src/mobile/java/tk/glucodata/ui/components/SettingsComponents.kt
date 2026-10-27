@@ -1,6 +1,7 @@
 package tk.glucodata.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -32,19 +33,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import tk.glucodata.R
-
-@Composable
-fun SliderControl(label: String, value: Float, onValueChange: (Float) -> Unit, range: ClosedFloatingPointRange<Float>, steps: Int = 0) {
-    Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = range,
-            steps = steps
-        )
-    }
-}
 
 /**
  * A settings row that opens its own content underneath, inside the same card:
@@ -540,36 +528,100 @@ fun AlarmItem(
     }
 }
 
+/**
+ * The controls of one settings section that are not list rows (choices, sliders), together
+ * in one card of the section's group: each a label over its control, at the rows' 16dp
+ * inset. Switches stay rows around it.
+ */
 @Composable
-fun SliderItem(
-    title: String,
-    value: Float,
-    unit: String,
-    range: ClosedFloatingPointRange<Float>,
-    onValueChange: (Float) -> Unit,
-    position: CardPosition = CardPosition.SINGLE
+fun SettingsControlsCard(
+    position: CardPosition = CardPosition.SINGLE,
+    animatePosition: Boolean = false,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    var sliderValue by remember(value) { mutableFloatStateOf(value) }
-    val displayValue = if (sliderValue < 30) String.format("%.1f", sliderValue) else sliderValue.toInt().toString()
-
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = cardShape(position),
+        modifier = modifier.fillMaxWidth(),
+        shape = if (animatePosition) animatedCardShape(position) else cardShape(position),
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row {
-                Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Text("$displayValue $unit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            Spacer(Modifier.height(8.dp))
-            Slider(
-                value = sliderValue,
-                onValueChange = { sliderValue = it },
-                onValueChangeFinished = { onValueChange(sliderValue) },
-                valueRange = range
-            )
-        }
+        // A slider's touch target leaves ~14dp under its track and a choice keeps 12dp
+        // under its buttons, so the bottom padding and the gaps are 8dp, not 16.
+        Column(
+            modifier = Modifier
+                .animateContentSize()
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            content = content
+        )
+    }
+}
+
+/**
+ * A slider in a [SettingsControlsCard]. The title carries the value ("Font size: 100%"),
+ * so the track draws no tick per step: at 10-50 steps they are a row of dots.
+ */
+@Composable
+fun SettingsSlider(
+    title: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int = 0,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = range,
+            steps = steps,
+            colors = SliderDefaults.colors(
+                activeTickColor = Color.Transparent,
+                inactiveTickColor = Color.Transparent
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/**
+ * A choice between a few short options in a [SettingsControlsCard]: the title over a
+ * [tk.glucodata.ui.util.ConnectedButtonGroup]. With [multiSelect], [selectedOptions] holds
+ * the checked ones, which carry a check mark.
+ */
+@Composable
+fun <T> SettingsChoice(
+    title: String,
+    options: List<T>,
+    labels: List<String>,
+    onOptionSelected: (T) -> Unit,
+    selectedOption: T? = null,
+    selectedOptions: List<T> = emptyList(),
+    multiSelect: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    // The bottom padding matches the room a slider leaves under its track.
+    Column(
+        modifier = modifier.fillMaxWidth().padding(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        tk.glucodata.ui.util.ConnectedButtonGroup(
+            options = options,
+            selectedOption = selectedOption,
+            selectedOptions = selectedOptions,
+            multiSelect = multiSelect,
+            onOptionSelected = onOptionSelected,
+            label = {},
+            labelText = { labels[options.indexOf(it)] },
+            modifier = Modifier.fillMaxWidth(),
+            selectedContainerColor = MaterialTheme.colorScheme.secondary,
+            selectedContentColor = MaterialTheme.colorScheme.onSecondary,
+            unselectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            unselectedContentColor = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
