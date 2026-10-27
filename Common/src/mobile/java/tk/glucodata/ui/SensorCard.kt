@@ -1946,13 +1946,12 @@ fun SensorCard(
                             onPickColor = { showColorSheet = true },
                             modifier = Modifier.weight(1f),
                         )
-                        if (!sensor.isCloneSource) {
+                        val cloneWithoutControl = sensor.isCloneSource && !sensor.canTakeOverClone
+                        if (!cloneWithoutControl) {
                             Spacer(modifier = Modifier.width(8.dp))
                         }
 
-                        if (sensor.isCloneSource) {
-                            // Nothing to pause on a sensor another phone is wearing.
-                        } else if (isHandedOff) {
+                        if (isHandedOff && !sensor.isCloneSource) {
                             IconButtonTooltip(stringResource(R.string.return_sensor_to_phone)) {
                                 // A filled icon button, not a background behind a plain one: the
                                 // container itself takes the press shape.
@@ -1968,6 +1967,42 @@ fun SensorCard(
                                     Icon(
                                         imageVector = Icons.Default.PhoneAndroid,
                                         contentDescription = stringResource(R.string.return_sensor_to_phone),
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                }
+                            }
+                        } else if (cloneWithoutControl) {
+                            // Nothing this phone could read it with: no button.
+                        } else if (sensor.isCloneSource || sensor.isCloneTakenOver) {
+                            // Nothing to pause on a sensor another phone is wearing. The slot
+                            // moves the sensor between the sender and this phone instead, as
+                            // the watch's take-over does. The watch's return comes first: a
+                            // taken-over sensor sitting on the watch has to come back here
+                            // before it can go back to the sender.
+                            val label = stringResource(
+                                if (sensor.isCloneSource) R.string.clone_take_over_sensor
+                                else R.string.clone_return_sensor_to_sender
+                            )
+                            IconButtonTooltip(label) {
+                                FilledIconButton(
+                                    onClick = {
+                                        if (sensor.isCloneSource) {
+                                            viewModel.takeOverCloneSensor(sensor.serial)
+                                        } else {
+                                            viewModel.handBackCloneSensor(sensor.serial)
+                                        }
+                                    },
+                                    modifier = Modifier.size(48.dp),
+                                    shapes = IconButtonDefaults.shapes(),
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    ),
+                                ) {
+                                    Icon(
+                                        imageVector = if (sensor.isCloneSource) Icons.Default.Bluetooth else Icons.Default.SwapHoriz,
+                                        contentDescription = label,
                                         modifier = Modifier.size(24.dp),
                                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                     )

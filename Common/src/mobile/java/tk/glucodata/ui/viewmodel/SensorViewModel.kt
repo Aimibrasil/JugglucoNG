@@ -111,6 +111,10 @@ data class SensorInfo(
     val handoffUiState: SensorHandoffUiState = SensorHandoffUiState.NONE,
     val sensorIndex: Int = -1,
     val isCloneSource: Boolean = false,
+    /** A mirrored sensor this phone took over and reads itself; it can be handed back. */
+    val isCloneTakenOver: Boolean = false,
+    /** A Clone record this phone has a driver for, so taking it over can actually read it. */
+    val canTakeOverClone: Boolean = false,
     val dexcomBluetoothSlot: Int = 0,  // Dexcom G7: authentication slot 1-3, 0 = not a Dexcom callback
     val dexcomPairingCode: String = "",  // Dexcom G7: the 4-digit sensor code, blank = not stored
 ) {
@@ -172,9 +176,17 @@ class SensorViewModel : ViewModel() {
         // under, so the raw serial the callback carries has to count too.
         val clone = tk.glucodata.CloneSensorRegistry.isCloneSensor(resolved) ||
             tk.glucodata.CloneSensorRegistry.isCloneSensor(sensor.serial)
+        val takenOver = !clone && tk.glucodata.CloneSensorRegistry.isReceptionEnabled() &&
+            (tk.glucodata.CloneSensorRegistry.isTakenOver(resolved) ||
+                tk.glucodata.CloneSensorRegistry.isTakenOver(sensor.serial))
         return sensor.copy(
             serial = resolved,
             isCloneSource = clone,
+            isCloneTakenOver = takenOver,
+            canTakeOverClone = clone && (
+                tk.glucodata.CloneSensorRegistry.canTakeOver(resolved) ||
+                    tk.glucodata.CloneSensorRegistry.canTakeOver(sensor.serial)
+                ),
         )
     }
 
@@ -1345,6 +1357,27 @@ class SensorViewModel : ViewModel() {
             gatt.connectDevice(200)
         }
         refreshSensors()
+    }
+
+    /**
+     * Stops deferring to the Clone sender and connects to the sensor from this
+     * phone. A transmitter that serves one phone at a time is only reached once
+     * the sender lets go of it, the way a follower picked it up before Clone.
+     */
+    fun takeOverCloneSensor(serial: String) {
+        if (!tk.glucodata.CloneSensorRegistry.takeOver(serial)) return
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            // A mirrored record normally keeps its (paused) callback; rebuild the
+            // roster in case it was never given one.
+            if (findGatt(serial) == null) SensorBluetooth.updateDevices()
+            reconnectSensor(serial)
+        }
+    }
+
+    /** Undoes [takeOverCloneSensor]: Clone delivers the readings again and this phone lets go. */
+    fun handBackCloneSensor(serial: String) {
+        if (!tk.glucodata.CloneSensorRegistry.handBack(serial)) return
+        disconnectSensor(serial)
     }
 
     fun returnSensorToPhone(serial: String) {
