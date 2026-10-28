@@ -217,6 +217,7 @@ fun buildJournalChartMarkers(
     foodsById: Map<Long, JournalFood> = emptyMap()
 ): List<JournalChartMarker> {
     val isMmol = GlucoseFormatter.isMmol(unit)
+    val tempBasalEnds = tk.glucodata.data.journal.tempBasalEndsMillis(entries)
 
     return entries.map { entry ->
         val preset = entry.insulinPresetId?.let(presetsById::get)
@@ -272,6 +273,8 @@ fun buildJournalChartMarkers(
             },
             activeStartMillis = if (entry.type == JournalEntryType.INSULIN && preset != null) {
                 preset.activeStartAt(entry.timestamp)
+            } else if (entry.type == JournalEntryType.TEMP_BASAL && entry.durationMinutes != null) {
+                entry.timestamp
             } else {
                 null
             },
@@ -283,6 +286,8 @@ fun buildJournalChartMarkers(
                 entry.timestamp + (entry.durationMinutes.coerceAtLeast(1) * 60_000L)
             } else if (entry.type == JournalEntryType.CARBS && entry.durationMinutes != null) {
                 entry.timestamp + (entry.durationMinutes.coerceAtLeast(1) * 60_000L)
+            } else if (entry.type == JournalEntryType.TEMP_BASAL) {
+                tempBasalEnds[entry.id]
             } else {
                 null
             }
@@ -767,6 +772,9 @@ fun JournalEntrySheet(
                         )
                     }
                 }
+
+                // Imported from AAPS; no editor fields.
+                JournalEntryType.TEMP_BASAL -> Unit
             }
 
             item(key = "note_field") {
@@ -1136,7 +1144,8 @@ private fun JournalEntryDraft.normalizedForType(
             pairedAmountText = ""
         )
 
-        JournalEntryType.NOTE -> copy(
+        JournalEntryType.NOTE,
+        JournalEntryType.TEMP_BASAL -> copy(
             amountText = "",
             glucoseText = "",
             durationText = "",
@@ -1241,6 +1250,9 @@ private fun JournalEntryDraft.toInput(
                 glucoseValueMgDl = chartAnchorGlucoseMgDl
             )
         }
+
+        // Imported from AAPS; never entered or edited in the journal sheet.
+        JournalEntryType.TEMP_BASAL -> null
     }
 }
 
@@ -2495,7 +2507,7 @@ private fun JournalTypeSelector(
     val selectedContentColor = MaterialTheme.colorScheme.onSurface
     val selectedContainerBase = MaterialTheme.colorScheme.surfaceContainerHigh
     ConnectedButtonGroup(
-        options = JournalEntryType.entries,
+        options = JournalEntryType.journalRowTypes,
         selectedOption = selectedType,
         onOptionSelected = onTypeSelected,
         label = { _ -> },
@@ -2852,6 +2864,13 @@ private fun journalInlineChipContent(
                 label = label,
                 detail = entry.note.cleanJournalChipText()
                     ?.takeUnless { it == label }
+            )
+        }
+
+        JournalEntryType.TEMP_BASAL -> {
+            JournalInlineChipContent(
+                label = entry.amount?.let { Applic.app.getString(R.string.journal_rate_units_per_hour, formatFloatForEditor(it)) } ?: entry.title,
+                detail = entry.durationMinutes?.let { Applic.app.getString(R.string.minutes_short_format, it) }
             )
         }
     }
@@ -3515,6 +3534,13 @@ private fun describeJournalEntry(
         JournalEntryType.NOTE -> {
             entry.note ?: entry.title
         }
+
+        JournalEntryType.TEMP_BASAL -> {
+            listOfNotNull(
+                entry.amount?.let { Applic.app.getString(R.string.journal_rate_units_per_hour, formatFloatForEditor(it)) },
+                entry.durationMinutes?.let { Applic.app.getString(R.string.minutes_short_format, it) }
+            ).joinToString(" · ")
+        }
     }
 }
 
@@ -3525,6 +3551,7 @@ private fun journalMarkerBadge(type: JournalEntryType): String {
         JournalEntryType.FINGERSTICK -> "B"
         JournalEntryType.ACTIVITY -> "A"
         JournalEntryType.NOTE -> "N"
+        JournalEntryType.TEMP_BASAL -> "T"
     }
 }
 
@@ -3548,6 +3575,10 @@ private fun journalMarkerDetail(
 
         JournalEntryType.NOTE -> {
             (entry.note ?: entry.title).take(10)
+        }
+
+        JournalEntryType.TEMP_BASAL -> {
+            entry.amount?.let { Applic.app.getString(R.string.journal_rate_units_per_hour, formatFloatForEditor(it)) }.orEmpty()
         }
     }
 }
@@ -3601,6 +3632,7 @@ private fun journalTypeIcon(type: JournalEntryType): ImageVector {
         JournalEntryType.FINGERSTICK -> Icons.Default.Bloodtype
         JournalEntryType.ACTIVITY -> Icons.Default.DirectionsRun
         JournalEntryType.NOTE -> Icons.AutoMirrored.Filled.Label
+        JournalEntryType.TEMP_BASAL -> Icons.Default.Vaccines
     }
 }
 
@@ -3611,6 +3643,7 @@ private fun JournalEntryType.labelRes(): Int {
         JournalEntryType.FINGERSTICK -> R.string.journal_type_fingerstick
         JournalEntryType.ACTIVITY -> R.string.journal_type_activity
         JournalEntryType.NOTE -> R.string.journal_type_note
+        JournalEntryType.TEMP_BASAL -> R.string.journal_type_temp_basal
     }
 }
 

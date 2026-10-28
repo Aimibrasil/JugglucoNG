@@ -3613,7 +3613,54 @@ fun InteractiveGlucoseChart(
                 }
                 if (visibleJournalMarkers.isNotEmpty()) {
                     val visibleInsulinMarkers = visibleJournalMarkers.filter { it.type == JournalEntryType.INSULIN }
-                    val visibleEventMarkers = visibleJournalMarkers.filter { it.type != JournalEntryType.INSULIN }
+                    val visibleTempBasalMarkers = visibleJournalMarkers.filter { it.type == JournalEntryType.TEMP_BASAL }
+                    val visibleEventMarkers = visibleJournalMarkers.filter {
+                        it.type != JournalEntryType.INSULIN && it.type != JournalEntryType.TEMP_BASAL
+                    }
+
+                    if (visibleTempBasalMarkers.isNotEmpty()) {
+                        // AAPS temp basal as "icicles": bars hung from the top edge, length
+                        // proportional to the delivered rate in U/h; a 0 U/h segment draws nothing.
+                        val maxRate = visibleTempBasalMarkers
+                            .mapNotNull { it.amount }
+                            .filter { it > 0f }
+                            .maxOrNull()
+                            ?.coerceAtLeast(1f)
+                            ?: 1f
+                        val maxBarHeight = chartHeight * 0.32f
+                        val minBarWidth = 1.5.dp.toPx()
+                        // xDrip style: a see-through fill so the curve stays readable under
+                        // it, edged by a solid step line along the bar's sides and bottom.
+                        val edgeWidth = 1.5.dp.toPx()
+                        // activeEndMillis is already cut at the replacing temp basal's start
+                        // (tempBasalEndsMillis), so the window filter above never resurrects
+                        // a replaced segment.
+                        visibleTempBasalMarkers.forEach { marker ->
+                            val rate = marker.amount ?: 0f
+                            if (rate <= 0f) return@forEach
+                            val start = marker.activeStartMillis ?: marker.timestamp
+                            val end = marker.activeEndMillis ?: return@forEach
+                            if (end <= start) return@forEach
+                            val startX = timeToDataX(start).coerceIn(0f, dataWidth)
+                            val endX = timeToDataX(end).coerceIn(0f, dataWidth)
+                            if (endX <= 0f || startX >= dataWidth) return@forEach
+                            val left = minOf(startX, endX)
+                            val right = maxOf(startX, endX)
+                            val barHit = (rate / maxRate).coerceIn(0f, 1f)
+                            val barHeight = (barHit * maxBarHeight).coerceAtLeast(2.dp.toPx())
+                            val barRight = left + (right - left).coerceAtLeast(minBarWidth)
+                            val tint = Color(marker.accentColor)
+                            drawRect(
+                                color = tint.copy(alpha = 0.22f),
+                                topLeft = Offset(left, 0f),
+                                size = Size(barRight - left, barHeight)
+                            )
+                            val edge = tint.copy(alpha = 0.9f)
+                            drawLine(edge, Offset(left, 0f), Offset(left, barHeight), edgeWidth)
+                            drawLine(edge, Offset(left, barHeight), Offset(barRight, barHeight), edgeWidth)
+                            drawLine(edge, Offset(barRight, barHeight), Offset(barRight, 0f), edgeWidth)
+                        }
+                    }
 
                     if (insulinStyle == InsulinChartStyle.SEPARATE && visibleInsulinMarkers.isNotEmpty()) {
                         // Each dose's own curve, sized by its dose, as before the band.
@@ -3967,9 +4014,12 @@ fun InteractiveGlucoseChart(
             val journalChipReachPx = journalChipSideOffsetPx + journalChipChromePx + journalChipMaxTextPx +
                 journalChipLayoutSpec.maxNudge * journalChipNudgePx
             val journalChipReachMillis = (journalChipReachPx * overlayDuration / overlayDataWidthPx).toLong()
+            // Temp basal is drawn only as its icicle: AAPS sets one every few minutes, and a
+            // chip for each would bury the curve.
             val chipMarkers = journalMarkers
                 .filter { marker ->
-                    marker.timestamp in (overlayViewportStart - journalChipReachMillis)..(overlayViewportEnd + journalChipReachMillis)
+                    marker.type != JournalEntryType.TEMP_BASAL &&
+                        marker.timestamp in (overlayViewportStart - journalChipReachMillis)..(overlayViewportEnd + journalChipReachMillis)
                 }
                 .sortedWith(compareBy({ it.timestamp }, { it.entryId }))
             val chipAnchorXs = chipMarkers.map { marker ->
@@ -5756,6 +5806,7 @@ private fun JournalMarkerChip(
                         JournalEntryType.FINGERSTICK -> Icons.Default.Bloodtype
                         JournalEntryType.ACTIVITY -> Icons.Default.DirectionsRun
                         JournalEntryType.NOTE -> Icons.AutoMirrored.Filled.Label
+                        JournalEntryType.TEMP_BASAL -> Icons.Default.Vaccines
                     },
                     contentDescription = null,
                     tint = tint,

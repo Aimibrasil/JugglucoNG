@@ -392,6 +392,7 @@ private fun JournalEntryType.historyFilterIcon(): ImageVector = when (this) {
     JournalEntryType.FINGERSTICK -> Icons.Default.Bloodtype
     JournalEntryType.ACTIVITY -> Icons.Default.DirectionsRun
     JournalEntryType.NOTE -> Icons.Default.Label
+    JournalEntryType.TEMP_BASAL -> Icons.Default.Vaccines
 }
 
 private fun HistoryFilterOption.historyFilterIcon(): ImageVector = when (this) {
@@ -470,7 +471,7 @@ fun HistoryBrowseScreen(
     var viewportSnapshot by remember { mutableStateOf<ChartViewportSnapshot?>(null) }
     var showReadingRows by rememberSaveable { mutableStateOf(true) }
     var selectedJournalTypeFilters by rememberSaveable {
-        mutableStateOf(JournalEntryType.entries.map { it.name })
+        mutableStateOf(JournalEntryType.journalRowTypes.map { it.name })
     }
     val selectedJournalTypes = remember(selectedJournalTypeFilters) {
         selectedJournalTypeFilters.mapNotNull { name ->
@@ -767,7 +768,7 @@ fun HistoryBrowseScreen(
                 item(key = "history-journal-filter") {
                     val filterOptions = remember {
                         listOf(HistoryFilterOption.Readings) +
-                            JournalEntryType.entries.map { HistoryFilterOption.Journal(it) }
+                            JournalEntryType.journalRowTypes.map { HistoryFilterOption.Journal(it) }
                     }
                     val selectedFilterOptions = remember(showReadingRows, selectedJournalTypes) {
                         buildList {

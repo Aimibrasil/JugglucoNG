@@ -127,6 +127,7 @@ fun JournalEntryType.journalActionLabel(): String = when (this) {
     JournalEntryType.FINGERSTICK -> stringResource(R.string.journal_type_glucose)
     JournalEntryType.ACTIVITY -> stringResource(R.string.journal_type_activity)
     JournalEntryType.NOTE -> stringResource(R.string.journal_type_note)
+    JournalEntryType.TEMP_BASAL -> stringResource(R.string.journal_type_temp_basal)
 }
 
 fun JournalEntryType.journalActionIcon(): ImageVector = when (this) {
@@ -135,6 +136,7 @@ fun JournalEntryType.journalActionIcon(): ImageVector = when (this) {
     JournalEntryType.FINGERSTICK -> Icons.Default.Bloodtype
     JournalEntryType.ACTIVITY -> Icons.Default.DirectionsRun
     JournalEntryType.NOTE -> Icons.AutoMirrored.Filled.Label
+    JournalEntryType.TEMP_BASAL -> Icons.Default.Vaccines
 }
 
 /**
