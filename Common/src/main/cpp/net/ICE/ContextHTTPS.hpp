@@ -30,6 +30,9 @@ using namespace std::literals;
 
 struct HTTPSRequestOptions {
     int timeoutMilliseconds = 15000;
+    // When positive, replaces the deadline once the request has been sent, so
+    // a server that holds a long-poll is not abandoned mid-wait.
+    int responseTimeoutMilliseconds = 0;
     std::shared_ptr<const std::atomic_bool> cancelled;
     bool verifyCertificate = true;
 };

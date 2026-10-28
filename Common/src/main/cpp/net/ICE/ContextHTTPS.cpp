@@ -257,6 +257,10 @@ public:
               std::max(options.timeoutMilliseconds,1)),
           cancelled(options.cancelled) {}
 
+    void restart(int timeoutMilliseconds) {
+        endMilliseconds=elapsedRealtimeMilliseconds()+std::max(timeoutMilliseconds,1);
+    }
+
     bool stopped() const {
         return (cancelled && cancelled->load(std::memory_order_acquire)) ||
                elapsedRealtimeMilliseconds()>=endMilliseconds;
@@ -648,6 +652,8 @@ std::pair<std::vector<char>,int> ContextHTTPS::request(const std::string_view ho
    if(written!=requestsize)
        return {uit,-1};
    LOGGERHTTPS("after SSL_write %d\n", requestsize);
+   if(options.responseTimeoutMilliseconds>0)
+       deadline.restart(options.responseTimeoutMilliseconds);
    int n;
    while((n=SSL_read(ssl,dataptr,maxdata))<=0) {
        if(SSLwait(ssl,n,sock,deadline)<0)

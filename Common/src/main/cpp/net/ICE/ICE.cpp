@@ -266,6 +266,17 @@ static HTTPSRequestOptions rendezvousRequestOptions(ICEConnect *con) {
         };
     }
 
+// jugglucoconnect holds GET /description (≤6 min), PUT /description (≤11 min),
+// GET /address and PUT /done (≤4 min) until the peer acts. Abandoning such a
+// request leaves its handler waiting; when it notices the closed socket it
+// erases the label's whole entry, and a re-PUT of the description erases it
+// too. Connecting stays bounded; the answer is awaited until cancellation.
+static HTTPSRequestOptions rendezvousLongPollOptions(ICEConnect *con) {
+    auto options=rendezvousRequestOptions(con);
+    options.responseTimeoutMilliseconds=12*60*1000;
+    return options;
+    }
+
 bool ICEConnect::prepareRendezvousGeneration() {
     const std::lock_guard<std::mutex> lock(rendezvousGenerationMutex);
     std::array<unsigned char,16> random{};
@@ -560,7 +571,7 @@ static void getAddressesThread(juice_agent *agent,int allindex,uint64_t generati
                      static_cast<unsigned long long>(generation));
            auto response=ContextHTTPS::getContext().getRequest(
                hostname,rendezvousPort,address,addressdata.getSpan(),{},
-               rendezvousRequestOptions(con));
+               rendezvousLongPollOptions(con));
            LOGGERICE("getaddress response host=%d code=%d bytes=%zu\n",
                      allindex,response.second,response.first.size());
            return response;
@@ -680,7 +691,7 @@ static void on_gathering_done1(juice_agent_t *agent, void *user_ptr) {
         while(true) {
             auto [resbody,code]=ContextHTTPS::getContext().putRequest(
                 hostname,rendezvousPort,done,doneBody,{},
-                rendezvousRequestOptions(con));
+                rendezvousLongPollOptions(con));
             if(!con->isCurrentAgent(agent,generation))
                 return;
             if(code==200) {
@@ -1335,7 +1346,7 @@ static bool waitonDescription(juice_agent *agent,int allindex,std::string_view c
             }
         auto [resbody,code]=ContextHTTPS::getContext().getRequest(
             hostname,rendezvousPort,description,sdpdata.getSpan(),{},
-            rendezvousRequestOptions(con));
+            rendezvousLongPollOptions(con));
         if(!con->isCurrentAgent(agent,generation)||con->endConnect.load())
             return false;
         if(con->remoteDescriptionWasLocal.load()) {
@@ -1400,7 +1411,7 @@ static  bool putDescription(int allindex,juice_agent *agent,std::string_view com
             auto [resbody,code]=ContextHTTPS::getContext().putRequest(
                 hostname,rendezvousPort,description,
                 std::span((const char *)sdpdata.data(),sdpdata.size()),{},
-                rendezvousRequestOptions(con));
+                rendezvousLongPollOptions(con));
             if(!con->isCurrentAgent(agent,generation)||con->endConnect.load())
                 return false;
             if(con->remoteDescriptionWasLocal.load()) {
