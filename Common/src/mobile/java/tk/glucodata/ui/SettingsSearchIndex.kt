@@ -221,6 +221,8 @@ internal object SettingsSearchIndex {
             terms = listOf("xDrip", "AAPS", "AndroidAPS", "GlucoDataHandler", "GDH", "Glucodata", "LibreLink", "broadcast")),
         SettingsSearchEntry(R.string.settings_xdrip_broadcast_title, PHONE_APPS, Icons.Default.PhoneAndroid, T,
             route("settings/phone-apps"), terms = listOf("AAPS", "AndroidAPS")),
+        SettingsSearchEntry(R.string.xdrip_follower_title, PHONE_APPS, Icons.Default.PhoneAndroid, T,
+            route("settings/phone-apps"), terms = listOf("xDrip", "Follower", "NSClient")),
         SettingsSearchEntry(R.string.settings_patched_libre_title, PHONE_APPS, Icons.Default.PhoneAndroid, T,
             route("settings/phone-apps"), terms = listOf("LibreLink")),
         SettingsSearchEntry(R.string.settings_glucodata_title, PHONE_APPS, Icons.Default.PhoneAndroid, T,

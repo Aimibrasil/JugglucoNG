@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -36,7 +37,7 @@ import tk.glucodata.ui.util.findActivity
 import tk.glucodata.ui.viewmodel.DashboardViewModel
 
 /**
- * Everything that hands readings to another app on the same phone: the three broadcast
+ * Everything that hands readings to another app on the same phone: the broadcast
  * formats and Health Connect. Network destinations (Nightscout, Mirror, …) stay on the
  * Settings tab, because each of them has a screen of its own.
  */
@@ -49,6 +50,7 @@ fun PhoneAppsSettingsScreen(
     val xdripEnabled by viewModel.xDripBroadcastEnabled.collectAsStateWithLifecycle()
     val patchedLibreEnabled by viewModel.patchedLibreBroadcastEnabled.collectAsStateWithLifecycle()
     val glucodataBroadcastEnabled by viewModel.glucodataBroadcastEnabled.collectAsStateWithLifecycle()
+    val xdripFollowerEnabled by viewModel.xdripFollowerEnabled.collectAsStateWithLifecycle()
     val xdripReportAsLibre2 by viewModel.xdripReportAsLibre2.collectAsStateWithLifecycle()
     val broadcastComputedTrend by viewModel.broadcastComputedTrend.collectAsStateWithLifecycle()
     var healthConnectEnabled by rememberSaveable { mutableStateOf(PhoneAppsSettings.healthConnectEnabled()) }
@@ -86,6 +88,15 @@ fun PhoneAppsSettingsScreen(
                         iconTint = appColor,
                         position = CardPosition.TOP,
                         onCheckedChange = { viewModel.toggleXDripBroadcast(it) }
+                    )
+                    SettingsSwitchItem(
+                        title = stringResource(R.string.xdrip_follower_title),
+                        subtitle = stringResource(R.string.xdrip_follower_desc),
+                        checked = xdripFollowerEnabled,
+                        icon = Icons.Default.Sync,
+                        iconTint = appColor,
+                        position = CardPosition.MIDDLE,
+                        onCheckedChange = { viewModel.setXdripFollowerEnabled(it) }
                     )
                     SettingsSwitchItem(
                         title = stringResource(R.string.settings_patched_libre_title),
