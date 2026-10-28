@@ -1492,11 +1492,12 @@ bool initAgent(juice_agent *agent,int allindex) {
     if(!stillworking(allindex))
         return false;
 
-    std::optional<std::jthread> receive;
-    if(!con->remoteDescriptionWasLocal.load()) {
-        receive.emplace(getAddressesThread,agent,allindex,
-                        con->currentAgentGeneration(),std::string(commonLabel),side,
-                        hostname,rendezvousPort);
+    const uint64_t generation=con->currentAgentGeneration();
+    const bool readCandidates=!con->remoteDescriptionWasLocal.load();
+    if(readCandidates) {
+        con->startCandidateReader(getAddressesThread,agent,allindex,generation,
+                                  std::string(commonLabel),side,hostname,
+                                  rendezvousPort);
         }
     LOGGERICE("initAgent %s %d: Before juice_gather_candidates\n",commonLabel.data(),side);
     con->phase=GatherCandidates;
@@ -1504,5 +1505,17 @@ bool initAgent(juice_agent *agent,int allindex) {
     if(con->endConnect.load()||!stillworking(allindex))
         return false;
     LOGGERICE("initAgent %s %d: After juice_gather_candidates(%p)=%d\n",commonLabel.data(),side,agent,ret);
-    return ret==JUICE_ERR_SUCCESS;
+    if(ret!=JUICE_ERR_SUCCESS)
+        return false;
+    // Callers shake hands as soon as this returns, so keep negotiating until
+    // the START handshake has run (startDone) or the reader has ended. The
+    // server may hold /address longer, until the peer's /done arrives; that
+    // tail runs on in the background instead of delaying Clone reception.
+    if(readCandidates) {
+        while(!con->candidateReaderFinished.load(std::memory_order_acquire)&&
+              con->startDone.test()&&con->isCurrentAgent(agent,generation)&&
+              !con->endConnect.load())
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        }
+    return true;
   }
