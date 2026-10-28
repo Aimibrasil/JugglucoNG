@@ -64,10 +64,10 @@ object WearGlucoseStore {
         val sensorId: String,
         /** Ascending, oldest first; calibrated and smoothed like [Snapshot.points]. */
         val points: List<GlucosePoint>,
-        /** The same history smoothed like [Snapshot.readings]. */
-        val readings: List<GlucosePoint>,
         val viewMode: Int,
         val colorArgb: Int,
+        /** The same history smoothed like [Snapshot.readings]. */
+        val readings: List<GlucosePoint> = points,
     ) {
         val isRawMode: Boolean get() = viewMode == 1 || viewMode == 3
     }
