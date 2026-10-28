@@ -813,8 +813,6 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="data_smoothing_window_title">Жигдлэх цонх</string>
     <string name="data_smoothing_graph_only_title">Зөвхөн график</string>
     <string name="data_smoothing_collapse_title">Цөөн хэмжилт</string>
-    <string name="data_smoothing_collapse_desc_match">%1$d минут тутамд нэг хэмжилт</string>
-    <string name="data_smoothing_collapse_desc_capped">5 минут тутамд нэг хэмжилт, %1$d минутын цонхоор жигдрүүлнэ</string>
     <string name="data_smoothing_collapse_summary_format">%1$d минут тутамд</string>
     <string name="preview_window_title">Урьдчилан харах цонх</string>
     <string name="preview_window_desc">Үндсэн графикийн үйл ажиллагааг өөрчлөхгүйгээр хянах самбарын графикийн доор 24 цагийн мини навигаторыг харуулах</string>
@@ -3090,11 +3088,13 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="data_smoothing_target_current_desc">Утга, чиг хандлагын сум, виджет болон сэрэмжлүүлэг</string>
     <string name="data_smoothing_target_sent_title">Илгээх хэмжилт</string>
     <string name="data_smoothing_target_sent_desc">Бусад апп руу дамжуулалт ба илгээлт</string>
+    <string name="data_smoothing_smoothed">Жигдэлсэн</string>
+    <string name="data_smoothing_fewer_caption">Цөөн хэмжилт: %1$d минут тутамд нэг. Анхны хэмжилтүүд хадгалагдана</string>
+    <string name="data_smoothing_fewer_summary_format">Цөөн хэмжилт: %1$s</string>
     <string name="data_smoothing_scope_current_only">Зөвхөн одоогийн глюкоз</string>
     <string name="data_smoothing_scope_chart_and_current">График болон одоогийн глюкоз</string>
     <string name="data_smoothing_scope_current_and_sent">Одоогийн глюкоз болон илгээх хэмжилт</string>
     <string name="data_smoothing_scope_graph_and_sent">График болон илгээх хэмжилт</string>
-    <string name="data_smoothing_preserve_originals">Анхны хэмжилтүүд хадгалагдана</string>
     <string name="nightscout_secret_label">API нууц эсвэл хандалтын токен</string>
     <string name="nightscout_api_help">v1-д API нууц, v3-д Nightscout хандалтын токен ашиглана уу.</string>
     <string name="nightscout_iob_help">eIOB болон COB нь стандарт IOB-оос тусдаа devicestatus-ийн jugglucong талбарт илгээгдэнэ.</string>

@@ -45,10 +45,6 @@ object DataSmoothing {
     @JvmStatic
     fun isEnabled(context: Context): Boolean = getMinutes(context) > 0
 
-    @JvmStatic
-    fun collapseChunks(context: Context): Boolean =
-        SettingsRegistry.SMOOTHING_COLLAPSE_CHUNKS.readBool(context)
-
     /**
      * Whether the newest reading — the one shown as current and the one sent out — is estimated
      * by [CausalGlucoseFilter] instead of the edge of the averaging window. Only the method
@@ -59,52 +55,79 @@ object DataSmoothing {
         SettingsRegistry.SMOOTHING_CAUSAL_LIVE.readBool(context)
 
     /**
-     * The three places a reading is used. Each is switched on its own: the chart (presentation),
+     * The three places a reading is used, and what each does with it: the chart (presentation),
      * the current reading (trend arrow, Δ, widgets, notification and every alert evaluated
-     * against a value), and what is sent to other apps.
+     * against a value), and what is sent to other apps. Each can be smoothed, thinned to fewer
+     * readings ([collapseIntervalMinutes] apart), both or neither, on its own.
      */
-    data class Targets(val chart: Boolean, val current: Boolean, val sent: Boolean) {
+    data class Targets(
+        val chart: Boolean,
+        val current: Boolean,
+        val sent: Boolean,
+        val fewerChart: Boolean = false,
+        val fewerCurrent: Boolean = false,
+        val fewerSent: Boolean = false,
+    ) {
         internal fun toBits(): Int =
-            (if (chart) CHART_BIT else 0) or (if (current) CURRENT_BIT else 0) or (if (sent) SENT_BIT else 0)
+            (if (chart) CHART_BIT else 0) or (if (current) CURRENT_BIT else 0) or (if (sent) SENT_BIT else 0) or
+                (if (fewerChart) FEWER_CHART_BIT else 0) or (if (fewerCurrent) FEWER_CURRENT_BIT else 0) or
+                (if (fewerSent) FEWER_SENT_BIT else 0)
 
         companion object {
             private const val CHART_BIT = 1
             private const val CURRENT_BIT = 2
             private const val SENT_BIT = 4
+            private const val FEWER_CHART_BIT = 8
+            private const val FEWER_CURRENT_BIT = 16
+            private const val FEWER_SENT_BIT = 32
+            internal const val MAX_BITS = 63
 
             @JvmField val ALL = Targets(chart = true, current = true, sent = true)
 
-            internal fun fromBits(bits: Int): Targets =
-                Targets(bits and CHART_BIT != 0, bits and CURRENT_BIT != 0, bits and SENT_BIT != 0)
+            internal fun fromBits(bits: Int): Targets = Targets(
+                chart = bits and CHART_BIT != 0,
+                current = bits and CURRENT_BIT != 0,
+                sent = bits and SENT_BIT != 0,
+                fewerChart = bits and FEWER_CHART_BIT != 0,
+                fewerCurrent = bits and FEWER_CURRENT_BIT != 0,
+                fewerSent = bits and FEWER_SENT_BIT != 0,
+            )
         }
     }
 
     /**
-     * Where smoothing applies. Until the user picks targets, they are derived from the
-     * graph-only / exchange-only pair this setting replaced (see [legacyTargets]), so an
+     * What each place does with readings. Until the user picks, this is derived from the
+     * graph-only / exchange-only / collapse switches it replaced (see [legacyTargets]), so an
      * upgrade keeps every reading going where it went before.
      */
     @JvmStatic
     fun targets(context: Context): Targets {
         val bits = SettingsRegistry.SMOOTHING_TARGETS.readInt(context)
-        if (bits in 0..7) return Targets.fromBits(bits)
+        if (bits in 0..Targets.MAX_BITS) return Targets.fromBits(bits)
         return legacyTargets(
             graphOnly = SettingsRegistry.SMOOTHING_GRAPH_ONLY.readBool(context),
             exchangeOutputsOnly = SettingsRegistry.SMOOTHING_EXCHANGE_OUTPUTS_ONLY.readBool(context),
-            collapseChunks = collapseChunks(context)
+            collapseChunks = SettingsRegistry.SMOOTHING_COLLAPSE_CHUNKS.readBool(context)
         )
     }
 
     /**
-     * The old two-switch model as targets. "Collapse" kept one *smoothed* reading per interval,
-     * so under graph-only it pulled sent readings back into smoothing.
+     * The old switches as targets. "Collapse" kept one *smoothed* reading per interval wherever
+     * smoothing applied, and under graph-only it pulled sent readings back into smoothing.
      */
-    internal fun legacyTargets(graphOnly: Boolean, exchangeOutputsOnly: Boolean, collapseChunks: Boolean = false) =
-        Targets(
-            chart = !exchangeOutputsOnly,
-            current = !graphOnly && !exchangeOutputsOnly,
-            sent = exchangeOutputsOnly || !graphOnly || collapseChunks
+    internal fun legacyTargets(graphOnly: Boolean, exchangeOutputsOnly: Boolean, collapseChunks: Boolean = false): Targets {
+        val chart = !exchangeOutputsOnly
+        val current = !graphOnly && !exchangeOutputsOnly
+        val sent = exchangeOutputsOnly || !graphOnly || collapseChunks
+        return Targets(
+            chart = chart,
+            current = current,
+            sent = sent,
+            fewerChart = collapseChunks && chart,
+            fewerCurrent = collapseChunks && current,
+            fewerSent = collapseChunks && sent,
         )
+    }
 
     @JvmStatic
     fun shouldSmoothGraph(context: Context): Boolean = graphSmoothingMinutes(context) > 0
@@ -140,12 +163,20 @@ object DataSmoothing {
 
     @JvmStatic
     fun shouldCollapseExchangeOutputs(context: Context): Boolean =
-        shouldCollapseExchangeOutputs(getMinutes(context), targets(context), collapseChunks(context))
+        exchangeThrottleIntervalMinutes(context) > 0
+
+    /** The interval the chart is thinned to, 0 for every reading. */
+    @JvmStatic
+    fun graphCollapseMinutes(context: Context): Int = graphCollapseMinutes(getMinutes(context), targets(context))
+
+    /** The interval the current reading and its arrow move in, 0 for every reading. */
+    @JvmStatic
+    fun localCollapseMinutes(context: Context): Int = localCollapseMinutes(getMinutes(context), targets(context))
 
     /**
      * How often, in minutes, an exchange output is fed: 0 means every reading.
      *
-     * "Collapse into chunks" thins the *rate* of what leaves the phone; it never changes what is
+     * "Fewer readings" thins the *rate* of what leaves the phone; it never changes what is
      * sent. Whatever is sent is the newest reading under its own timestamp — the payload is not
      * built from the last point of a completed chunk, which would be up to two intervals old.
      * This applies uniformly to every exchange destination, including the xDrip/xInfuus loop feed
@@ -154,7 +185,7 @@ object DataSmoothing {
      */
     @JvmStatic
     fun exchangeThrottleIntervalMinutes(context: Context): Int =
-        exchangeThrottleIntervalMinutes(getMinutes(context), targets(context), collapseChunks(context))
+        exchangeThrottleIntervalMinutes(getMinutes(context), targets(context))
 
     @JvmStatic
     fun setMinutes(context: Context, minutes: Int) {
@@ -177,27 +208,15 @@ object DataSmoothing {
     }
 
     @JvmStatic
-    fun setCollapseChunks(context: Context, enabled: Boolean) {
-        // Derived targets depend on collapse (see [legacyTargets]); pin them first so that
-        // changing it does not also switch sent readings on or off behind the user's back.
-        val pinTargets = SettingsRegistry.SMOOTHING_TARGETS.readInt(context) !in 0..7
-        val targets = if (pinTargets) targets(context) else null
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .apply { targets?.let { putInt(SettingsRegistry.SMOOTHING_TARGETS.key, it.toBits()) } }
-            .putBoolean(SettingsRegistry.SMOOTHING_COLLAPSE_CHUNKS.key, enabled)
-            .apply()
-    }
-
-    @JvmStatic
     fun setTargets(context: Context, targets: Targets) {
-        // The old pair is still written, as near as it can say it, for a watch on a build
-        // that predates targets and reads only these two.
+        // The old switches are still written, as near as they can say it, for a watch on a
+        // build that predates targets: it reads only these, and collapse only for its chart.
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putInt(SettingsRegistry.SMOOTHING_TARGETS.key, targets.toBits())
             .putBoolean(SettingsRegistry.SMOOTHING_GRAPH_ONLY.key, targets.chart && !targets.current)
             .putBoolean(SettingsRegistry.SMOOTHING_EXCHANGE_OUTPUTS_ONLY.key, !targets.chart)
+            .putBoolean(SettingsRegistry.SMOOTHING_COLLAPSE_CHUNKS.key, targets.fewerChart)
             .apply()
     }
 
@@ -226,23 +245,43 @@ object DataSmoothing {
         collapseChunks: Boolean,
         nowMillis: Long = System.currentTimeMillis()
     ): List<GlucosePoint> {
+        val sanitizedMinutes = sanitizeMinutes(smoothingMinutes)
+        if (sanitizedMinutes <= 0) return points.orEmpty()
+        return smoothNativePoints(
+            points,
+            sanitizedMinutes,
+            if (collapseChunks) collapseIntervalMinutes(sanitizedMinutes) else 0,
+            nowMillis
+        )
+    }
+
+    /**
+     * [points] averaged over [smoothingMinutes] (0 = as measured), then thinned to one per
+     * [collapseMinutes] (0 = every reading). The two are independent: a place can be thinned
+     * without being smoothed.
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun smoothNativePoints(
+        points: List<GlucosePoint>?,
+        smoothingMinutes: Int,
+        collapseMinutes: Int,
+        nowMillis: Long = System.currentTimeMillis()
+    ): List<GlucosePoint> {
         if (points.isNullOrEmpty()) {
             return emptyList()
         }
-        val sanitizedMinutes = sanitizeMinutes(smoothingMinutes)
-        if (sanitizedMinutes <= 0) {
-            return points
+        val smoothed = averagePoints(points, sanitizeMinutes(smoothingMinutes))
+        return if (collapseMinutes > 0) {
+            collapsePointsForDisplay(smoothed, collapseMinutes, nowMillis)
+        } else {
+            smoothed
         }
-        if (points.size < 3) {
-            return if (collapseChunks) {
-                collapsePointsForDisplay(points, collapseIntervalMinutes(sanitizedMinutes), nowMillis)
-            } else {
-                points
-            }
-        }
+    }
 
-        val halfWindowMs = (sanitizedMinutes * 60_000L) / 2L
-        if (halfWindowMs <= 0L) {
+    private fun averagePoints(points: List<GlucosePoint>, smoothingMinutes: Int): List<GlucosePoint> {
+        val halfWindowMs = (smoothingMinutes * 60_000L) / 2L
+        if (points.size < 3 || halfWindowMs <= 0L) {
             return points
         }
 
@@ -259,12 +298,7 @@ object DataSmoothing {
             point.uncertainty = source.uncertainty?.shifted(point.value - source.value)
             smoothed.add(point)
         }
-
-        return if (collapseChunks) {
-            collapsePointsForDisplay(smoothed, collapseIntervalMinutes(sanitizedMinutes), nowMillis)
-        } else {
-            smoothed
-        }
+        return smoothed
     }
 
     /**
@@ -401,15 +435,23 @@ object DataSmoothing {
     internal fun exchangeSmoothingMinutes(smoothingMinutes: Int, targets: Targets): Int =
         windowFor(smoothingMinutes, targets.sent)
 
-    internal fun shouldCollapseExchangeOutputs(smoothingMinutes: Int, targets: Targets, collapseChunks: Boolean): Boolean =
-        collapseChunks && exchangeSmoothingMinutes(smoothingMinutes, targets) > 0
+    /** The interval a place is thinned to: [collapseIntervalMinutes] when it asks for fewer readings, otherwise 0. */
+    private fun collapseFor(smoothingMinutes: Int, fewer: Boolean): Int =
+        if (fewer) collapseIntervalMinutes(smoothingMinutes) else 0
 
-    internal fun exchangeThrottleIntervalMinutes(smoothingMinutes: Int, targets: Targets, collapseChunks: Boolean): Int =
-        if (shouldCollapseExchangeOutputs(smoothingMinutes, targets, collapseChunks)) {
-            collapseIntervalMinutes(smoothingMinutes)
-        } else {
-            0
-        }
+    @JvmStatic
+    fun graphCollapseMinutes(smoothingMinutes: Int, targets: Targets): Int =
+        collapseFor(smoothingMinutes, targets.fewerChart)
+
+    @JvmStatic
+    fun localCollapseMinutes(smoothingMinutes: Int, targets: Targets): Int =
+        collapseFor(smoothingMinutes, targets.fewerCurrent)
+
+    internal fun exchangeThrottleIntervalMinutes(smoothingMinutes: Int, targets: Targets): Int =
+        collapseFor(smoothingMinutes, targets.fewerSent)
+
+    internal fun shouldCollapseExchangeOutputs(smoothingMinutes: Int, targets: Targets): Boolean =
+        exchangeThrottleIntervalMinutes(smoothingMinutes, targets) > 0
 
     // The pre-targets graph-only / exchange-only pair, kept as the specification of what
     // [legacyTargets] must preserve for settings that were never migrated.
@@ -439,18 +481,14 @@ object DataSmoothing {
         graphOnly: Boolean,
         exchangeOutputsOnly: Boolean,
         collapseChunks: Boolean
-    ): Boolean = shouldCollapseExchangeOutputs(
-        smoothingMinutes, legacyTargets(graphOnly, exchangeOutputsOnly, collapseChunks), collapseChunks
-    )
+    ): Boolean = shouldCollapseExchangeOutputs(smoothingMinutes, legacyTargets(graphOnly, exchangeOutputsOnly, collapseChunks))
 
     internal fun exchangeThrottleIntervalMinutes(
         smoothingMinutes: Int,
         graphOnly: Boolean,
         exchangeOutputsOnly: Boolean,
         collapseChunks: Boolean
-    ): Int = exchangeThrottleIntervalMinutes(
-        smoothingMinutes, legacyTargets(graphOnly, exchangeOutputsOnly, collapseChunks), collapseChunks
-    )
+    ): Int = exchangeThrottleIntervalMinutes(smoothingMinutes, legacyTargets(graphOnly, exchangeOutputsOnly, collapseChunks))
 
     private fun setLastEnabledMinutes(context: Context, minutes: Int) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

@@ -577,8 +577,6 @@
     <string name="data_smoothing_causal_title">Filtr Kalmana dla bieżącej wartości</string>
     <string name="data_smoothing_causal_desc">Szacuje najnowszy odczyt wyłącznie na podstawie wcześniejszych, więc nie zmienia się po nadejściu nowych. Historia wykresu i Nightscout pozostają przy oknie uśredniania</string>
     <string name="data_smoothing_collapse_title">Mniej odczytów</string>
-    <string name="data_smoothing_collapse_desc_match">Jeden odczyt co %1$d min</string>
-    <string name="data_smoothing_collapse_desc_capped">Jeden odczyt co 5 min, wygładzony w oknie %1$d min</string>
     <string name="data_smoothing_collapse_summary_format">Co %1$d min</string>
     <string name="preview_window_title">Okno podglądu</string>
     <string name="preview_window_desc">Pokazuje 24-godzinny mini-nawigator pod wykresem pulpitu bez zmiany zachowania głównego wykresu</string>
@@ -3033,11 +3031,13 @@
     <string name="data_smoothing_target_current_desc">Wartość, strzałka trendu, widżety i alarmy</string>
     <string name="data_smoothing_target_sent_title">Wysyłane odczyty</string>
     <string name="data_smoothing_target_sent_desc">Rozgłoszenia i przesyłanie do innych aplikacji</string>
+    <string name="data_smoothing_smoothed">Wygładzone</string>
+    <string name="data_smoothing_fewer_caption">Mniej odczytów: jeden co %1$d min. Oryginalne odczyty są zachowywane</string>
+    <string name="data_smoothing_fewer_summary_format">Mniej odczytów: %1$s</string>
     <string name="data_smoothing_scope_current_only">Tylko bieżąca glukoza</string>
     <string name="data_smoothing_scope_chart_and_current">Wykres i bieżąca glukoza</string>
     <string name="data_smoothing_scope_current_and_sent">Bieżąca glukoza i wysyłane odczyty</string>
     <string name="data_smoothing_scope_graph_and_sent">Wykres i wysyłane odczyty</string>
-    <string name="data_smoothing_preserve_originals">Oryginalne odczyty są zachowywane</string>
     <string name="nightscout_secret_label">Sekret API lub token dostępu</string>
     <string name="nightscout_api_help">Dla v1 użyj sekretu API, a dla v3 tokenu dostępu Nightscout.</string>
     <string name="nightscout_iob_help">eIOB i COB są wysyłane w polu jugglucong w devicestatus, oddzielnie od standardowej IOB.</string>

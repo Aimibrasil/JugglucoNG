@@ -175,7 +175,7 @@ object SettingsRegistry {
     )
     val SMOOTHING_TARGETS = SettingDefinition(
         KEY_SMOOTHING_TARGETS, SettingType.INT, DEFAULT_SMOOTHING_TARGETS,
-        SettingScope.MIRRORED, SettingBackup.INCLUDED, minValue = -1f, maxValue = 7f,
+        SettingScope.MIRRORED, SettingBackup.INCLUDED, minValue = -1f, maxValue = 63f,
     )
     val PREDICTION_ENABLED = SettingDefinition(
         KEY_PREDICTION_ENABLED, SettingType.BOOL, DEFAULT_PREDICTION_ENABLED,

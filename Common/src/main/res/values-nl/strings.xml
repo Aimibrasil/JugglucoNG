@@ -594,8 +594,6 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="data_smoothing_causal_title">Kalmanfilter voor de huidige waarde</string>
     <string name="data_smoothing_causal_desc">Schat de nieuwste meting alleen uit eerdere metingen, zodat die niet meer verandert als er nieuwe binnenkomen. Grafiekgeschiedenis en Nightscout houden het middelingsvenster</string>
     <string name="data_smoothing_collapse_title">Minder meetwaarden</string>
-    <string name="data_smoothing_collapse_desc_match">Eén waarde per %1$d min</string>
-    <string name="data_smoothing_collapse_desc_capped">Eén waarde per 5 min., afgevlakt over %1$d min</string>
     <string name="data_smoothing_collapse_summary_format">Elke %1$d min</string>
     <string name="preview_window_title">Voorbeeldvenster</string>
     <string name="preview_window_desc">Toont een mini-navigator van 24 uur onder de dashboardgrafiek zonder het gedrag van de hoofdgrafiek te wijzigen</string>
@@ -3032,11 +3030,13 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="data_smoothing_target_current_desc">Waarde, trendpijl, widgets en alarmen</string>
     <string name="data_smoothing_target_sent_title">Verzonden waarden</string>
     <string name="data_smoothing_target_sent_desc">Broadcasts en uploads naar andere apps</string>
+    <string name="data_smoothing_smoothed">Afgevlakt</string>
+    <string name="data_smoothing_fewer_caption">Minder meetwaarden: één per %1$d min. De oorspronkelijke meetwaarden blijven bewaard</string>
+    <string name="data_smoothing_fewer_summary_format">Minder meetwaarden: %1$s</string>
     <string name="data_smoothing_scope_current_only">Alleen huidige glucose</string>
     <string name="data_smoothing_scope_chart_and_current">Grafiek en huidige glucose</string>
     <string name="data_smoothing_scope_current_and_sent">Huidige glucose en verzonden waarden</string>
     <string name="data_smoothing_scope_graph_and_sent">Grafiek en verzonden waarden</string>
-    <string name="data_smoothing_preserve_originals">De oorspronkelijke meetwaarden blijven bewaard</string>
     <string name="nightscout_secret_label">API-secret of toegangstoken</string>
     <string name="nightscout_api_help">Gebruik een API-geheim voor v1 of een Nightscout-toegangstoken voor v3.</string>
     <string name="nightscout_iob_help">eIOB en COB worden in het veld jugglucong van devicestatus verstuurd, los van de standaard-IOB.</string>

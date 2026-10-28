@@ -449,8 +449,6 @@
     <string name="data_smoothing_causal_title">Filtre de Kalman pour la valeur actuelle</string>
     <string name="data_smoothing_causal_desc">Estime la dernière mesure uniquement à partir des précédentes, pour qu\'elle ne change plus à l\'arrivée de nouvelles mesures. L’historique du graphique et Nightscout conservent la fenêtre de moyennage</string>
     <string name="data_smoothing_collapse_title">Moins de valeurs</string>
-    <string name="data_smoothing_collapse_desc_match">Une valeur toutes les %1$d min</string>
-    <string name="data_smoothing_collapse_desc_capped">Une valeur toutes les 5 min, lissée sur %1$d min</string>
     <string name="data_smoothing_collapse_summary_format">Toutes les %1$d min</string>
     <string name="preview_window_title">Fenêtre d’aperçu</string>
     <string name="preview_window_desc">Affiche un mini-navigateur de 24 heures sous le graphique du tableau de bord sans modifier le comportement du graphique principal</string>
@@ -2995,11 +2993,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_target_current_desc">Valeur, flèche de tendance, widgets et alertes</string>
     <string name="data_smoothing_target_sent_title">Valeurs envoyées</string>
     <string name="data_smoothing_target_sent_desc">Diffusions et envois vers d\'autres apps</string>
+    <string name="data_smoothing_smoothed">Lissées</string>
+    <string name="data_smoothing_fewer_caption">Moins de valeurs : une toutes les %1$d min. Les valeurs d’origine sont conservées</string>
+    <string name="data_smoothing_fewer_summary_format">Moins de valeurs : %1$s</string>
     <string name="data_smoothing_scope_current_only">Glucose actuel uniquement</string>
     <string name="data_smoothing_scope_chart_and_current">Graphique et glucose actuel</string>
     <string name="data_smoothing_scope_current_and_sent">Glucose actuel et valeurs envoyées</string>
     <string name="data_smoothing_scope_graph_and_sent">Graphique et valeurs envoyées</string>
-    <string name="data_smoothing_preserve_originals">Les valeurs d’origine sont conservées</string>
     <string name="nightscout_secret_label">Secret API ou jeton d’accès</string>
     <string name="nightscout_api_help">Utilisez le secret API pour v1 ou un jeton d’accès Nightscout pour v3.</string>
     <string name="nightscout_iob_help">eIOB et COB sont envoyés dans le champ jugglucong de devicestatus, séparément de l’IOB standard.</string>

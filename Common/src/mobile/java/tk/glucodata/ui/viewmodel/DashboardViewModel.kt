@@ -427,9 +427,6 @@ class DashboardViewModel(
     private val _dataSmoothingTargets = MutableStateFlow(DataSmoothing.Targets.ALL)
     val dataSmoothingTargets = _dataSmoothingTargets.asStateFlow()
 
-    private val _dataSmoothingCollapseChunks = MutableStateFlow(false)
-    val dataSmoothingCollapseChunks = _dataSmoothingCollapseChunks.asStateFlow()
-
     private val _dataSmoothingCausal = MutableStateFlow(false)
     val dataSmoothingCausal = _dataSmoothingCausal.asStateFlow()
 
@@ -861,7 +858,6 @@ class DashboardViewModel(
         _notificationChartEnabled.value = prefs.getBoolean("notification_chart_enabled", true)
         _chartSmoothingMinutes.value = DataSmoothing.getMinutes(context)
         _dataSmoothingTargets.value = DataSmoothing.targets(context)
-        _dataSmoothingCollapseChunks.value = DataSmoothing.collapseChunks(context)
         _dataSmoothingCausal.value = DataSmoothing.useCausalFilter(context)
         _previewWindowMode.value = prefs.getInt("dashboard_chart_preview_window_mode", 0)
         val journalEnabled = prefs.getBoolean("dashboard_journal_enabled", true)
@@ -1778,14 +1774,6 @@ class DashboardViewModel(
         val context = tk.glucodata.Applic.app
         DataSmoothing.setTargets(context, targets)
         _dataSmoothingTargets.value = targets
-        refreshCurrentDisplayAfterSmoothingChange()
-    }
-
-    fun setDataSmoothingCollapseChunks(enabled: Boolean) {
-        val context = tk.glucodata.Applic.app
-        DataSmoothing.setCollapseChunks(context, enabled)
-        _dataSmoothingCollapseChunks.value = enabled
-        _dataSmoothingTargets.value = DataSmoothing.targets(context)
         refreshCurrentDisplayAfterSmoothingChange()
     }
 

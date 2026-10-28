@@ -137,7 +137,6 @@ fun ExpressiveSettingsScreen(
     val isMmol = tk.glucodata.ui.util.GlucoseFormatter.isMmol(unit)
     val chartSmoothingMinutes by viewModel.chartSmoothingMinutes.collectAsStateWithLifecycle()
     val dataSmoothingTargets by viewModel.dataSmoothingTargets.collectAsStateWithLifecycle()
-    val dataSmoothingCollapseChunks by viewModel.dataSmoothingCollapseChunks.collectAsStateWithLifecycle()
     val journalEnabled by viewModel.journalEnabled.collectAsStateWithLifecycle()
     val predictiveSimulationEnabled by viewModel.predictiveSimulationEnabled.collectAsStateWithLifecycle()
     val alertsMasterEnabled by viewModel.alertsMasterEnabled.collectAsStateWithLifecycle()
@@ -256,9 +255,14 @@ fun ExpressiveSettingsScreen(
         val collapseIntervalMinutes = DataSmoothing.collapseIntervalMinutes(chartSmoothingMinutes)
         buildList {
             add(stringResource(R.string.minutes_short_format, chartSmoothingMinutes))
-            dataSmoothingScopeLabel(dataSmoothingTargets)?.let { add(stringResource(it)) }
-            if (dataSmoothingCollapseChunks) {
-                add(stringResource(R.string.data_smoothing_collapse_summary_format, collapseIntervalMinutes))
+            val smoothedScope = dataSmoothingScopeLabel(dataSmoothingTargets)
+            val fewerScope = dataSmoothingFewerScopeLabel(dataSmoothingTargets)
+            smoothedScope?.let { add(stringResource(it)) }
+            when (fewerScope) {
+                null -> Unit
+                // Fewer readings wherever it is smoothed: the interval says it all.
+                smoothedScope -> add(stringResource(R.string.data_smoothing_collapse_summary_format, collapseIntervalMinutes))
+                else -> add(stringResource(R.string.data_smoothing_fewer_summary_format, stringResource(fewerScope)))
             }
         }.joinToString(" · ")
     }

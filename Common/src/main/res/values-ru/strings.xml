@@ -597,8 +597,6 @@
     <string name="data_smoothing_causal_title">Фильтр Калмана для текущего значения</string>
     <string name="data_smoothing_causal_desc">Оценивает последнее показание только по прошлым, поэтому оно не меняется с приходом новых. История графика и Nightscout остаются на окне усреднения</string>
     <string name="data_smoothing_collapse_title">Меньше показаний</string>
-    <string name="data_smoothing_collapse_desc_match">Одно показание каждые %1$d мин</string>
-    <string name="data_smoothing_collapse_desc_capped">Одно показание каждые 5 мин со сглаживанием за %1$d мин</string>
     <string name="data_smoothing_collapse_summary_format">Каждые %1$d мин</string>
     <string name="preview_window_title">Окно предпросмотра</string>
     <string name="preview_window_desc">Показывает 24-часовой мини-навигатор под графиком на главном экране без изменения поведения основного графика</string>
@@ -3062,11 +3060,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_target_current_desc">Значение, стрелка тренда, виджеты и оповещения</string>
     <string name="data_smoothing_target_sent_title">Передаваемые показания</string>
     <string name="data_smoothing_target_sent_desc">Трансляции и выгрузки в другие приложения</string>
+    <string name="data_smoothing_smoothed">Сглаженные</string>
+    <string name="data_smoothing_fewer_caption">Меньше показаний: одно каждые %1$d мин. Исходные показания сохраняются</string>
+    <string name="data_smoothing_fewer_summary_format">Меньше показаний: %1$s</string>
     <string name="data_smoothing_scope_current_only">Только текущая глюкоза</string>
     <string name="data_smoothing_scope_chart_and_current">График и текущая глюкоза</string>
     <string name="data_smoothing_scope_current_and_sent">Текущая глюкоза и передаваемые показания</string>
     <string name="data_smoothing_scope_graph_and_sent">График и передаваемые показания</string>
-    <string name="data_smoothing_preserve_originals">Исходные показания сохраняются</string>
     <string name="nightscout_secret_label">Секрет API или токен доступа</string>
     <string name="nightscout_api_help">Для v1 используйте секрет API, для v3 — токен доступа Nightscout.</string>
     <string name="nightscout_iob_help">eIOB и COB передаются в поле jugglucong объекта devicestatus отдельно от обычного IOB.</string>

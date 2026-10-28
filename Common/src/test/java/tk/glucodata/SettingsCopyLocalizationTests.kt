@@ -21,8 +21,8 @@ class SettingsCopyLocalizationTests {
         "data_smoothing_target_sent_title", "data_smoothing_target_sent_desc",
         "data_smoothing_scope_graph_and_sent", "data_smoothing_scope_chart_and_current", "data_smoothing_scope_current_and_sent",
         "data_smoothing_graph_only_title", "data_smoothing_scope_current_only", "data_smoothing_exchange_only_title",
-        "data_smoothing_collapse_title", "data_smoothing_collapse_desc_match",
-        "data_smoothing_collapse_desc_capped", "data_smoothing_collapse_summary_format", "data_smoothing_preserve_originals",
+        "data_smoothing_collapse_title", "data_smoothing_collapse_summary_format",
+        "data_smoothing_smoothed", "data_smoothing_fewer_caption", "data_smoothing_fewer_summary_format",
         "data_smoothing_causal_title", "data_smoothing_causal_desc",
         "nightscout_desc", "nightscout_settings_title", "nightscout_url_label", "nightscout_url_placeholder",
         "nightscout_secret_label", "nightscout_send_treatments", "nightscout_send_amounts_desc",
@@ -87,7 +87,7 @@ class SettingsCopyLocalizationTests {
             "nightscout_send_amounts_desc", "nightscout_send_long_insulin_desc", "nightscout_receive_amounts_desc",
             "nightscout_upload_iob_desc", "nightscout_use_v3_api_desc", "nightscout_follow_use_v3_api_desc",
             "data_smoothing_target_chart_desc", "data_smoothing_target_current_desc", "data_smoothing_target_sent_desc",
-            "data_smoothing_collapse_desc_match", "data_smoothing_collapse_desc_capped"
+            "data_smoothing_smoothed", "data_smoothing_fewer_caption", "data_smoothing_fewer_summary_format"
         )
         for (file in files) {
             for (key in subtitles) {

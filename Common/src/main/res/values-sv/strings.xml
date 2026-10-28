@@ -502,8 +502,6 @@
     <string name="data_smoothing_causal_title">Kalmanfilter för aktuellt värde</string>
     <string name="data_smoothing_causal_desc">Uppskattar den senaste mätningen endast från tidigare mätningar, så att den inte ändras när nya kommer in. Diagramhistorik och Nightscout behåller medelvärdesfönstret</string>
     <string name="data_smoothing_collapse_title">Färre mätvärden</string>
-    <string name="data_smoothing_collapse_desc_match">Ett värde var %1$d min</string>
-    <string name="data_smoothing_collapse_desc_capped">Ett värde var 5:e min, utjämnat över %1$d min</string>
     <string name="data_smoothing_collapse_summary_format">Var %1$d min</string>
     <string name="preview_window_title">Förhandsfönster</string>
     <string name="preview_window_desc">Visar en 24-timmars mininavigator under dashboarddiagrammet utan att ändra huvuddiagrammets beteende</string>
@@ -2989,11 +2987,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_target_current_desc">Värde, trendpil, widgetar och larm</string>
     <string name="data_smoothing_target_sent_title">Skickade värden</string>
     <string name="data_smoothing_target_sent_desc">Sändningar och uppladdningar till andra appar</string>
+    <string name="data_smoothing_smoothed">Utjämnade</string>
+    <string name="data_smoothing_fewer_caption">Färre mätvärden: ett var %1$d min. De ursprungliga mätvärdena sparas</string>
+    <string name="data_smoothing_fewer_summary_format">Färre mätvärden: %1$s</string>
     <string name="data_smoothing_scope_current_only">Endast aktuellt glukosvärde</string>
     <string name="data_smoothing_scope_chart_and_current">Diagram och aktuellt glukosvärde</string>
     <string name="data_smoothing_scope_current_and_sent">Aktuellt glukosvärde och skickade värden</string>
     <string name="data_smoothing_scope_graph_and_sent">Diagram och skickade värden</string>
-    <string name="data_smoothing_preserve_originals">De ursprungliga mätvärdena sparas</string>
     <string name="nightscout_secret_label">API-hemlighet eller åtkomsttoken</string>
     <string name="nightscout_api_help">Använd API-hemligheten med v1 eller en Nightscout-åtkomsttoken med v3.</string>
     <string name="nightscout_iob_help">eIOB och COB skickas i fältet jugglucong i devicestatus, separat från vanlig IOB.</string>

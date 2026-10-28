@@ -606,8 +606,6 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="data_smoothing_causal_title">Kalman-Filter für den aktuellen Wert</string>
     <string name="data_smoothing_causal_desc">Schätzt den neuesten Messwert nur aus früheren Werten, sodass er sich mit neuen Werten nicht mehr ändert. Diagrammverlauf und Nightscout behalten das Mittelungsfenster</string>
     <string name="data_smoothing_collapse_title">Weniger Messwerte</string>
-    <string name="data_smoothing_collapse_desc_match">Ein Wert alle %1$d Min</string>
-    <string name="data_smoothing_collapse_desc_capped">Ein Wert alle 5 Min., über %1$d Min. geglättet</string>
     <string name="data_smoothing_collapse_summary_format">Alle %1$d Min.</string>
     <string name="preview_window_title">Vorschaufenster</string>
     <string name="preview_window_desc">Zeigt unter dem Diagramm auf der Startseite einen 24-Stunden-Mini-Navigator, ohne das Verhalten des Hauptdiagramms zu ändern</string>
@@ -3102,11 +3100,13 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="data_smoothing_target_current_desc">Wert, Trendpfeil, Widgets und Alarme</string>
     <string name="data_smoothing_target_sent_title">Gesendete Werte</string>
     <string name="data_smoothing_target_sent_desc">Broadcasts und Uploads an andere Apps</string>
+    <string name="data_smoothing_smoothed">Geglättet</string>
+    <string name="data_smoothing_fewer_caption">Weniger Messwerte: einer alle %1$d Min. Die ursprünglichen Messwerte bleiben erhalten</string>
+    <string name="data_smoothing_fewer_summary_format">Weniger Messwerte: %1$s</string>
     <string name="data_smoothing_scope_current_only">Nur aktueller Glukosewert</string>
     <string name="data_smoothing_scope_chart_and_current">Diagramm und aktueller Glukosewert</string>
     <string name="data_smoothing_scope_current_and_sent">Aktueller Glukosewert und gesendete Werte</string>
     <string name="data_smoothing_scope_graph_and_sent">Diagramm und gesendete Werte</string>
-    <string name="data_smoothing_preserve_originals">Die ursprünglichen Messwerte bleiben erhalten</string>
     <string name="nightscout_secret_label">API-Secret oder Zugriffstoken</string>
     <string name="nightscout_api_help">Für v1 das API-Geheimnis verwenden, für v3 ein Nightscout-Zugriffstoken.</string>
     <string name="nightscout_iob_help">eIOB und COB werden im Feld jugglucong von devicestatus übertragen, getrennt vom regulären IOB.</string>

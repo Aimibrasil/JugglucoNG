@@ -905,8 +905,6 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_causal_title">Kalman filter for the current value</string>
     <string name="data_smoothing_causal_desc">Estimate the newest reading from earlier ones only, so it won\'t change as new readings arrive. Chart history and Nightscout keep the averaging window</string>
     <string name="data_smoothing_collapse_title">Fewer readings</string>
-    <string name="data_smoothing_collapse_desc_match">One reading every %1$d min</string>
-    <string name="data_smoothing_collapse_desc_capped">One reading every 5 min, smoothed over %1$d min</string>
     <string name="data_smoothing_collapse_summary_format">Every %1$d min</string>
     <string name="preview_window_title">Preview window</string>
     <string name="preview_window_desc">Show a 24-hour mini navigator under the dashboard chart without changing the main chart behavior</string>
@@ -3276,11 +3274,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_target_current_desc">Value, trend arrow, widgets and alerts</string>
     <string name="data_smoothing_target_sent_title">Sent readings</string>
     <string name="data_smoothing_target_sent_desc">Broadcasts and uploads to other apps</string>
+    <string name="data_smoothing_smoothed">Smoothed</string>
+    <string name="data_smoothing_fewer_caption">Fewer readings: one every %1$d min. Original readings are kept</string>
+    <string name="data_smoothing_fewer_summary_format">Fewer readings: %1$s</string>
     <string name="data_smoothing_scope_current_only">Current glucose only</string>
     <string name="data_smoothing_scope_chart_and_current">Chart and current glucose</string>
     <string name="data_smoothing_scope_current_and_sent">Current glucose and sent readings</string>
     <string name="data_smoothing_scope_graph_and_sent">Chart and sent readings</string>
-    <string name="data_smoothing_preserve_originals">Original readings are kept</string>
     <string name="nightscout_secret_label">API secret or access token</string>
     <string name="nightscout_api_help">Use an API secret with v1, or a Nightscout access token with v3.</string>
     <string name="nightscout_iob_help">eIOB and COB are sent in the jugglucong field of devicestatus, separately from standard IOB.</string>

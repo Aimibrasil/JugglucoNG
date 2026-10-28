@@ -32,7 +32,7 @@ internal class ChartResolutionInputs(
     val safeData: List<GlucosePoint>,
     val multiSensorDisplay: MultiSensorDisplayData,
     val graphSmoothingMinutes: Int,
-    val collapseSmoothedData: Boolean,
+    val graphCollapseMinutes: Int,
     val mainSensorOwnership: tk.glucodata.chart.MainSensorOwnership,
     val calibrationRevision: Long,
     val viewMode: Int,
@@ -45,7 +45,7 @@ internal class ChartResolutionInputs(
         safeData === other.safeData &&
             multiSensorDisplay === other.multiSensorDisplay &&
             graphSmoothingMinutes == other.graphSmoothingMinutes &&
-            collapseSmoothedData == other.collapseSmoothedData &&
+            graphCollapseMinutes == other.graphCollapseMinutes &&
             mainSensorOwnership === other.mainSensorOwnership &&
             calibrationRevision == other.calibrationRevision &&
             viewMode == other.viewMode &&

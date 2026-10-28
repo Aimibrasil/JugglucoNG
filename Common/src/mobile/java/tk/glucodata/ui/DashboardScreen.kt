@@ -355,7 +355,6 @@ fun DashboardScreen(
     }
     val chartSmoothingMinutes by viewModel.chartSmoothingMinutes.collectAsStateWithLifecycle()
     val dataSmoothingTargets by viewModel.dataSmoothingTargets.collectAsStateWithLifecycle()
-    val dataSmoothingCollapseChunks by viewModel.dataSmoothingCollapseChunks.collectAsStateWithLifecycle()
     // The chart's window and the reading's window, resolved once from the same switches.
     // The chart is presentation; everything else on this screen is what the app is going
     // to reason with, so it gets the window the notification and the alarms use.
@@ -367,6 +366,8 @@ fun DashboardScreen(
         smoothingMinutes = chartSmoothingMinutes,
         targets = dataSmoothingTargets
     )
+    val visualCollapseMinutes = tk.glucodata.DataSmoothing.graphCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
+    val evaluationCollapseMinutes = tk.glucodata.DataSmoothing.localCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
     val previewWindowMode by viewModel.previewWindowMode.collectAsStateWithLifecycle()
     val journalEnabled by viewModel.journalEnabled.collectAsStateWithLifecycle()
     val journalEiobDisplayEnabled by viewModel.journalEiobDisplayEnabled.collectAsStateWithLifecycle()
@@ -542,12 +543,12 @@ fun DashboardScreen(
     val consumerHistory = remember(
         glucoseHistory,
         evaluationSmoothingMinutes,
-        dataSmoothingCollapseChunks
+        evaluationCollapseMinutes
     ) {
         buildSmoothedConsumerHistory(
             points = glucoseHistory,
             evaluationSmoothingMinutes = evaluationSmoothingMinutes,
-            collapseChunks = dataSmoothingCollapseChunks
+            evaluationCollapseMinutes = evaluationCollapseMinutes
         )
     }
     // Read off the current state, not off the far end of the forecast: the hint answers
@@ -1697,7 +1698,7 @@ fun DashboardScreen(
                                         appChartRangeColors = appChartRangeColorsEnabled,
                                         predictionSeries = predictionSeries,
                                         graphSmoothingMinutes = visualSmoothingMinutes,
-                                        collapseSmoothedData = dataSmoothingCollapseChunks,
+                                        graphCollapseMinutes = visualCollapseMinutes,
                                         previewWindowMode = previewWindowMode,
                                         graphLow = graphLow,
                                         graphHigh = graphHigh,
@@ -1944,7 +1945,7 @@ fun DashboardScreen(
                                         appChartRangeColors = appChartRangeColorsEnabled,
                                         predictionSeries = predictionSeries,
                                         graphSmoothingMinutes = visualSmoothingMinutes,
-                                        collapseSmoothedData = dataSmoothingCollapseChunks,
+                                        graphCollapseMinutes = visualCollapseMinutes,
                                         previewWindowMode = previewWindowMode,
                                         graphLow = graphLow,
                                         graphHigh = graphHigh,

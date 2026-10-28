@@ -445,8 +445,6 @@
     <string name="data_smoothing_causal_title">Фільтр Калмана для бягучага значэння</string>
     <string name="data_smoothing_causal_desc">Ацэньвае апошняе паказанне толькі па папярэдніх, таму яно не мяняецца з прыходам новых. Гісторыя графіка і Nightscout застаюцца на акне усярэднення</string>
     <string name="data_smoothing_collapse_title">Менш паказанняў</string>
-    <string name="data_smoothing_collapse_desc_match">Адно паказанне кожныя %1$d хв</string>
-    <string name="data_smoothing_collapse_desc_capped">Адно паказанне кожныя 5 хв са згладжваннем за %1$d хв</string>
     <string name="data_smoothing_collapse_summary_format">Кожныя %1$d хв</string>
     <string name="preview_window_title">Акно папярэдняга прагляду</string>
     <string name="preview_window_desc">Паказвае 24-гадзінны міні-навігатар пад графікам на панэлі без змены паводзін асноўнага графіка</string>
@@ -3063,11 +3061,13 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_target_current_desc">Значэнне, стрэлка трэнду, віджэты і трывогі</string>
     <string name="data_smoothing_target_sent_title">Перадаваныя паказанні</string>
     <string name="data_smoothing_target_sent_desc">Трансляцыі і выгрузкі ў іншыя праграмы</string>
+    <string name="data_smoothing_smoothed">Згладжаныя</string>
+    <string name="data_smoothing_fewer_caption">Менш паказанняў: адно кожныя %1$d хв. Зыходныя паказанні захоўваюцца</string>
+    <string name="data_smoothing_fewer_summary_format">Менш паказанняў: %1$s</string>
     <string name="data_smoothing_scope_current_only">Толькі бягучая глюкоза</string>
     <string name="data_smoothing_scope_chart_and_current">Графік і бягучая глюкоза</string>
     <string name="data_smoothing_scope_current_and_sent">Бягучая глюкоза і перадаваныя паказанні</string>
     <string name="data_smoothing_scope_graph_and_sent">Графік і перадаваныя паказанні</string>
-    <string name="data_smoothing_preserve_originals">Зыходныя паказанні захоўваюцца</string>
     <string name="nightscout_secret_label">Секрет API або токен доступу</string>
     <string name="nightscout_api_help">Для v1 выкарыстоўвайце сакрэт API, для v3 — токен доступу Nightscout.</string>
     <string name="nightscout_iob_help">eIOB і COB перадаюцца ў полі jugglucong у devicestatus асобна ад стандартнага IOB.</string>

@@ -413,26 +413,32 @@ object WearGlucoseStore {
      * The chart and the current reading are smoothed apart, exactly as the
      * dashboard does it: [DataSmoothing.graphSmoothingMinutes] for the curve and
      * [DataSmoothing.localSmoothingMinutes] for the hero, its arrow and the rows,
-     * so the watch's value agrees with the phone's and the complications'.
-     * Returns (chart, readings); one list when the two windows agree.
+     * so the watch's value agrees with the phone's and the complications'. Each
+     * is thinned to fewer readings on its own setting too.
+     * Returns (chart, readings); one list when the two agree.
      */
     private fun smoothLanes(points: List<GlucosePoint>): Pair<List<GlucosePoint>, List<GlucosePoint>> {
         val context = Applic.app ?: return points to points
         val chartMinutes = runCatching { DataSmoothing.graphSmoothingMinutes(context) }.getOrDefault(0)
+        val chartCollapse = runCatching { DataSmoothing.graphCollapseMinutes(context) }.getOrDefault(0)
         val readingMinutes = runCatching { DataSmoothing.localSmoothingMinutes(context) }.getOrDefault(0)
-        val collapse = runCatching { DataSmoothing.collapseChunks(context) }.getOrDefault(false)
-        val chart = smooth(points, chartMinutes, collapse)
-        val readings = if (readingMinutes == chartMinutes) chart else smooth(points, readingMinutes, collapse)
+        val readingCollapse = runCatching { DataSmoothing.localCollapseMinutes(context) }.getOrDefault(0)
+        val chart = smooth(points, chartMinutes, chartCollapse)
+        val readings = if (readingMinutes == chartMinutes && readingCollapse == chartCollapse) {
+            chart
+        } else {
+            smooth(points, readingMinutes, readingCollapse)
+        }
         return chart to readings
     }
 
-    private fun smooth(points: List<GlucosePoint>, minutes: Int, collapse: Boolean): List<GlucosePoint> {
-        if (minutes <= 0) return points
+    private fun smooth(points: List<GlucosePoint>, minutes: Int, collapseMinutes: Int): List<GlucosePoint> {
+        if (minutes <= 0 && collapseMinutes <= 0) return points
         return runCatching {
             GlucoseSmoothing.smooth(
                 points = points,
                 smoothingMinutes = minutes,
-                collapseIntoChunks = collapse,
+                collapseMinutes = collapseMinutes,
                 timestamp = { it.timestamp },
                 value = { it.value },
                 rawValue = { it.rawValue },

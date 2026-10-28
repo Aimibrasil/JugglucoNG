@@ -158,7 +158,6 @@ private fun HistoryRoute(
     val targetLow by dashboardViewModel.targetLow.collectAsStateWithLifecycle()
     val targetHigh by dashboardViewModel.targetHigh.collectAsStateWithLifecycle()
     val chartSmoothingMinutes by dashboardViewModel.chartSmoothingMinutes.collectAsStateWithLifecycle()
-    val dataSmoothingCollapseChunks by dashboardViewModel.dataSmoothingCollapseChunks.collectAsStateWithLifecycle()
     val dataSmoothingTargets by dashboardViewModel.dataSmoothingTargets.collectAsStateWithLifecycle()
     val visualSmoothingMinutes = tk.glucodata.DataSmoothing.graphSmoothingMinutes(
         smoothingMinutes = chartSmoothingMinutes,
@@ -168,6 +167,8 @@ private fun HistoryRoute(
         smoothingMinutes = chartSmoothingMinutes,
         targets = dataSmoothingTargets
     )
+    val visualCollapseMinutes = tk.glucodata.DataSmoothing.graphCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
+    val evaluationCollapseMinutes = tk.glucodata.DataSmoothing.localCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
     val previewWindowMode by dashboardViewModel.previewWindowMode.collectAsStateWithLifecycle()
     val journalEnabled by dashboardViewModel.journalEnabled.collectAsStateWithLifecycle()
     val journalDoseCalculatorEnabled by dashboardViewModel.journalDoseCalculatorEnabled.collectAsStateWithLifecycle()
@@ -204,7 +205,8 @@ private fun HistoryRoute(
         targetHigh = targetHigh,
         graphSmoothingMinutes = visualSmoothingMinutes,
         evaluationSmoothingMinutes = evaluationSmoothingMinutes,
-        collapseSmoothedData = dataSmoothingCollapseChunks,
+        graphCollapseMinutes = visualCollapseMinutes,
+        evaluationCollapseMinutes = evaluationCollapseMinutes,
         previewWindowMode = previewWindowMode,
         calibrations = calibrations,
         title = title,
@@ -325,7 +327,6 @@ private fun JournalRoute(
     val targetLow by dashboardViewModel.targetLow.collectAsStateWithLifecycle()
     val targetHigh by dashboardViewModel.targetHigh.collectAsStateWithLifecycle()
     val chartSmoothingMinutes by dashboardViewModel.chartSmoothingMinutes.collectAsStateWithLifecycle()
-    val dataSmoothingCollapseChunks by dashboardViewModel.dataSmoothingCollapseChunks.collectAsStateWithLifecycle()
     val dataSmoothingTargets by dashboardViewModel.dataSmoothingTargets.collectAsStateWithLifecycle()
     val visualSmoothingMinutes = tk.glucodata.DataSmoothing.graphSmoothingMinutes(
         smoothingMinutes = chartSmoothingMinutes,
@@ -335,6 +336,8 @@ private fun JournalRoute(
         smoothingMinutes = chartSmoothingMinutes,
         targets = dataSmoothingTargets
     )
+    val visualCollapseMinutes = tk.glucodata.DataSmoothing.graphCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
+    val evaluationCollapseMinutes = tk.glucodata.DataSmoothing.localCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
     val previewWindowMode by dashboardViewModel.previewWindowMode.collectAsStateWithLifecycle()
     val journalEnabled by dashboardViewModel.journalEnabled.collectAsStateWithLifecycle()
     val journalDoseCalculatorEnabled by dashboardViewModel.journalDoseCalculatorEnabled.collectAsStateWithLifecycle()
@@ -387,7 +390,7 @@ private fun JournalRoute(
         targetLow = targetLow,
         targetHigh = targetHigh,
         graphSmoothingMinutes = visualSmoothingMinutes,
-        collapseSmoothedData = dataSmoothingCollapseChunks,
+        graphCollapseMinutes = visualCollapseMinutes,
         previewWindowMode = previewWindowMode,
         calibrations = calibrations,
         journalEntries = journalEntries,

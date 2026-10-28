@@ -554,8 +554,6 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="data_smoothing_causal_title">Geçerli değer için Kalman filtresi</string>
     <string name="data_smoothing_causal_desc">En yeni ölçümü yalnızca önceki ölçümlerden tahmin eder; böylece yeni ölçümler geldiğinde değişmez. Grafik geçmişi ve Nightscout ortalama penceresini korur</string>
     <string name="data_smoothing_collapse_title">Daha az ölçüm</string>
-    <string name="data_smoothing_collapse_desc_match">Her %1$d dakikada bir ölçüm</string>
-    <string name="data_smoothing_collapse_desc_capped">Her 5 dakikada bir ölçüm, %1$d dakikalık pencereyle yumuşatılır</string>
     <string name="data_smoothing_collapse_summary_format">Her %1$d dakikada</string>
     <string name="preview_window_title">Önizleme penceresi</string>
     <string name="preview_window_desc">Ana grafik davranışını değiştirmeden pano grafiğinin altında 24 saatlik mini gezgini gösterir</string>
@@ -3017,11 +3015,13 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="data_smoothing_target_current_desc">Değer, eğilim oku, widget’lar ve alarmlar</string>
     <string name="data_smoothing_target_sent_title">Gönderilen ölçümler</string>
     <string name="data_smoothing_target_sent_desc">Diğer uygulamalara yayınlar ve yüklemeler</string>
+    <string name="data_smoothing_smoothed">Yumuşatılmış</string>
+    <string name="data_smoothing_fewer_caption">Daha az ölçüm: her %1$d dakikada bir. Orijinal ölçümler korunur</string>
+    <string name="data_smoothing_fewer_summary_format">Daha az ölçüm: %1$s</string>
     <string name="data_smoothing_scope_current_only">Yalnızca güncel glikoz</string>
     <string name="data_smoothing_scope_chart_and_current">Grafik ve güncel glikoz</string>
     <string name="data_smoothing_scope_current_and_sent">Güncel glikoz ve gönderilen ölçümler</string>
     <string name="data_smoothing_scope_graph_and_sent">Grafik ve gönderilen ölçümler</string>
-    <string name="data_smoothing_preserve_originals">Orijinal ölçümler korunur</string>
     <string name="nightscout_secret_label">API sırrı veya erişim belirteci</string>
     <string name="nightscout_api_help">v1 için API sırrını, v3 için Nightscout erişim tokenini kullanın.</string>
     <string name="nightscout_iob_help">eIOB ve COB, standart IOB’den ayrı olarak devicestatus içindeki jugglucong alanında gönderilir.</string>

@@ -818,8 +818,6 @@ Az OK megnyomása létrehoz egy kapcsolatot ezen a telefonon, és megjelenít eg
     <string name="data_smoothing_causal_title">Kalman-szűrő az aktuális értékhez</string>
     <string name="data_smoothing_causal_desc">A legutóbbi mérést csak a korábbiakból becsüli, így az új mérések érkezésekor már nem változik. A grafikon előzményei és a Nightscout az átlagolási ablakot használják</string>
     <string name="data_smoothing_collapse_title">Kevesebb mérési érték</string>
-    <string name="data_smoothing_collapse_desc_match">Egy érték %1$d percenként</string>
-    <string name="data_smoothing_collapse_desc_capped">Egy érték 5 percenként, %1$d perces simítással</string>
     <string name="data_smoothing_collapse_summary_format">%1$d percenként</string>
     <string name="preview_window_title">Előnézeti ablak</string>
     <string name="preview_window_desc">24 órás mini navigátor megjelenítése az áttekintés grafikonja alatt, a fő grafikon működésének módosítása nélkül</string>
@@ -3058,11 +3056,13 @@ Az OK megnyomása létrehoz egy kapcsolatot ezen a telefonon, és megjelenít eg
     <string name="data_smoothing_target_current_desc">Érték, trendnyíl, widgetek és riasztások</string>
     <string name="data_smoothing_target_sent_title">Küldött értékek</string>
     <string name="data_smoothing_target_sent_desc">Broadcastok és feltöltések más alkalmazásokba</string>
+    <string name="data_smoothing_smoothed">Simított</string>
+    <string name="data_smoothing_fewer_caption">Kevesebb mérési érték: egy %1$d percenként. Az eredeti mérési értékek megmaradnak</string>
+    <string name="data_smoothing_fewer_summary_format">Kevesebb mérési érték: %1$s</string>
     <string name="data_smoothing_scope_current_only">Csak az aktuális glükózra</string>
     <string name="data_smoothing_scope_chart_and_current">Grafikon és aktuális glükóz</string>
     <string name="data_smoothing_scope_current_and_sent">Aktuális glükóz és küldött értékek</string>
     <string name="data_smoothing_scope_graph_and_sent">Grafikon és küldött értékek</string>
-    <string name="data_smoothing_preserve_originals">Az eredeti mérési értékek megmaradnak</string>
     <string name="nightscout_secret_label">API-titok vagy hozzáférési token</string>
     <string name="nightscout_api_help">A v1-hez API-titkot, a v3-hoz Nightscout-hozzáférési tokent használj.</string>
     <string name="nightscout_iob_help">Az eIOB és COB a devicestatus jugglucong mezőjében kerül elküldésre, a hagyományos IOB-tól külön.</string>
