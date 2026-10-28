@@ -424,14 +424,11 @@ class DashboardViewModel(
     private val _chartSmoothingMinutes = MutableStateFlow(0)
     val chartSmoothingMinutes = _chartSmoothingMinutes.asStateFlow()
 
-    private val _dataSmoothingGraphOnly = MutableStateFlow(true)
-    val dataSmoothingGraphOnly = _dataSmoothingGraphOnly.asStateFlow()
+    private val _dataSmoothingTargets = MutableStateFlow(DataSmoothing.Targets.ALL)
+    val dataSmoothingTargets = _dataSmoothingTargets.asStateFlow()
 
     private val _dataSmoothingCollapseChunks = MutableStateFlow(false)
     val dataSmoothingCollapseChunks = _dataSmoothingCollapseChunks.asStateFlow()
-
-    private val _dataSmoothingExchangeOnly = MutableStateFlow(false)
-    val dataSmoothingExchangeOnly = _dataSmoothingExchangeOnly.asStateFlow()
 
     private val _dataSmoothingCausal = MutableStateFlow(false)
     val dataSmoothingCausal = _dataSmoothingCausal.asStateFlow()
@@ -863,9 +860,8 @@ class DashboardViewModel(
         migrateTargetRangeDefaultsIfNeeded(prefs, isMmol)
         _notificationChartEnabled.value = prefs.getBoolean("notification_chart_enabled", true)
         _chartSmoothingMinutes.value = DataSmoothing.getMinutes(context)
-        _dataSmoothingGraphOnly.value = DataSmoothing.isGraphOnly(context)
+        _dataSmoothingTargets.value = DataSmoothing.targets(context)
         _dataSmoothingCollapseChunks.value = DataSmoothing.collapseChunks(context)
-        _dataSmoothingExchangeOnly.value = DataSmoothing.smoothOnlyExchangeOutputs(context)
         _dataSmoothingCausal.value = DataSmoothing.useCausalFilter(context)
         _previewWindowMode.value = prefs.getInt("dashboard_chart_preview_window_mode", 0)
         val journalEnabled = prefs.getBoolean("dashboard_journal_enabled", true)
@@ -1778,14 +1774,10 @@ class DashboardViewModel(
         refreshCurrentDisplayAfterSmoothingChange()
     }
 
-    fun setDataSmoothingGraphOnly(enabled: Boolean) {
+    fun setDataSmoothingTargets(targets: DataSmoothing.Targets) {
         val context = tk.glucodata.Applic.app
-        if (enabled) {
-            DataSmoothing.setSmoothOnlyExchangeOutputs(context, false)
-            _dataSmoothingExchangeOnly.value = false
-        }
-        DataSmoothing.setGraphOnly(context, enabled)
-        _dataSmoothingGraphOnly.value = enabled
+        DataSmoothing.setTargets(context, targets)
+        _dataSmoothingTargets.value = targets
         refreshCurrentDisplayAfterSmoothingChange()
     }
 
@@ -1793,17 +1785,7 @@ class DashboardViewModel(
         val context = tk.glucodata.Applic.app
         DataSmoothing.setCollapseChunks(context, enabled)
         _dataSmoothingCollapseChunks.value = enabled
-        refreshCurrentDisplayAfterSmoothingChange()
-    }
-
-    fun setDataSmoothingExchangeOnly(enabled: Boolean) {
-        val context = tk.glucodata.Applic.app
-        if (enabled) {
-            DataSmoothing.setGraphOnly(context, false)
-            _dataSmoothingGraphOnly.value = false
-        }
-        DataSmoothing.setSmoothOnlyExchangeOutputs(context, enabled)
-        _dataSmoothingExchangeOnly.value = enabled
+        _dataSmoothingTargets.value = DataSmoothing.targets(context)
         refreshCurrentDisplayAfterSmoothingChange()
     }
 

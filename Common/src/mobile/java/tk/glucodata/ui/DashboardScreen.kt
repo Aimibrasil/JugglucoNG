@@ -354,20 +354,18 @@ fun DashboardScreen(
         mutableStateOf(tk.glucodata.ui.stats.PinnedWindow.TODAY)
     }
     val chartSmoothingMinutes by viewModel.chartSmoothingMinutes.collectAsStateWithLifecycle()
-    val dataSmoothingGraphOnly by viewModel.dataSmoothingGraphOnly.collectAsStateWithLifecycle()
+    val dataSmoothingTargets by viewModel.dataSmoothingTargets.collectAsStateWithLifecycle()
     val dataSmoothingCollapseChunks by viewModel.dataSmoothingCollapseChunks.collectAsStateWithLifecycle()
-    val dataSmoothingExchangeOnly by viewModel.dataSmoothingExchangeOnly.collectAsStateWithLifecycle()
     // The chart's window and the reading's window, resolved once from the same switches.
     // The chart is presentation; everything else on this screen is what the app is going
     // to reason with, so it gets the window the notification and the alarms use.
     val visualSmoothingMinutes = tk.glucodata.DataSmoothing.graphSmoothingMinutes(
         smoothingMinutes = chartSmoothingMinutes,
-        exchangeOutputsOnly = dataSmoothingExchangeOnly
+        targets = dataSmoothingTargets
     )
     val evaluationSmoothingMinutes = tk.glucodata.DataSmoothing.localSmoothingMinutes(
         smoothingMinutes = chartSmoothingMinutes,
-        graphOnly = dataSmoothingGraphOnly,
-        exchangeOutputsOnly = dataSmoothingExchangeOnly
+        targets = dataSmoothingTargets
     )
     val previewWindowMode by viewModel.previewWindowMode.collectAsStateWithLifecycle()
     val journalEnabled by viewModel.journalEnabled.collectAsStateWithLifecycle()

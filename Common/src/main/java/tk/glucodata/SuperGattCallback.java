@@ -987,8 +987,7 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
                 if (doLog)
                     Log.i(LOG_ID, "xdrip send collapse=" + DataSmoothing.collapseChunks(app)
                             + " smoothMin=" + DataSmoothing.getMinutes(app)
-                            + " graphOnly=" + DataSmoothing.isGraphOnly(app)
-                            + " exchangeOnly=" + DataSmoothing.smoothOnlyExchangeOutputs(app)
+                            + " targets=" + DataSmoothing.targets(app)
                             + " payloadAgeMs=" + (System.currentTimeMillis() - loopFeedPayload.getTimeMillis()));
                 SendLikexDrip.broadcastglucose(loopFeedPayload, sensorstartmsec);
                 XdripBackfill.recordLiveSent(loopFeedPayload.getSensorId(), loopFeedPayload.getTimeMillis(),

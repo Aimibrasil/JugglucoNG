@@ -338,4 +338,35 @@ class DataSmoothingTests {
         assertEquals(105f, collapsed[2].value, 1e-6f)
         assertEquals(0f, collapsed[2].rawValue, 1e-6f)
     }
+
+    @Test
+    fun everyTargetCombinationIsReachableAndEachTargetAnswersOnlyForItself() {
+        for (bits in 0..7) {
+            val targets = DataSmoothing.Targets.fromBits(bits)
+            assertEquals(bits, targets.toBits())
+            assertEquals(if (targets.chart) 5 else 0, DataSmoothing.graphSmoothingMinutes(5, targets))
+            assertEquals(if (targets.current) 5 else 0, DataSmoothing.localSmoothingMinutes(5, targets))
+            assertEquals(if (targets.sent) 5 else 0, DataSmoothing.exchangeSmoothingMinutes(5, targets))
+            assertEquals(0, DataSmoothing.exchangeSmoothingMinutes(0, targets))
+        }
+    }
+
+    @Test
+    fun collapseThinsSentReadingsOnlyWhenTheyAreSmoothed() {
+        val chartOnly = DataSmoothing.Targets(chart = true, current = false, sent = false)
+        assertEquals(0, DataSmoothing.exchangeThrottleIntervalMinutes(3, chartOnly, collapseChunks = true))
+        assertEquals(3, DataSmoothing.exchangeThrottleIntervalMinutes(3, chartOnly.copy(sent = true), collapseChunks = true))
+        assertEquals(0, DataSmoothing.exchangeThrottleIntervalMinutes(3, chartOnly.copy(sent = true), collapseChunks = false))
+    }
+
+    @Test
+    fun legacySettingsMigrateToTheTargetsTheyUsedToMean() {
+        fun legacy(graphOnly: Boolean, exchangeOnly: Boolean, collapse: Boolean = false) =
+            DataSmoothing.legacyTargets(graphOnly, exchangeOnly, collapse)
+        assertEquals(DataSmoothing.Targets.ALL, legacy(graphOnly = false, exchangeOnly = false))
+        assertEquals(DataSmoothing.Targets(true, false, false), legacy(graphOnly = true, exchangeOnly = false))
+        assertEquals(DataSmoothing.Targets(true, false, true), legacy(graphOnly = true, exchangeOnly = false, collapse = true))
+        assertEquals(DataSmoothing.Targets(false, false, true), legacy(graphOnly = false, exchangeOnly = true))
+        assertEquals(DataSmoothing.Targets(false, false, true), legacy(graphOnly = true, exchangeOnly = true))
+    }
 }

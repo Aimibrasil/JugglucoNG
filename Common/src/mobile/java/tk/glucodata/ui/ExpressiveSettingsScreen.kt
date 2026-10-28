@@ -136,9 +136,8 @@ fun ExpressiveSettingsScreen(
     val unit by viewModel.unit.collectAsStateWithLifecycle()
     val isMmol = tk.glucodata.ui.util.GlucoseFormatter.isMmol(unit)
     val chartSmoothingMinutes by viewModel.chartSmoothingMinutes.collectAsStateWithLifecycle()
-    val dataSmoothingGraphOnly by viewModel.dataSmoothingGraphOnly.collectAsStateWithLifecycle()
+    val dataSmoothingTargets by viewModel.dataSmoothingTargets.collectAsStateWithLifecycle()
     val dataSmoothingCollapseChunks by viewModel.dataSmoothingCollapseChunks.collectAsStateWithLifecycle()
-    val dataSmoothingExchangeOnly by viewModel.dataSmoothingExchangeOnly.collectAsStateWithLifecycle()
     val journalEnabled by viewModel.journalEnabled.collectAsStateWithLifecycle()
     val predictiveSimulationEnabled by viewModel.predictiveSimulationEnabled.collectAsStateWithLifecycle()
     val alertsMasterEnabled by viewModel.alertsMasterEnabled.collectAsStateWithLifecycle()
@@ -257,16 +256,7 @@ fun ExpressiveSettingsScreen(
         val collapseIntervalMinutes = DataSmoothing.collapseIntervalMinutes(chartSmoothingMinutes)
         buildList {
             add(stringResource(R.string.minutes_short_format, chartSmoothingMinutes))
-            if (dataSmoothingExchangeOnly) {
-                add(stringResource(R.string.data_smoothing_exchange_only_title))
-            } else if (dataSmoothingGraphOnly) {
-                add(stringResource(
-                    if (dataSmoothingCollapseChunks) R.string.data_smoothing_scope_graph_and_sent
-                    else R.string.data_smoothing_graph_only_title
-                ))
-            } else {
-                add(stringResource(R.string.data_smoothing_scope_all))
-            }
+            dataSmoothingScopeLabel(dataSmoothingTargets)?.let { add(stringResource(it)) }
             if (dataSmoothingCollapseChunks) {
                 add(stringResource(R.string.data_smoothing_collapse_summary_format, collapseIntervalMinutes))
             }

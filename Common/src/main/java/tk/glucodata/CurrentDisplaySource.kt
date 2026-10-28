@@ -361,9 +361,7 @@ object CurrentDisplaySource {
         val context = Applic.app
         return exchangeSmoothingMode(
             smoothingMinutes = DataSmoothing.getMinutes(context),
-            graphOnly = DataSmoothing.isGraphOnly(context),
-            exchangeOutputsOnly = DataSmoothing.smoothOnlyExchangeOutputs(context),
-            collapseChunks = DataSmoothing.collapseChunks(context),
+            targets = DataSmoothing.targets(context),
             causal = DataSmoothing.useCausalFilter(context)
         )
     }
@@ -381,10 +379,18 @@ object CurrentDisplaySource {
         exchangeOutputsOnly: Boolean,
         collapseChunks: Boolean,
         causal: Boolean = false
+    ): SmoothingMode = exchangeSmoothingMode(
+        smoothingMinutes,
+        DataSmoothing.legacyTargets(graphOnly, exchangeOutputsOnly, collapseChunks),
+        causal
+    )
+
+    internal fun exchangeSmoothingMode(
+        smoothingMinutes: Int,
+        targets: DataSmoothing.Targets,
+        causal: Boolean = false
     ): SmoothingMode = SmoothingMode(
-        smoothAllData = DataSmoothing.shouldSmoothExchangeOutputs(
-            smoothingMinutes, graphOnly, exchangeOutputsOnly, collapseChunks
-        ),
+        smoothAllData = DataSmoothing.exchangeSmoothingMinutes(smoothingMinutes, targets) > 0,
         smoothingMinutes = smoothingMinutes,
         collapseChunks = false,
         causal = causal
