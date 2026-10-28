@@ -118,8 +118,11 @@ fun DataSmoothingSettingsScreen(
                         value = sliderIndex,
                         onValueChange = { sliderIndex = it },
                         onValueChangeFinished = {
-                            if (selectedMinutes != smoothingMinutes) {
-                                viewModel.setChartSmoothingMinutes(selectedMinutes)
+                            // Read the index now: a track tap can change and finish
+                            // before the screen recomposes, leaving selectedMinutes stale.
+                            val nextMinutes = options[sliderIndex.roundToInt().coerceIn(0, options.lastIndex)]
+                            if (nextMinutes != smoothingMinutes) {
+                                viewModel.setChartSmoothingMinutes(nextMinutes)
                             }
                         },
                         range = 0f..options.lastIndex.toFloat(),

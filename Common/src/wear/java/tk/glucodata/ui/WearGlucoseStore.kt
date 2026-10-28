@@ -64,6 +64,8 @@ object WearGlucoseStore {
         val sensorId: String,
         /** Ascending, oldest first; calibrated and smoothed like [Snapshot.points]. */
         val points: List<GlucosePoint>,
+        /** The same history smoothed like [Snapshot.readings]. */
+        val readings: List<GlucosePoint>,
         val viewMode: Int,
         val colorArgb: Int,
     ) {
@@ -71,8 +73,14 @@ object WearGlucoseStore {
     }
 
     data class Snapshot(
-        /** Ascending, oldest first, covering [horizonStartMs] to now. */
+        /** Ascending, oldest first, covering [horizonStartMs] to now; smoothed for the chart. */
         val points: List<GlucosePoint> = emptyList(),
+        /**
+         * The same history smoothed for the current reading — the hero, its arrow and the
+         * reading rows — which the user can smooth apart from the chart. The same list as
+         * [points] whenever the two windows agree.
+         */
+        val readings: List<GlucosePoint> = emptyList(),
         /** The other selected sensors, in the phone's order; empty with one sensor. */
         val peers: List<PeerSeries> = emptyList(),
         /** Calibration anchors as [sensorMgdl, userMgdl, timestampMs] triples. */
@@ -104,6 +112,7 @@ object WearGlucoseStore {
                 viewMode == other.viewMode &&
                 sensorId == other.sensorId &&
                 points === other.points &&
+                readings === other.readings &&
                 peers === other.peers
         }
 
@@ -289,7 +298,7 @@ object WearGlucoseStore {
         // Calibrate first, then smooth: smoothing a lane and correcting the
         // result is not the same as correcting each reading and smoothing those,
         // and the phone corrects at display time before its chart pipeline runs.
-        val points = smooth(calibrate(rawPoints, sensor, isRawMode))
+        val (points, readings) = smoothLanes(calibrate(rawPoints, sensor, isRawMode))
         val peers = loadPeers(maxOf(horizonStart, now - PEER_HORIZON_MS), now, isMmol)
         synchronized(calibrationCaches) {
             val live = (peers.map { it.sensorId } + sensor.orEmpty()).toSet()
@@ -298,6 +307,7 @@ object WearGlucoseStore {
 
         _snapshot.value = Snapshot(
             points = points,
+            readings = readings,
             peers = peers,
             anchors = anchors,
             horizonStartMs = horizonStart,
@@ -329,9 +339,11 @@ object WearGlucoseStore {
                 Log.i(TAG, "peer $peer mode=$viewMode points=${raw.size} last=${raw.lastOrNull()?.let { "${it.value}/${it.rawValue}" } ?: "-"}")
             }
             if (raw.isEmpty()) return@mapNotNull null
+            val (points, readings) = smoothLanes(calibrate(raw, peer, isRawMode))
             PeerSeries(
                 sensorId = peer,
-                points = smooth(calibrate(raw, peer, isRawMode)),
+                points = points,
+                readings = readings,
                 viewMode = viewMode,
                 colorArgb = WearSensorSelection.colorOf(peer, colors)
                     ?: runCatching { tk.glucodata.SensorVisuals.colorArgb(peer) }.getOrDefault(0xFF9E9E9E.toInt()),
@@ -398,15 +410,24 @@ object WearGlucoseStore {
      * one here. The settings are mirrored from the phone with the rest of the
      * preferences, and the pipeline is the phone's own.
      *
-     * "Smooth exchange outputs only" means the displayed series stays raw, so
-     * [DataSmoothing.graphSmoothingMinutes] — not the plain minutes value — is
-     * what decides, exactly as the dashboard decides it.
+     * The chart and the current reading are smoothed apart, exactly as the
+     * dashboard does it: [DataSmoothing.graphSmoothingMinutes] for the curve and
+     * [DataSmoothing.localSmoothingMinutes] for the hero, its arrow and the rows,
+     * so the watch's value agrees with the phone's and the complications'.
+     * Returns (chart, readings); one list when the two windows agree.
      */
-    private fun smooth(points: List<GlucosePoint>): List<GlucosePoint> {
-        val context = Applic.app ?: return points
-        val minutes = runCatching { DataSmoothing.graphSmoothingMinutes(context) }.getOrDefault(0)
-        if (minutes <= 0) return points
+    private fun smoothLanes(points: List<GlucosePoint>): Pair<List<GlucosePoint>, List<GlucosePoint>> {
+        val context = Applic.app ?: return points to points
+        val chartMinutes = runCatching { DataSmoothing.graphSmoothingMinutes(context) }.getOrDefault(0)
+        val readingMinutes = runCatching { DataSmoothing.localSmoothingMinutes(context) }.getOrDefault(0)
         val collapse = runCatching { DataSmoothing.collapseChunks(context) }.getOrDefault(false)
+        val chart = smooth(points, chartMinutes, collapse)
+        val readings = if (readingMinutes == chartMinutes) chart else smooth(points, readingMinutes, collapse)
+        return chart to readings
+    }
+
+    private fun smooth(points: List<GlucosePoint>, minutes: Int, collapse: Boolean): List<GlucosePoint> {
+        if (minutes <= 0) return points
         return runCatching {
             GlucoseSmoothing.smooth(
                 points = points,
@@ -438,12 +459,12 @@ object WearGlucoseStore {
 
     /** Newest first, for the reading lists. */
     fun recent(count: Int, withinMs: Long = 6L * HOUR_MS): List<GlucosePoint> {
-        val snap = _snapshot.value
-        if (snap.points.isEmpty()) return emptyList()
+        val readings = _snapshot.value.readings
+        if (readings.isEmpty()) return emptyList()
         val cutoff = System.currentTimeMillis() - withinMs
         val result = ArrayList<GlucosePoint>(count)
-        for (index in snap.points.indices.reversed()) {
-            val point = snap.points[index]
+        for (index in readings.indices.reversed()) {
+            val point = readings[index]
             if (point.timestamp < cutoff) break
             result.add(point)
             if (result.size >= count) break
