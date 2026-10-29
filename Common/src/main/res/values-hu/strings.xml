@@ -3049,9 +3049,14 @@ Az OK megnyomása létrehoz egy kapcsolatot ezen a telefonon, és megjelenít eg
     <string name="nightscout_permissions_upload">Glükóz\napi:entries:create\napi:entries:update\n\nInzulin és szénhidrát küldése\napi:treatments:create\napi:treatments:update\napi:treatments:delete\n\nInzulin és szénhidrát fogadása\napi:treatments:read\n\nAktív inzulin küldése\napi:devicestatus:create\n\nA jogosultságok módosítása után frissítse a tokent.</string>
     <string name="data_smoothing_scope_title">Simítás alkalmazása</string>
     <string name="data_smoothing_on_desc">Az értékek %1$d perces átlaga</string>
+    <string name="data_smoothing_column_smooth">Simítás</string>
+    <string name="data_smoothing_column_fewer">Ritkítás</string>
     <string name="data_smoothing_target_chart_title">Grafikon</string>
-    <string name="data_smoothing_target_current_title">Aktuális</string>
-    <string name="data_smoothing_target_sent_title">Küldött</string>
+    <string name="data_smoothing_target_chart_desc">Az alkalmazás, az értesítés és az óra grafikonjai</string>
+    <string name="data_smoothing_target_current_title">Aktuális glükóz</string>
+    <string name="data_smoothing_target_current_desc">Érték, trendnyíl, widgetek és riasztások</string>
+    <string name="data_smoothing_target_sent_title">Küldött értékek</string>
+    <string name="data_smoothing_target_sent_desc">Broadcastok és feltöltések más alkalmazásokba</string>
     <string name="data_smoothing_fewer_summary_format">Kevesebb mérési érték: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Egy érték %1$d percenként</string>
     <string name="data_smoothing_collapse_desc_capped">Egy érték 5 percenként, %1$d perces simítással</string>

@@ -2980,9 +2980,14 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="nightscout_permissions_upload">Glukos\napi:entries:create\napi:entries:update\n\nSkicka insulin och kolhydrater\napi:treatments:create\napi:treatments:update\napi:treatments:delete\n\nTa emot insulin och kolhydrater\napi:treatments:read\n\nSkicka aktivt insulin\napi:devicestatus:create\n\nFörnya token efter att behörigheterna har ändrats.</string>
     <string name="data_smoothing_scope_title">Tillämpa på</string>
     <string name="data_smoothing_on_desc">Värden medelvärdesbildade över %1$d min</string>
+    <string name="data_smoothing_column_smooth">Jämna</string>
+    <string name="data_smoothing_column_fewer">Färre</string>
     <string name="data_smoothing_target_chart_title">Diagram</string>
-    <string name="data_smoothing_target_current_title">Aktuellt</string>
-    <string name="data_smoothing_target_sent_title">Skickat</string>
+    <string name="data_smoothing_target_chart_desc">Diagram i appen, aviseringen och klockan</string>
+    <string name="data_smoothing_target_current_title">Aktuellt glukosvärde</string>
+    <string name="data_smoothing_target_current_desc">Värde, trendpil, widgetar och larm</string>
+    <string name="data_smoothing_target_sent_title">Skickade värden</string>
+    <string name="data_smoothing_target_sent_desc">Sändningar och uppladdningar till andra appar</string>
     <string name="data_smoothing_fewer_summary_format">Färre mätvärden: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Ett värde var %1$d min</string>
     <string name="data_smoothing_collapse_desc_capped">Ett värde var 5:e min, utjämnat över %1$d min</string>

@@ -2970,9 +2970,14 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="nightscout_permissions_upload">Glucosio\napi:entries:create\napi:entries:update\n\nInvia insulina e carboidrati\napi:treatments:create\napi:treatments:update\napi:treatments:delete\n\nRicevi insulina e carboidrati\napi:treatments:read\n\nInvia insulina attiva\napi:devicestatus:create\n\nDopo aver modificato i permessi, aggiorna il token.</string>
     <string name="data_smoothing_scope_title">Applica a</string>
     <string name="data_smoothing_on_desc">Valori mediati su %1$d min</string>
+    <string name="data_smoothing_column_smooth">Smussa</string>
+    <string name="data_smoothing_column_fewer">Meno</string>
     <string name="data_smoothing_target_chart_title">Grafico</string>
-    <string name="data_smoothing_target_current_title">Attuale</string>
-    <string name="data_smoothing_target_sent_title">Inviati</string>
+    <string name="data_smoothing_target_chart_desc">Grafici dell\'app, della notifica e dell\'orologio</string>
+    <string name="data_smoothing_target_current_title">Glucosio attuale</string>
+    <string name="data_smoothing_target_current_desc">Valore, freccia di tendenza, widget e avvisi</string>
+    <string name="data_smoothing_target_sent_title">Valori inviati</string>
+    <string name="data_smoothing_target_sent_desc">Broadcast e caricamenti verso altre app</string>
     <string name="data_smoothing_fewer_summary_format">Meno valori: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Un valore ogni %1$d min</string>
     <string name="data_smoothing_collapse_desc_capped">Un valore ogni 5 min, smussato su %1$d min</string>

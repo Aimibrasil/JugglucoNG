@@ -3,6 +3,9 @@ package tk.glucodata.ui
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,7 +18,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material3.Checkbox
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import tk.glucodata.ui.components.SettingsItem
 import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,8 +56,6 @@ import tk.glucodata.ui.components.AppTopBar
 import tk.glucodata.ui.components.CardPosition
 import tk.glucodata.ui.components.MasterSwitchCard
 import tk.glucodata.ui.components.SectionLabel
-import tk.glucodata.ui.components.SettingsChoice
-import tk.glucodata.ui.components.SettingsControlsCard
 import tk.glucodata.ui.components.SettingsSwitchItem
 import tk.glucodata.ui.viewmodel.DashboardViewModel
 
@@ -58,10 +68,35 @@ fun DataSmoothingSettingsScreen(
     val smoothingMinutes by viewModel.chartSmoothingMinutes.collectAsStateWithLifecycle()
     val targets by viewModel.dataSmoothingTargets.collectAsStateWithLifecycle()
     val causal by viewModel.dataSmoothingCausal.collectAsStateWithLifecycle()
+    DataSmoothingSettingsContent(
+        smoothingMinutes = smoothingMinutes,
+        lastEnabledMinutes = remember(smoothingMinutes) { DataSmoothing.getLastEnabledMinutes(context) },
+        targets = targets,
+        causal = causal,
+        onEnabledChange = viewModel::setDataSmoothingEnabled,
+        onMinutesChange = viewModel::setChartSmoothingMinutes,
+        onTargetsChange = viewModel::setDataSmoothingTargets,
+        onCausalChange = viewModel::setDataSmoothingCausal,
+        onNavigateBack = { navController.popBackStack() }
+    )
+}
 
+/** The screen without its view model, so a test can draw it. */
+@Composable
+internal fun DataSmoothingSettingsContent(
+    smoothingMinutes: Int,
+    lastEnabledMinutes: Int,
+    targets: DataSmoothing.Targets,
+    causal: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    onMinutesChange: (Int) -> Unit,
+    onTargetsChange: (DataSmoothing.Targets) -> Unit,
+    onCausalChange: (Boolean) -> Unit,
+    onNavigateBack: () -> Unit,
+) {
     val isEnabled = smoothingMinutes > 0
     val options = remember { DataSmoothing.enabledMinutesOptions().toList() }
-    val configuredMinutes = if (isEnabled) smoothingMinutes else DataSmoothing.getLastEnabledMinutes(context)
+    val configuredMinutes = if (isEnabled) smoothingMinutes else lastEnabledMinutes
     val selectedIndex = options.indexOf(configuredMinutes).coerceAtLeast(0)
     var sliderIndex by rememberSaveable(smoothingMinutes) { mutableFloatStateOf(selectedIndex.toFloat()) }
     val contentAlpha by animateFloatAsState(
@@ -87,7 +122,7 @@ fun DataSmoothingSettingsScreen(
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.graph_smoothing_title),
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = onNavigateBack,
             )
         }
     ) { padding ->
@@ -110,7 +145,7 @@ fun DataSmoothingSettingsScreen(
                     else -> stringResource(R.string.settings_smoothing_off_desc)
                 },
                 checked = isEnabled,
-                onCheckedChange = { viewModel.setDataSmoothingEnabled(it) },
+                onCheckedChange = { onEnabledChange(it) },
                 icon = Icons.AutoMirrored.Filled.TrendingUp
             )
 
@@ -176,7 +211,7 @@ fun DataSmoothingSettingsScreen(
                             onValueChangeFinished = {
                                 val nextMinutes = options[sliderIndex.roundToInt().coerceIn(0, options.lastIndex)]
                                 if (nextMinutes != smoothingMinutes) {
-                                    viewModel.setChartSmoothingMinutes(nextMinutes)
+                                    onMinutesChange(nextMinutes)
                                 }
                             },
                             valueRange = 0f..options.lastIndex.toFloat(),
@@ -203,36 +238,37 @@ fun DataSmoothingSettingsScreen(
                     }
                 }
 
-                // Where each mechanism applies, as two rows of the same three places: a
-                // 3×2 choice reads best as a grid, not as six switches. Either row may be
-                // empty; Fewer readings works with or without smoothing.
-                SectionLabel(stringResource(R.string.data_smoothing_scope_title))
-                val places = remember { DataSmoothingPlace.entries.toList() }
-                val placeLabels = places.map { stringResource(it.label) }
-                SettingsControlsCard {
-                    SettingsChoice(
-                        title = stringResource(R.string.graph_smoothing_title),
-                        options = places,
-                        labels = placeLabels,
-                        selectedOptions = places.filter { it.smoothed(targets) },
-                        multiSelect = true,
-                        onOptionSelected = { place ->
-                            if (isEnabled) viewModel.setDataSmoothingTargets(place.toggleSmoothed(targets))
-                        }
+                // Where each mechanism applies: places as rows, Smooth and Fewer as two
+                // checkbox columns, so "smooth everywhere, thin only what is sent" reads at
+                // a glance. Either column may be empty; Fewer works without smoothing.
+                Row(
+                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp, end = 16.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = stringResource(R.string.data_smoothing_scope_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f)
                     )
-                    SettingsChoice(
-                        title = stringResource(R.string.data_smoothing_collapse_title),
-                        options = places,
-                        labels = placeLabels,
-                        selectedOptions = places.filter { it.fewer(targets) },
-                        multiSelect = true,
-                        onOptionSelected = { place ->
-                            if (isEnabled) viewModel.setDataSmoothingTargets(place.toggleFewer(targets))
-                        }
-                    )
+                    ColumnHeader(stringResource(R.string.data_smoothing_column_smooth))
+                    ColumnHeader(stringResource(R.string.data_smoothing_column_fewer))
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    DataSmoothingPlace.entries.forEach { place ->
+                        SmoothingPlaceRow(
+                            place = place,
+                            smoothed = place.smoothed(targets),
+                            fewer = place.fewer(targets),
+                            onSmoothedChange = { onTargetsChange(place.toggleSmoothed(targets)) },
+                            onFewerChange = { onTargetsChange(place.toggleFewer(targets)) },
+                            enabled = isEnabled
+                        )
+                    }
                 }
                 Text(
-                    text = collapseSubtitle + " · " + stringResource(R.string.data_smoothing_preserve_originals),
+                    text = stringResource(R.string.data_smoothing_fewer_summary_format, collapseSubtitle) +
+                        " · " + stringResource(R.string.data_smoothing_preserve_originals),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
@@ -243,7 +279,7 @@ fun DataSmoothingSettingsScreen(
                     title = stringResource(R.string.data_smoothing_causal_title),
                     subtitle = stringResource(R.string.data_smoothing_causal_desc),
                     checked = causal,
-                    onCheckedChange = { viewModel.setDataSmoothingCausal(it) },
+                    onCheckedChange = { onCausalChange(it) },
                     icon = Icons.Default.Functions,
                     iconTint = MaterialTheme.colorScheme.primary,
                     position = CardPosition.SINGLE,
@@ -254,11 +290,18 @@ fun DataSmoothingSettingsScreen(
     }
 }
 
-/** The three places readings go, as the button groups list them. */
-private enum class DataSmoothingPlace(val label: Int) {
-    CHART(R.string.data_smoothing_target_chart_title),
-    CURRENT(R.string.data_smoothing_target_current_title),
-    SENT(R.string.data_smoothing_target_sent_title);
+/** The three places readings go. */
+private enum class DataSmoothingPlace(val title: Int, val description: Int, val icon: ImageVector) {
+    CHART(R.string.data_smoothing_target_chart_title, R.string.data_smoothing_target_chart_desc, Icons.AutoMirrored.Filled.ShowChart),
+    CURRENT(R.string.data_smoothing_target_current_title, R.string.data_smoothing_target_current_desc, Icons.Default.WaterDrop),
+    SENT(R.string.data_smoothing_target_sent_title, R.string.data_smoothing_target_sent_desc, Icons.AutoMirrored.Filled.Send);
+
+    val position: CardPosition
+        get() = when (this) {
+            CHART -> CardPosition.TOP
+            CURRENT -> CardPosition.MIDDLE
+            SENT -> CardPosition.BOTTOM
+        }
 
     fun smoothed(t: DataSmoothing.Targets) = when (this) {
         CHART -> t.chart
@@ -282,6 +325,64 @@ private enum class DataSmoothingPlace(val label: Int) {
         CHART -> t.copy(fewerChart = !t.fewerChart)
         CURRENT -> t.copy(fewerCurrent = !t.fewerCurrent)
         SENT -> t.copy(fewerSent = !t.fewerSent)
+    }
+}
+
+/** Checkbox columns are this wide; the headers above centre on them. */
+private val PlaceColumnWidth = 56.dp
+
+@Composable
+private fun ColumnHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        softWrap = false,
+        // A longer translation may run past its column rather than wrap.
+        modifier = Modifier.width(PlaceColumnWidth).wrapContentWidth(unbounded = true)
+    )
+}
+
+/** One place: icon, what it covers, then a checkbox under each column header. */
+@Composable
+private fun SmoothingPlaceRow(
+    place: DataSmoothingPlace,
+    smoothed: Boolean,
+    fewer: Boolean,
+    onSmoothedChange: () -> Unit,
+    onFewerChange: () -> Unit,
+    enabled: Boolean,
+) {
+    val title = stringResource(place.title)
+    val smoothLabel = "$title, " + stringResource(R.string.data_smoothing_column_smooth)
+    val fewerLabel = "$title, " + stringResource(R.string.data_smoothing_column_fewer)
+    SettingsItem(
+        title = title,
+        subtitle = stringResource(place.description),
+        icon = place.icon,
+        iconTint = MaterialTheme.colorScheme.primary,
+        position = place.position,
+        trailingContent = {
+            Row {
+                PlaceCheckbox(smoothed, onSmoothedChange, enabled, smoothLabel)
+                PlaceCheckbox(fewer, onFewerChange, enabled, fewerLabel)
+            }
+        }
+    )
+}
+
+@Composable
+private fun PlaceCheckbox(checked: Boolean, onToggle: () -> Unit, enabled: Boolean, label: String) {
+    Box(modifier = Modifier.width(PlaceColumnWidth), contentAlignment = Alignment.Center) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { onToggle() },
+            enabled = enabled,
+            // Spoken with its row and column, since neither is next to it in the tree.
+            modifier = Modifier.semantics { contentDescription = label }
+        )
     }
 }
 
