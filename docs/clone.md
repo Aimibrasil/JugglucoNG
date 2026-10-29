@@ -48,6 +48,15 @@ the glucose data itself travels directly over the local network. If the server
 does not support the watch or is temporarily unavailable, Clone falls back to
 normal ICE failure detection and rendezvous polling.
 
+Clone normally signals through one rendezvous server: your own if one is
+configured, otherwise one of the public servers chosen from the connection
+label. When that server cannot be reached, gives up, or the phones have not
+met there within 30 seconds, the other servers join the same attempt and the
+first one where both phones meet carries it. The extra servers stay in play
+until a connection succeeds through the first server again. Phones only meet
+on a server they both use, so keep the same app version and server settings
+on both.
+
 ## Security and privacy
 
 Quick Pair generates a random Clone connection password. The Mirror protocol
@@ -67,9 +76,11 @@ configured, the TURN username and password. Share it directly with the intended
 receiver. Do not publish the QR or a screenshot of it. If it leaks, delete the
 Clone connection and rotate the TURN credentials.
 
-Self-hosting removes the default rendezvous and STUN operators from the path,
-but it does not hide normal IP and traffic metadata from networks between the
-phones and your server.
+Self-hosting removes the default STUN operator and, while your server works,
+the default rendezvous operators from the path. If your rendezvous server
+struggles, the public rendezvous servers help until it recovers. Self-hosting
+does not hide normal IP and traffic metadata from networks between the phones
+and your server.
 
 ## Day-to-day use
 

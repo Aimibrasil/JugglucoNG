@@ -35,6 +35,7 @@
 #include "net/Connect.hpp"
 #include "ICE_data.hpp"
 #include "ICEConfig.hpp"
+#include "RendezvousFailover.hpp"
 #include "LocalICESignal.hpp"
 #include "RecoveryWakeLease.hpp"
 #define LOGGERICE(...) LOGGER("ICE: " __VA_ARGS__)
@@ -101,9 +102,20 @@ std::atomic<uint64_t> agentGeneration{0};
 std::atomic<int> selectedCloneTransport{clone_transport_unknown};
 char sdp[JUICE_MAX_SDP_STRING_LEN];
 int sdplen;
+// Primary rendezvous server; it also carries the peer generation watch.
 std::string rendezvousHost;
 uint16_t rendezvousPort;
 bool verifyRendezvousCertificate;
+// Every server this connection may use, primary first. Rewritten only by
+// reloadNetworkConfig() in newConnection(), while no attempt runs.
+std::vector<RendezvousEndpoint> rendezvousEndpoints;
+std::mutex activeRendezvousMutex;
+RendezvousEndpoint activeRendezvous;
+std::atomic<size_t> activeRendezvousIndex{0};
+// Survive agent replacement: a struggling primary keeps the other servers in
+// play until a negotiation connects through the primary again.
+std::atomic_bool rendezvousEscalated{false};
+std::atomic_bool rendezvousExchangedUnconnected{false};
 bool useLocalDiscovery;
 RecoveryWakeLease recoveryWake;
 
@@ -206,6 +218,15 @@ void replaceLocalSignal(std::shared_ptr<LocalICESignalSession> replacement) {
         }
 void cancelLocalSignal() {
         replaceLocalSignal(nullptr);
+        }
+RendezvousEndpoint activeRendezvousEndpoint() {
+        std::lock_guard<std::mutex> lock(activeRendezvousMutex);
+        return activeRendezvous;
+        }
+void setActiveRendezvous(size_t index) {
+        std::lock_guard<std::mutex> lock(activeRendezvousMutex);
+        activeRendezvous=rendezvousEndpoints[index];
+        activeRendezvousIndex.store(index,std::memory_order_release);
         }
 template<class Function,class... Args>
 void startCandidateReader(Function &&function,Args &&...args) {

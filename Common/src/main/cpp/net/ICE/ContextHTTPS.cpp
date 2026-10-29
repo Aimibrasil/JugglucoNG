@@ -251,11 +251,13 @@ static void sockopt(int new_fd) {
 class RequestDeadline {
     int64_t endMilliseconds;
     std::shared_ptr<const std::atomic_bool> cancelled;
+    std::shared_ptr<const std::atomic_bool> superseded;
 public:
     explicit RequestDeadline(const HTTPSRequestOptions &options)
         : endMilliseconds(elapsedRealtimeMilliseconds()+
               std::max(options.timeoutMilliseconds,1)),
-          cancelled(options.cancelled) {}
+          cancelled(options.cancelled),
+          superseded(options.superseded) {}
 
     void restart(int timeoutMilliseconds) {
         endMilliseconds=elapsedRealtimeMilliseconds()+std::max(timeoutMilliseconds,1);
@@ -263,6 +265,7 @@ public:
 
     bool stopped() const {
         return (cancelled && cancelled->load(std::memory_order_acquire)) ||
+               (superseded && superseded->load(std::memory_order_acquire)) ||
                elapsedRealtimeMilliseconds()>=endMilliseconds;
     }
 
