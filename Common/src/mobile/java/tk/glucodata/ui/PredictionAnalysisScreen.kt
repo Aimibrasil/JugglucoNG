@@ -372,11 +372,11 @@ private fun ComparisonCard(
         val standard = report.model(ForecastModel.STANDARD)?.horizons?.firstOrNull { it.horizonMinutes == horizon }
         val rows = buildList {
             if (paired != null) {
-                add(Triple(modelName(ForecastModel.STANDARD), paired.standardMeanAbsoluteError, ForecastPalette.standard()))
-                add(Triple(modelName(ForecastModel.ADAPTIVE), paired.adaptiveMeanAbsoluteError, ForecastPalette.adaptive()))
+                add(Triple(modelName(ForecastModel.STANDARD), paired.standardMeanAbsoluteError, MaterialTheme.colorScheme.primary))
+                add(Triple(modelName(ForecastModel.ADAPTIVE), paired.adaptiveMeanAbsoluteError, MaterialTheme.colorScheme.tertiary))
                 add(Triple(stringResource(R.string.prediction_analysis_model_no_change), paired.noChangeMeanAbsoluteError, MaterialTheme.colorScheme.outline))
             } else if (standard != null) {
-                add(Triple(modelName(ForecastModel.STANDARD), standard.meanAbsoluteError, ForecastPalette.standard()))
+                add(Triple(modelName(ForecastModel.STANDARD), standard.meanAbsoluteError, MaterialTheme.colorScheme.primary))
                 add(Triple(stringResource(R.string.prediction_analysis_model_no_change), standard.noChangeMeanAbsoluteError, MaterialTheme.colorScheme.outline))
             }
         }
@@ -447,8 +447,8 @@ private fun ErrorBar(label: String, value: Float, fraction: Float, color: Color,
 
 @Composable
 private fun DailyErrorCard(daily: List<DailyAccuracy>, horizonMinutes: Int, isMmol: Boolean) {
-    val standardColor = ForecastPalette.standard()
-    val adaptiveColor = ForecastPalette.adaptive()
+    val standardColor = MaterialTheme.colorScheme.primary
+    val adaptiveColor = MaterialTheme.colorScheme.tertiary
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val measurer = rememberTextMeasurer()

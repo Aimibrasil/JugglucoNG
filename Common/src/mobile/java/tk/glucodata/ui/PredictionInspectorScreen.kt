@@ -190,10 +190,10 @@ internal fun PredictionInspectorContent(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         LegendSwatch(stringResource(R.string.prediction_inspector_actual), MaterialTheme.colorScheme.onSurface)
                         current.standard?.let {
-                            LegendSwatch(legendLabel(R.string.prediction_analysis_model_standard, it.shown), ForecastPalette.standard(), ForecastLineStyle.DASHED)
+                            LegendSwatch(legendLabel(R.string.prediction_analysis_model_standard, it.shown), MaterialTheme.colorScheme.primary, ForecastLineStyle.DASHED)
                         }
                         current.adaptive?.let {
-                            LegendSwatch(legendLabel(R.string.prediction_analysis_model_adaptive, it.shown), ForecastPalette.adaptive(), ForecastLineStyle.DOTTED)
+                            LegendSwatch(legendLabel(R.string.prediction_analysis_model_adaptive, it.shown), MaterialTheme.colorScheme.tertiary, ForecastLineStyle.DOTTED)
                         }
                     }
                 }
@@ -219,8 +219,8 @@ private fun ForecastChart(
     targetHigh: Float,
 ) {
     val actualColor = MaterialTheme.colorScheme.onSurface
-    val standardColor = ForecastPalette.standard()
-    val adaptiveColor = ForecastPalette.adaptive()
+    val standardColor = MaterialTheme.colorScheme.primary
+    val adaptiveColor = MaterialTheme.colorScheme.tertiary
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val bandColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
