@@ -46,6 +46,29 @@ void testServerOrder() {
     check(list.size() == 2, "custom equal to a public server is not repeated");
 }
 
+void testBundledServerAliases() {
+    constexpr std::array<std::string_view, 4> hosts{
+        "a.juggluco.nl", "mx.juggluco.nl", "azure.juggluco.nl", "ipv6.juggluco.nl"};
+    for (const auto custom : hosts) {
+        for (size_t hashed = 0; hashed < hosts.size(); ++hashed) {
+            const auto list = buildRendezvousEndpoints(
+                {std::string(custom), 6789, false}, hosts, hashed, 6789);
+            check(list.size() == 2, "bundled custom server has only one attempt per machine");
+            check(list[0].host == custom && !list[0].verifyCertificate,
+                  "alias dedupe preserves the configured hostname and TLS policy");
+        }
+    }
+    const auto mixedCase = buildRendezvousEndpoints(
+        {"AZURE.Juggluco.NL.", 6789, false}, hosts, 0, 6789);
+    check(mixedCase.size() == 2 && mixedCase[0].host == "AZURE.Juggluco.NL." &&
+              mixedCase[1].host == "mx.juggluco.nl",
+          "DNS case and terminal dot do not create another attempt on the same machine");
+    const auto otherPort = buildRendezvousEndpoints(
+        {"azure.juggluco.nl", 7000, false}, hosts, 0, 6789);
+    check(otherPort.size() == 3 && otherPort[0].port == 7000,
+          "different ports remain independent rendezvous services");
+}
+
 // A simulated server: what it does once its attempt starts.
 using Behaviour = std::function<RendezvousAttemptResult(RendezvousAttempt &)>;
 
@@ -194,6 +217,7 @@ void testSingleServerFailing() {
 
 int main() {
     testServerOrder();
+    testBundledServerAliases();
     testHealthyPrimaryStaysAlone();
     testConnectFailureEscalatesAtOnce();
     testQuietPrimaryEscalatesAfterQuietPeriod();

@@ -22,6 +22,18 @@
 // The custom server (if any) first, then the label-hashed public server, then
 // the next public name. The bundled public list alternates between two
 // machines, so the next name is always on the other machine.
+inline std::string rendezvousServerHost(std::string_view host) {
+    if (host.ends_with('.')) host.remove_suffix(1);
+    std::string normalized(host);
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+        [](unsigned char c) { return c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c; });
+    // These bundled names share rendezvous state. Keep the selected spelling
+    // for DNS/TLS, but never race an alias against the same service.
+    if (normalized == "azure.juggluco.nl") return "a.juggluco.nl";
+    if (normalized == "ipv6.juggluco.nl") return "mx.juggluco.nl";
+    return normalized;
+}
+
 inline std::vector<RendezvousEndpoint> buildRendezvousEndpoints(
         const RendezvousEndpoint &custom,
         std::span<const std::string_view> publicHosts, size_t hashed,
@@ -29,9 +41,10 @@ inline std::vector<RendezvousEndpoint> buildRendezvousEndpoints(
     std::vector<RendezvousEndpoint> endpoints;
     const auto add = [&](RendezvousEndpoint endpoint) {
         if (endpoint.host.empty()) return;
+        const auto server = rendezvousServerHost(endpoint.host);
         const bool known = std::any_of(endpoints.begin(), endpoints.end(),
             [&](const RendezvousEndpoint &other) {
-                return other.host == endpoint.host && other.port == endpoint.port;
+                return other.port == endpoint.port && rendezvousServerHost(other.host) == server;
             });
         if (!known) endpoints.push_back(std::move(endpoint));
     };

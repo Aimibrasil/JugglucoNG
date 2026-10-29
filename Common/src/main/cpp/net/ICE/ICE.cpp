@@ -1459,8 +1459,8 @@ static RendezvousAttemptResult putDescription(
     // the negotiation (keeping every server in play) instead of retrying.
     constexpr int maxAnswerTries=3;
     int answerFailures=0;
-    const auto answerUndeliverable=[&] {
-        if(side==givefirst||++answerFailures<maxAnswerTries)
+    const auto answerUndeliverable=[&](bool rejected=false) {
+        if(side==givefirst||(!rejected&&++answerFailures<maxAnswerTries))
             return false;
         con->rendezvousEscalated=true;
         restartRejectedNegotiation(con,agent,generation,allindex,
@@ -1510,6 +1510,9 @@ static RendezvousAttemptResult putDescription(
                 }
              else if(code==400) {
                 LOGGERICE("putdescription: %s %d via %s: generation rejected\n",commonLabel.data(),side,endpoint.host.c_str());
+                // Side 1 cannot switch servers after accepting an offer. A
+                // terminal rejection must also stop the other held polls.
+                answerUndeliverable(true);
                 return RendezvousAttemptResult::Failed;
                 }
              else {

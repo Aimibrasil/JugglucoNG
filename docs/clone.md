@@ -57,6 +57,12 @@ until a connection succeeds through the first server again. Phones only meet
 on a server they both use, so keep the same app version and server settings
 on both.
 
+The public names `a.juggluco.nl` and `azure.juggluco.nl` share one server;
+`mx.juggluco.nl` and `ipv6.juggluco.nl` share the other. Clone tries each
+service only once, including when one of these names is configured manually.
+If a server rejects the receiver's answer after delivering an offer, Clone
+restarts the negotiation with the other servers enabled.
+
 ## Security and privacy
 
 Quick Pair generates a random Clone connection password. The Mirror protocol
