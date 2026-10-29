@@ -2982,11 +2982,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_scope_title">Aplicar a</string>
     <string name="data_smoothing_on_desc">Leituras com média de %1$d minutos</string>
     <string name="data_smoothing_target_chart_title">Gráfico</string>
-    <string name="data_smoothing_target_chart_desc">Gráficos da app, da notificação e do relógio</string>
-    <string name="data_smoothing_target_current_title">Glicose atual</string>
-    <string name="data_smoothing_target_current_desc">Valor, seta de tendência, widgets e alertas</string>
-    <string name="data_smoothing_target_sent_title">Leituras enviadas</string>
-    <string name="data_smoothing_target_sent_desc">Transmissões e envios para outras apps</string>
+    <string name="data_smoothing_target_current_title">Atual</string>
+    <string name="data_smoothing_target_sent_title">Enviadas</string>
     <string name="data_smoothing_fewer_summary_format">Menos leituras: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Uma leitura a cada %1$d min</string>
     <string name="data_smoothing_collapse_desc_capped">Uma leitura a cada 5 min, suavizada em %1$d min</string>

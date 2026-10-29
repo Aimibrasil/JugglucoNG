@@ -3268,11 +3268,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_scope_title">Apply to</string>
     <string name="data_smoothing_on_desc">Readings averaged over %1$d min</string>
     <string name="data_smoothing_target_chart_title">Chart</string>
-    <string name="data_smoothing_target_chart_desc">App, notification and watch charts</string>
-    <string name="data_smoothing_target_current_title">Current glucose</string>
-    <string name="data_smoothing_target_current_desc">Value, trend arrow, widgets and alerts</string>
-    <string name="data_smoothing_target_sent_title">Sent readings</string>
-    <string name="data_smoothing_target_sent_desc">Broadcasts and uploads to other apps</string>
+    <string name="data_smoothing_target_current_title">Current</string>
+    <string name="data_smoothing_target_sent_title">Sent</string>
     <string name="data_smoothing_fewer_summary_format">Fewer readings: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">One reading every %1$d min</string>
     <string name="data_smoothing_collapse_desc_capped">One reading every 5 min, smoothed over %1$d min</string>

@@ -3082,11 +3082,8 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="data_smoothing_scope_title">Жигдрүүлэх өгөгдөл</string>
     <string name="data_smoothing_on_desc">Утгыг %1$d мин-д дундажилсан</string>
     <string name="data_smoothing_target_chart_title">График</string>
-    <string name="data_smoothing_target_chart_desc">Апп, мэдэгдэл болон цагны график</string>
-    <string name="data_smoothing_target_current_title">Одоогийн глюкоз</string>
-    <string name="data_smoothing_target_current_desc">Утга, чиг хандлагын сум, виджет болон сэрэмжлүүлэг</string>
-    <string name="data_smoothing_target_sent_title">Илгээх хэмжилт</string>
-    <string name="data_smoothing_target_sent_desc">Бусад апп руу дамжуулалт ба илгээлт</string>
+    <string name="data_smoothing_target_current_title">Одоогийн</string>
+    <string name="data_smoothing_target_sent_title">Илгээх</string>
     <string name="data_smoothing_fewer_summary_format">Цөөн хэмжилт: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">%1$d минут тутамд нэг хэмжилт</string>
     <string name="data_smoothing_collapse_desc_capped">5 минут тутамд нэг хэмжилт, %1$d минутын цонхоор жигдрүүлнэ</string>

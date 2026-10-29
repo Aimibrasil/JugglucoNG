@@ -3060,11 +3060,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_scope_title">Згладжувати</string>
     <string name="data_smoothing_on_desc">Показання усереднено за %1$d хв</string>
     <string name="data_smoothing_target_chart_title">Графік</string>
-    <string name="data_smoothing_target_chart_desc">Графіки в застосунку, сповіщенні та на годиннику</string>
-    <string name="data_smoothing_target_current_title">Поточна глюкоза</string>
-    <string name="data_smoothing_target_current_desc">Значення, стрілка тренду, віджети й тривоги</string>
-    <string name="data_smoothing_target_sent_title">Передані показання</string>
-    <string name="data_smoothing_target_sent_desc">Трансляції та вивантаження в інші застосунки</string>
+    <string name="data_smoothing_target_current_title">Поточна</string>
+    <string name="data_smoothing_target_sent_title">Передача</string>
     <string name="data_smoothing_fewer_summary_format">Менше показань: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Одне показання кожні %1$d хв</string>
     <string name="data_smoothing_collapse_desc_capped">Одне показання кожні 5 хв зі згладжуванням за %1$d хв</string>

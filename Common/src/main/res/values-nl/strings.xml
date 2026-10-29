@@ -3024,11 +3024,8 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="data_smoothing_scope_title">Toepassen op</string>
     <string name="data_smoothing_on_desc">Waarden gemiddeld over %1$d min</string>
     <string name="data_smoothing_target_chart_title">Grafiek</string>
-    <string name="data_smoothing_target_chart_desc">Grafieken in app, melding en horloge</string>
-    <string name="data_smoothing_target_current_title">Huidige glucose</string>
-    <string name="data_smoothing_target_current_desc">Waarde, trendpijl, widgets en alarmen</string>
-    <string name="data_smoothing_target_sent_title">Verzonden waarden</string>
-    <string name="data_smoothing_target_sent_desc">Broadcasts en uploads naar andere apps</string>
+    <string name="data_smoothing_target_current_title">Huidig</string>
+    <string name="data_smoothing_target_sent_title">Verzonden</string>
     <string name="data_smoothing_fewer_summary_format">Minder meetwaarden: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Eén waarde per %1$d min</string>
     <string name="data_smoothing_collapse_desc_capped">Eén waarde per 5 min., afgevlakt over %1$d min</string>

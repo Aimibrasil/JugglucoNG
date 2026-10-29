@@ -3009,11 +3009,8 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="data_smoothing_scope_title">Uygulama alanı</string>
     <string name="data_smoothing_on_desc">Değerlerin %1$d dk ortalaması alınır</string>
     <string name="data_smoothing_target_chart_title">Grafik</string>
-    <string name="data_smoothing_target_chart_desc">Uygulama, bildirim ve saat grafikleri</string>
-    <string name="data_smoothing_target_current_title">Güncel glikoz</string>
-    <string name="data_smoothing_target_current_desc">Değer, eğilim oku, widget’lar ve alarmlar</string>
-    <string name="data_smoothing_target_sent_title">Gönderilen ölçümler</string>
-    <string name="data_smoothing_target_sent_desc">Diğer uygulamalara yayınlar ve yüklemeler</string>
+    <string name="data_smoothing_target_current_title">Güncel</string>
+    <string name="data_smoothing_target_sent_title">Gönderilen</string>
     <string name="data_smoothing_fewer_summary_format">Daha az ölçüm: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Her %1$d dakikada bir ölçüm</string>
     <string name="data_smoothing_collapse_desc_capped">Her 5 dakikada bir ölçüm, %1$d dakikalık pencereyle yumuşatılır</string>

@@ -3166,11 +3166,8 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="data_smoothing_scope_title">Ku dabaq</string>
     <string name="data_smoothing_on_desc">Akhrisyada waxaa la celceliyay %1$d daq</string>
     <string name="data_smoothing_target_chart_title">Garaafka</string>
-    <string name="data_smoothing_target_chart_desc">Garaafyada app-ka, ogeysiiska iyo saacadda</string>
-    <string name="data_smoothing_target_current_title">Gulukoosta hadda</string>
-    <string name="data_smoothing_target_current_desc">Qiimaha, fallaarta jihada, widget-yada iyo digniinaha</string>
-    <string name="data_smoothing_target_sent_title">Cabbirrada la diro</string>
-    <string name="data_smoothing_target_sent_desc">Baahinta iyo soo-gelinta apps kale</string>
+    <string name="data_smoothing_target_current_title">Hadda</string>
+    <string name="data_smoothing_target_sent_title">La diray</string>
     <string name="data_smoothing_fewer_summary_format">Cabbirro ka yar: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Hal cabbir %1$d daqiiqo kasta</string>
     <string name="data_smoothing_collapse_desc_capped">Hal cabbir 5 daqiiqo kasta, laguna simay %1$d daqiiqo</string>

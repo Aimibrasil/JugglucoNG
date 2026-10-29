@@ -3094,11 +3094,8 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="data_smoothing_scope_title">Glättung anwenden auf</string>
     <string name="data_smoothing_on_desc">Werte über %1$d Min gemittelt</string>
     <string name="data_smoothing_target_chart_title">Diagramm</string>
-    <string name="data_smoothing_target_chart_desc">Diagramme in App, Benachrichtigung und Uhr</string>
-    <string name="data_smoothing_target_current_title">Aktueller Glukosewert</string>
-    <string name="data_smoothing_target_current_desc">Wert, Trendpfeil, Widgets und Alarme</string>
-    <string name="data_smoothing_target_sent_title">Gesendete Werte</string>
-    <string name="data_smoothing_target_sent_desc">Broadcasts und Uploads an andere Apps</string>
+    <string name="data_smoothing_target_current_title">Aktuell</string>
+    <string name="data_smoothing_target_sent_title">Gesendet</string>
     <string name="data_smoothing_fewer_summary_format">Weniger Messwerte: %1$s</string>
     <string name="data_smoothing_collapse_desc_match">Ein Wert alle %1$d Min</string>
     <string name="data_smoothing_collapse_desc_capped">Ein Wert alle 5 Min., über %1$d Min. geglättet</string>

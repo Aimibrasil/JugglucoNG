@@ -1,14 +1,7 @@
 package tk.glucodata.ui
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,23 +10,15 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Functions
-import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -42,15 +27,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -58,15 +40,13 @@ import androidx.navigation.NavController
 import kotlin.math.roundToInt
 import tk.glucodata.DataSmoothing
 import tk.glucodata.R
-import tk.glucodata.ui.alerts.ClickableToggleRow
 import tk.glucodata.ui.components.AppTopBar
 import tk.glucodata.ui.components.CardPosition
-import tk.glucodata.ui.components.IconTile
 import tk.glucodata.ui.components.MasterSwitchCard
 import tk.glucodata.ui.components.SectionLabel
+import tk.glucodata.ui.components.SettingsChoice
+import tk.glucodata.ui.components.SettingsControlsCard
 import tk.glucodata.ui.components.SettingsSwitchItem
-import tk.glucodata.ui.components.StyledSwitch
-import tk.glucodata.ui.components.cardShape
 import tk.glucodata.ui.viewmodel.DashboardViewModel
 
 @Composable
@@ -100,7 +80,7 @@ fun DataSmoothingSettingsScreen(
     }
 
     val smoothedAnywhere = targets.chart || targets.current || targets.sent
-    var expandedTarget by rememberSaveable { mutableStateOf<Int?>(null) }
+    val fewerScope = dataSmoothingFewerScopeLabel(targets)
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
@@ -120,10 +100,14 @@ fun DataSmoothingSettingsScreen(
         ) {
             MasterSwitchCard(
                 title = stringResource(R.string.graph_smoothing_title),
-                subtitle = if (isEnabled && smoothedAnywhere) {
-                    stringResource(R.string.data_smoothing_on_desc, smoothingMinutes)
-                } else {
-                    stringResource(R.string.settings_smoothing_off_desc)
+                subtitle = when {
+                    isEnabled && smoothedAnywhere -> stringResource(R.string.data_smoothing_on_desc, smoothingMinutes)
+                    // Only thinned: say where, rather than "shown as measured" under an on switch.
+                    isEnabled && fewerScope != null -> stringResource(
+                        R.string.data_smoothing_fewer_summary_format,
+                        stringResource(fewerScope)
+                    )
+                    else -> stringResource(R.string.settings_smoothing_off_desc)
                 },
                 checked = isEnabled,
                 onCheckedChange = { viewModel.setDataSmoothingEnabled(it) },
@@ -219,61 +203,41 @@ fun DataSmoothingSettingsScreen(
                     }
                 }
 
-                // Each place opens like an alert card: the switch smooths it, the body holds
-                // what else applies there. Fewer readings works with or without smoothing.
+                // Where each mechanism applies, as two rows of the same three places: a
+                // 3×2 choice reads best as a grid, not as six switches. Either row may be
+                // empty; Fewer readings works with or without smoothing.
                 SectionLabel(stringResource(R.string.data_smoothing_scope_title))
-                val fewerTitle = stringResource(R.string.data_smoothing_collapse_title)
-                val fewerSubtitle = collapseSubtitle + "\n" + stringResource(R.string.data_smoothing_preserve_originals)
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SmoothingTargetCard(
-                        title = stringResource(R.string.data_smoothing_target_chart_title),
-                        description = stringResource(R.string.data_smoothing_target_chart_desc),
-                        icon = Icons.AutoMirrored.Filled.ShowChart,
-                        smoothed = targets.chart,
-                        onSmoothedChange = { viewModel.setDataSmoothingTargets(targets.copy(chart = it)) },
-                        fewer = targets.fewerChart,
-                        onFewerChange = { viewModel.setDataSmoothingTargets(targets.copy(fewerChart = it)) },
-                        fewerTitle = fewerTitle,
-                        fewerSubtitle = fewerSubtitle,
-                        expanded = isEnabled && expandedTarget == TARGET_CHART,
-                        onExpand = { expandedTarget = if (expandedTarget == TARGET_CHART) null else TARGET_CHART },
-                        position = CardPosition.TOP,
-                        enabled = isEnabled
+                val places = remember { DataSmoothingPlace.entries.toList() }
+                val placeLabels = places.map { stringResource(it.label) }
+                SettingsControlsCard {
+                    SettingsChoice(
+                        title = stringResource(R.string.graph_smoothing_title),
+                        options = places,
+                        labels = placeLabels,
+                        selectedOptions = places.filter { it.smoothed(targets) },
+                        multiSelect = true,
+                        onOptionSelected = { place ->
+                            if (isEnabled) viewModel.setDataSmoothingTargets(place.toggleSmoothed(targets))
+                        }
                     )
-                    SmoothingTargetCard(
-                        title = stringResource(R.string.data_smoothing_target_current_title),
-                        description = stringResource(R.string.data_smoothing_target_current_desc),
-                        icon = Icons.Default.WaterDrop,
-                        smoothed = targets.current,
-                        onSmoothedChange = { viewModel.setDataSmoothingTargets(targets.copy(current = it)) },
-                        fewer = targets.fewerCurrent,
-                        onFewerChange = { viewModel.setDataSmoothingTargets(targets.copy(fewerCurrent = it)) },
-                        fewerTitle = fewerTitle,
-                        fewerSubtitle = fewerSubtitle,
-                        expanded = isEnabled && expandedTarget == TARGET_CURRENT,
-                        onExpand = { expandedTarget = if (expandedTarget == TARGET_CURRENT) null else TARGET_CURRENT },
-                        position = CardPosition.MIDDLE,
-                        enabled = isEnabled
-                    )
-                    SmoothingTargetCard(
-                        title = stringResource(R.string.data_smoothing_target_sent_title),
-                        description = stringResource(R.string.data_smoothing_target_sent_desc),
-                        icon = Icons.AutoMirrored.Filled.Send,
-                        smoothed = targets.sent,
-                        onSmoothedChange = { viewModel.setDataSmoothingTargets(targets.copy(sent = it)) },
-                        fewer = targets.fewerSent,
-                        onFewerChange = { viewModel.setDataSmoothingTargets(targets.copy(fewerSent = it)) },
-                        fewerTitle = fewerTitle,
-                        fewerSubtitle = fewerSubtitle,
-                        expanded = isEnabled && expandedTarget == TARGET_SENT,
-                        onExpand = { expandedTarget = if (expandedTarget == TARGET_SENT) null else TARGET_SENT },
-                        position = CardPosition.BOTTOM,
-                        enabled = isEnabled
+                    SettingsChoice(
+                        title = stringResource(R.string.data_smoothing_collapse_title),
+                        options = places,
+                        labels = placeLabels,
+                        selectedOptions = places.filter { it.fewer(targets) },
+                        multiSelect = true,
+                        onOptionSelected = { place ->
+                            if (isEnabled) viewModel.setDataSmoothingTargets(place.toggleFewer(targets))
+                        }
                     )
                 }
+                Text(
+                    text = collapseSubtitle + " · " + stringResource(R.string.data_smoothing_preserve_originals),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
+                )
 
-                // Kalman shapes the newest value wherever it is smoothed (current glucose and
-                // live sent readings), so it belongs to no single place.
                 Spacer(Modifier.height(24.dp))
                 SettingsSwitchItem(
                     title = stringResource(R.string.data_smoothing_causal_title),
@@ -290,97 +254,34 @@ fun DataSmoothingSettingsScreen(
     }
 }
 
-private const val TARGET_CHART = 0
-private const val TARGET_CURRENT = 1
-private const val TARGET_SENT = 2
+/** The three places readings go, as the button groups list them. */
+private enum class DataSmoothingPlace(val label: Int) {
+    CHART(R.string.data_smoothing_target_chart_title),
+    CURRENT(R.string.data_smoothing_target_current_title),
+    SENT(R.string.data_smoothing_target_sent_title);
 
-/**
- * One place readings go, laid out as the Alerts screen's alert card: icon, what the place
- * covers, chevron, then the switch that smooths it. Opening it shows Fewer readings for
- * that place alone.
- */
-@Composable
-private fun SmoothingTargetCard(
-    title: String,
-    description: String,
-    icon: ImageVector,
-    smoothed: Boolean,
-    onSmoothedChange: (Boolean) -> Unit,
-    fewer: Boolean,
-    onFewerChange: (Boolean) -> Unit,
-    fewerTitle: String,
-    fewerSubtitle: String,
-    expanded: Boolean,
-    onExpand: () -> Unit,
-    position: CardPosition,
-    enabled: Boolean,
-) {
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        label = "smoothingTargetChevron"
-    )
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = cardShape(position),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 72.dp)
-                    .clickable(enabled = enabled, onClick = onExpand)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconTile(icon = icon, tint = MaterialTheme.colorScheme.primary)
-                Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = if (fewer) "$description • $fewerTitle" else description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.Default.ExpandMore,
-                    contentDescription = stringResource(
-                        if (expanded) R.string.collapse_action else R.string.expand_action
-                    ),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer { rotationZ = chevronRotation }
-                )
-                Spacer(Modifier.width(16.dp))
-                StyledSwitch(checked = smoothed, onCheckedChange = onSmoothedChange, enabled = enabled)
-            }
+    fun smoothed(t: DataSmoothing.Targets) = when (this) {
+        CHART -> t.chart
+        CURRENT -> t.current
+        SENT -> t.sent
+    }
 
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                        .padding(vertical = 8.dp)
-                ) {
-                    ClickableToggleRow(
-                        title = fewerTitle,
-                        subtitle = fewerSubtitle,
-                        checked = fewer,
-                        onCheckedChange = onFewerChange
-                    )
-                }
-            }
-        }
+    fun fewer(t: DataSmoothing.Targets) = when (this) {
+        CHART -> t.fewerChart
+        CURRENT -> t.fewerCurrent
+        SENT -> t.fewerSent
+    }
+
+    fun toggleSmoothed(t: DataSmoothing.Targets) = when (this) {
+        CHART -> t.copy(chart = !t.chart)
+        CURRENT -> t.copy(current = !t.current)
+        SENT -> t.copy(sent = !t.sent)
+    }
+
+    fun toggleFewer(t: DataSmoothing.Targets) = when (this) {
+        CHART -> t.copy(fewerChart = !t.fewerChart)
+        CURRENT -> t.copy(fewerCurrent = !t.fewerCurrent)
+        SENT -> t.copy(fewerSent = !t.fewerSent)
     }
 }
 

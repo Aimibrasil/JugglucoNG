@@ -16,9 +16,7 @@ class SettingsCopyLocalizationTests {
     private val keys = listOf(
         "data_smoothing_window_title", "data_smoothing_window_desc", "data_smoothing_on_desc",
         "data_smoothing_scope_title", "data_smoothing_scope_all",
-        "data_smoothing_target_chart_title", "data_smoothing_target_chart_desc",
-        "data_smoothing_target_current_title", "data_smoothing_target_current_desc",
-        "data_smoothing_target_sent_title", "data_smoothing_target_sent_desc",
+        "data_smoothing_target_chart_title", "data_smoothing_target_current_title", "data_smoothing_target_sent_title",
         "data_smoothing_scope_graph_and_sent", "data_smoothing_scope_chart_and_current", "data_smoothing_scope_current_and_sent",
         "data_smoothing_graph_only_title", "data_smoothing_scope_current_only", "data_smoothing_exchange_only_title",
         "data_smoothing_collapse_title", "data_smoothing_collapse_desc_match",
@@ -87,7 +85,6 @@ class SettingsCopyLocalizationTests {
         val subtitles = listOf(
             "nightscout_send_amounts_desc", "nightscout_send_long_insulin_desc", "nightscout_receive_amounts_desc",
             "nightscout_upload_iob_desc", "nightscout_use_v3_api_desc", "nightscout_follow_use_v3_api_desc",
-            "data_smoothing_target_chart_desc", "data_smoothing_target_current_desc", "data_smoothing_target_sent_desc",
             "data_smoothing_collapse_desc_match", "data_smoothing_collapse_desc_capped"
         )
         for (file in files) {

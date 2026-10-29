@@ -2995,11 +2995,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_scope_title">平滑范围</string>
     <string name="data_smoothing_on_desc">读数按 %1$d 分钟取平均</string>
     <string name="data_smoothing_target_chart_title">图表</string>
-    <string name="data_smoothing_target_chart_desc">应用、通知和手表中的图表</string>
-    <string name="data_smoothing_target_current_title">当前血糖</string>
-    <string name="data_smoothing_target_current_desc">数值、趋势箭头、小组件和警报</string>
-    <string name="data_smoothing_target_sent_title">发送的读数</string>
-    <string name="data_smoothing_target_sent_desc">向其他应用的广播和上传</string>
+    <string name="data_smoothing_target_current_title">当前</string>
+    <string name="data_smoothing_target_sent_title">发送</string>
     <string name="data_smoothing_fewer_summary_format">减少读数：%1$s</string>
     <string name="data_smoothing_collapse_desc_match">每 %1$d 分钟一个读数</string>
     <string name="data_smoothing_collapse_desc_capped">每 5 分钟一个读数，使用 %1$d 分钟的平滑窗口</string>
