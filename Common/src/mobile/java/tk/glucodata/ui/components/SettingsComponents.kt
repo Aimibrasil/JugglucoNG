@@ -641,7 +641,8 @@ fun <T> SettingsChoice(
             modifier = Modifier.fillMaxWidth(),
             selectedContainerColor = MaterialTheme.colorScheme.secondary,
             selectedContentColor = MaterialTheme.colorScheme.onSecondary,
-            unselectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            // Match the recessed unselected controls used by alert settings.
+            unselectedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
             unselectedContentColor = MaterialTheme.colorScheme.onSurface
         )
     }
