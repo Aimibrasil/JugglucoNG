@@ -2768,10 +2768,12 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="insulin_pen_full_read">Наступного разу зчитати весь журнал</string>
     <string name="insulin_pen_full_read_armed">Готово — піднесіть ручку до телефона</string>
     <string name="insulin_pen_full_read_desc">Ручка зберігає дози за кілька місяців, і повне зчитування триває кілька секунд без відриву. Так можна взяти дані, старіші за останній імпорт.</string>
+    <string name="insulin_pen_full_read_off">Щоб зчитати ручку, увімкніть «Зчитувати інсулінові ручки».</string>
     <string name="insulin_pen_read_cut_short">Ручку прибрали надто рано. Тримайте її біля телефона, доки він не завібрує.</string>
     <string name="insulin_pen_background_title">Імпорт у фоні</string>
-    <string name="insulin_pen_background_desc">Коли застосунок не відкрито, нові дози ручки, прикладеної до телефона, додаються до журналу без запитань.</string>
-    <string name="insulin_pen_background_desc_more">Продувки пропускаються. Екран має бути ввімкнений, а телефон розблокований — Android не читає NFC з вимкненим екраном. Будь-яка безконтактна картка, прикладена до телефона, на мить будить зчитувач, а інші застосунки для карток можуть запитати, який застосунок використати.</string>
+    <string name="insulin_pen_background_desc">Додає нові дози без запитань, коли застосунок закрито</string>
+    <string name="insulin_pen_background_desc_more">Продувки пропускаються, а телефон має бути розблокований. Будь-яка безконтактна картка, прикладена до телефона, на мить будить зчитувач, а інші застосунки для карток можуть запитати, який застосунок використати.</string>
+    <string name="insulin_pen_notification_duration">Сповіщення після імпорту</string>
     <string name="insulin_pen_import_channel">Імпорт з ручки</string>
     <plurals name="insulin_pen_imported_count">
         <item quantity="one">%d дозу додано до журналу</item>

@@ -2804,10 +2804,12 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="insulin_pen_full_read">Дараагийн удаа бүх бүртгэлийг унших</string>
     <string name="insulin_pen_full_read_armed">Бэлэн — үзгээ утсандаа ойртуулна уу</string>
     <string name="insulin_pen_full_read_desc">Үзэг хэдэн сарын тунг хадгалдаг бөгөөд бүрэн уншихад хэдэн секунд тогтвортой хүрэлцээ шаардана. Сүүлийн оруулснаас цааш ухахад ашиглана.</string>
+    <string name="insulin_pen_full_read_off">Үзэг уншихын тулд «Инсулины үзэг унших»-ыг асаана уу.</string>
     <string name="insulin_pen_read_cut_short">Үзгийг хэт эрт авчихлаа. Утас чичрэх хүртэл барина уу.</string>
     <string name="insulin_pen_background_title">Арын горимд импортлох</string>
-    <string name="insulin_pen_background_desc">Апп нээлттэй биш үед утсанд ойртуулсан үзэгний шинэ тунгууд асуулгүйгээр өдрийн тэмдэглэлд нэмэгдэнэ.</string>
-    <string name="insulin_pen_background_desc_more">Агааржуулалтын тунг алгасна. Дэлгэц асаалттай, утас түгжээгүй байх ёстой — дэлгэц унтраалттай үед Android NFC уншдаггүй. Утсанд ойртуулсан аливаа контактгүй карт уншигчийг хормын төдий сэрээх бөгөөд бусад картын аппууд аль аппыг ашиглахыг асууж магадгүй.</string>
+    <string name="insulin_pen_background_desc">Апп хаалттай үед шинэ тунгуудыг асуулгүйгээр нэмнэ</string>
+    <string name="insulin_pen_background_desc_more">Агааржуулалтын тунг алгасах бөгөөд утас түгжээгүй байх ёстой. Утсанд ойртуулсан аливаа контактгүй карт уншигчийг хормын төдий сэрээх бөгөөд бусад картын аппууд аль аппыг ашиглахыг асууж магадгүй.</string>
+    <string name="insulin_pen_notification_duration">Импортын дараах мэдэгдэл</string>
     <string name="insulin_pen_import_channel">Үзэгний импорт</string>
     <plurals name="insulin_pen_imported_count">
         <item quantity="one">%d тун тэмдэглэлд нэмэгдлээ</item>
