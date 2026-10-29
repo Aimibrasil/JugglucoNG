@@ -39,13 +39,16 @@ class PredictionAnalysisViewModel : ViewModel() {
     val moment = _moment.asStateFlow()
 
     private var momentJob: Job? = null
+    private var refreshJob: Job? = null
 
+    /** One load at a time: a slow 90-day load must not land after a quicker 7-day one. */
     fun refresh() {
         val period = _periodDays.value
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             runCatching { repository.snapshot(period) }
-                .onSuccess { _snapshot.value = it }
-                .onFailure { Log.stack(LOG_ID, "snapshot", it) }
+                .onSuccess { if (_periodDays.value == period) _snapshot.value = it }
+                .onFailure { if (it !is kotlinx.coroutines.CancellationException) Log.stack(LOG_ID, "snapshot", it) }
         }
     }
 

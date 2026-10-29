@@ -64,6 +64,21 @@ class AdaptiveHistory(
         return mgdl[i] + (mgdl[i + 1] - mgdl[i]) * ((t - t0).toFloat() / (t1 - t0).toFloat())
     }
 
+    /**
+     * Whether [segmentId] has readings across all of [fromMs, toMs] with no gap longer than
+     * [maxGapMs]. Five spot lookups can each find a value while a hole sits between them.
+     */
+    fun continuous(fromMs: Long, toMs: Long, segmentId: Int): Boolean {
+        val first = indexAtOrBefore(fromMs)
+        val last = indexAtOrBefore(toMs)
+        if (first < 0 || last < first) return false
+        for (i in first..last) {
+            if (segment[i] != segmentId) return false
+            if (i > first && times[i] - times[i - 1] > maxGapMs) return false
+        }
+        return true
+    }
+
     /** Mean of the readings in [fromMs, toMs], all sensors; NaN when there are none. */
     fun meanBetween(fromMs: Long, toMs: Long): Float {
         val hi = indexAtOrBefore(toMs)
@@ -228,6 +243,7 @@ object AdaptiveGlucoseForecast {
         if (!(v0.isFinite() && v5.isFinite() && v15.isFinite() && v30.isFinite() && v60.isFinite() && mean.isFinite())) {
             return false
         }
+        if (!history.continuous(t - 60 * MINUTE_MS, t, seg)) return false
         val tod = 2.0 * PI * (Math.floorMod(t + timeZone.getOffset(t), DAY_MS).toDouble() / DAY_MS)
         out[0] = (v0 - v5).toDouble()
         out[1] = (v0 - v15).toDouble()

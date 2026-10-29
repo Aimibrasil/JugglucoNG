@@ -127,11 +127,25 @@ object PredictionAccuracy {
     /** Below this many it is an early estimate: under a day of five-minute forecasts. */
     const val SETTLED_COUNT = 288
 
-    fun outcome(forecast: RecordedForecastEntity, horizonMinutes: Int, actual: ActualGlucose): Pair<Outcome, Float> {
+    /**
+     * How long after its time a reading may still arrive (a backfill, a late sync). An outcome
+     * past this with no reading after it is missing — the sensor stopped or its history went —
+     * not pending.
+     */
+    const val ARRIVAL_ALLOWANCE_MS = 30 * 60_000L
+
+    fun outcome(
+        forecast: RecordedForecastEntity,
+        horizonMinutes: Int,
+        actual: ActualGlucose,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Pair<Outcome, Float> {
         val predicted = forecast.valueAt(horizonMinutes)
         if (!predicted.isFinite()) return Outcome.MISSING to Float.NaN
         val target = forecast.originTime + horizonMinutes * 60_000L
-        if (target > actual.latestTime(forecast.sensorSerial)) return Outcome.PENDING to Float.NaN
+        if (target > actual.latestTime(forecast.sensorSerial)) {
+            return (if (target > nowMs - ARRIVAL_ALLOWANCE_MS) Outcome.PENDING else Outcome.MISSING) to Float.NaN
+        }
         val value = actual.valueAt(forecast.sensorSerial, forecast.lane, target)
         return if (value.isFinite()) Outcome.RESOLVED to value else Outcome.MISSING to Float.NaN
     }
@@ -142,6 +156,7 @@ object PredictionAccuracy {
         horizons: IntArray = DEFAULT_HORIZONS,
         dailyHorizonMinutes: Int = 30,
         zone: ZoneId = ZoneId.systemDefault(),
+        nowMs: Long = System.currentTimeMillis(),
     ): AccuracyReport {
         val byModel = forecasts.groupBy { ForecastModel.fromStorage(it.model) }
         val models = ForecastModel.entries.mapNotNull { model ->
@@ -151,7 +166,7 @@ object PredictionAccuracy {
                 model = model,
                 forecasts = list.size,
                 fallbacks = list.count { it.fallback },
-                horizons = horizons.map { h -> horizonAccuracy(list, h, actual) },
+                horizons = horizons.map { h -> horizonAccuracy(list, h, actual, nowMs) },
             )
         }
 
@@ -165,8 +180,8 @@ object PredictionAccuracy {
             var adaptiveSum = 0.0
             var noChangeSum = 0.0
             for ((standard, adaptive) in pairs) {
-                val (o1, actualStandard) = outcome(standard, h, actual)
-                val (o2, actualAdaptive) = outcome(adaptive, h, actual)
+                val (o1, actualStandard) = outcome(standard, h, actual, nowMs)
+                val (o2, actualAdaptive) = outcome(adaptive, h, actual, nowMs)
                 if (o1 != Outcome.RESOLVED || o2 != Outcome.RESOLVED) continue
                 n++
                 standardSum += abs(standard.valueAt(h) - actualStandard)
@@ -183,7 +198,7 @@ object PredictionAccuracy {
             var n = 0
             var sum = 0.0
             for (f in list) {
-                val (o, value) = outcome(f, dailyHorizonMinutes, actual)
+                val (o, value) = outcome(f, dailyHorizonMinutes, actual, nowMs)
                 if (o != Outcome.RESOLVED) continue
                 n++
                 sum += abs(f.valueAt(dailyHorizonMinutes) - value)
@@ -201,7 +216,7 @@ object PredictionAccuracy {
         )
     }
 
-    private fun horizonAccuracy(list: List<RecordedForecastEntity>, h: Int, actual: ActualGlucose): HorizonAccuracy {
+    private fun horizonAccuracy(list: List<RecordedForecastEntity>, h: Int, actual: ActualGlucose, nowMs: Long): HorizonAccuracy {
         var n = 0
         var pending = 0
         var missing = 0
@@ -210,7 +225,7 @@ object PredictionAccuracy {
         var sumSq = 0.0
         var noChange = 0.0
         for (f in list) {
-            val (o, value) = outcome(f, h, actual)
+            val (o, value) = outcome(f, h, actual, nowMs)
             when (o) {
                 Outcome.PENDING -> pending++
                 Outcome.MISSING -> missing++

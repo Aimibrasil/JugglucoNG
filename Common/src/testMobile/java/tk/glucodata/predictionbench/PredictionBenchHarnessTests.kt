@@ -164,6 +164,16 @@ class PredictionBenchHarnessTests {
     }
 
     @Test
+    fun aPooledLaneScoresOnlyAgainstTheOriginsOwnSensor() {
+        // Sensor 0 ends at 2 min, sensor 1 starts at 4 min: an outcome at 3 min belongs to neither.
+        val lane = Lane("P", "person", longArrayOf(0L, 60_000L, 120_000L, 240_000L, 300_000L),
+            floatArrayOf(100f, 100f, 100f, 200f, 200f), isMmol = false, segments = intArrayOf(0, 0, 0, 1, 1))
+        assertTrue(Benchmark.truthAt(lane, 180_000L, 6 * 60_000L, segment = 0).isNaN())
+        assertTrue(Benchmark.truthAt(lane, 240_000L, 6 * 60_000L, segment = 0).isNaN())
+        assertEquals(200f, Benchmark.truthAt(lane, 240_000L, 6 * 60_000L, segment = 1), 0f)
+    }
+
+    @Test
     fun decimationKeepsTheCadenceAsked() {
         val lane = syntheticLane(0.5, isMmol = false).decimated(5)
         val gaps = (1 until lane.size).map { (lane.times[it] - lane.times[it - 1]) / 60_000.0 }

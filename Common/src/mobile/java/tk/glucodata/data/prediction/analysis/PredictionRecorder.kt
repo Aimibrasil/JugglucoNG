@@ -97,7 +97,10 @@ object PredictionRecorder : PredictionAnalysisBridge {
         val prefs = context.getSharedPreferences(SettingsRegistry.FILE, Context.MODE_PRIVATE)
         val isMmol = GlucoseFormatter.isMmolApp()
         val unit = if (isMmol) "mmol/L" else "mg/dL"
-        val history = runBlocking { HistoryRepository().getHistoryForDisplaySensor(serial, nowMs - HISTORY_SPAN_MS) }
+        // The merged timeline the dashboard chart draws, not only the main sensor's rows: just
+        // after a sensor switch the chart still shows the previous sensor's last readings, and
+        // a recording marked as shown must be the curve that was shown.
+        val history = runBlocking { HistoryRepository().loadMergedWindow(serial, nowMs - HISTORY_SPAN_MS, Long.MAX_VALUE) }
             .sortedBy { it.timestamp }
             .inDisplayUnit(isMmol)
         val newest = history.lastOrNull { it.value.isFinite() && it.value > 0.1f } ?: return 0

@@ -42,11 +42,13 @@ class PredictionAnalysisRepository(private val context: Context) {
 
     suspend fun snapshot(periodDays: Int, nowMs: Long = System.currentTimeMillis()): PredictionAnalysisSnapshot =
         withContext(Dispatchers.IO) {
+            // Retention holds even when nothing is being recorded any more.
+            dao.deleteOlderThan(nowMs - PredictionRecorder.RETENTION_DAYS * DAY_MS)
             val from = nowMs - periodDays * DAY_MS
             val forecasts = dao.between(from, nowMs)
             val actual = actualFor(forecasts, from)
             PredictionAnalysisSnapshot(
-                report = PredictionAccuracy.report(forecasts, actual),
+                report = PredictionAccuracy.report(forecasts, actual, nowMs = nowMs),
                 storedForecasts = dao.count(),
                 storedBytes = PredictionAnalysisDatabase.sizeOnDisk(context),
             )

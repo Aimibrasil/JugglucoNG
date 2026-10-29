@@ -48,7 +48,9 @@ class PredictionBenchmarkRun {
                     "person" -> {
                         // One person's sensors end to end: learners keep what they learned across a
                         // sensor change. Scored per sensor period, so it lines up with "native".
+                        // Oldest sensor first: the pairs share one learner, which may only move forward in time.
                         val auto = dataset.lanes.filter { it.laneName == "auto" }.ifEmpty { dataset.lanes }
+                            .sortedBy { it.times.first() }
                         val person = Lane.person("person", auto)
                         auto.map { LanePair(person, person, it.times.first(), it.times.last(), "${it.id} (pooled)") } to
                             "All sensors as one person, scored per sensor period."

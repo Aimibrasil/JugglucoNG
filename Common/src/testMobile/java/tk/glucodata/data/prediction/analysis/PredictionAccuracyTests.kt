@@ -71,11 +71,22 @@ class PredictionAccuracyTests {
     fun anOutcomeStillInTheFutureIsPendingNotAnError() {
         // Readings stop 40 minutes after the origin: 15 and 30 are resolved, 60 and 120 pending.
         val actual = ActualGlucose(mapOf("S1" to readings(t0 - 60 * minute, t0 + 40 * minute)))
-        val horizons = PredictionAccuracy.report(listOf(forecast(t0, flat())), actual).model(ForecastModel.STANDARD)!!.horizons
+        val horizons = PredictionAccuracy.report(listOf(forecast(t0, flat())), actual, nowMs = t0 + 41 * minute)
+            .model(ForecastModel.STANDARD)!!.horizons
         assertEquals(1, horizons.first { it.horizonMinutes == 30 }.count)
         assertEquals(1, horizons.first { it.horizonMinutes == 60 }.pending)
         assertEquals(0, horizons.first { it.horizonMinutes == 60 }.count)
         assertEquals(1, horizons.first { it.horizonMinutes == 120 }.pending)
+    }
+
+    @Test
+    fun aSensorThatStoppedLongAgoLeavesItsOutcomesMissingNotPending() {
+        // The readings end 40 minutes in and it is now a day later: nothing more will arrive.
+        val actual = ActualGlucose(mapOf("S1" to readings(t0 - 60 * minute, t0 + 40 * minute)))
+        val nowMs = t0 + 24 * 60 * minute
+        assertEquals(Outcome.MISSING, PredictionAccuracy.outcome(forecast(t0, flat()), 60, actual, nowMs).first)
+        // Within the arrival allowance it is still pending.
+        assertEquals(Outcome.PENDING, PredictionAccuracy.outcome(forecast(t0, flat()), 60, actual, t0 + 70 * minute).first)
     }
 
     @Test
@@ -108,7 +119,7 @@ class PredictionAccuracyTests {
     @Test
     fun anotherSensorsReadingsNeverScoreAForecast() {
         val actual = ActualGlucose(mapOf("S2" to readings(t0 - 60 * minute, t0 + 200 * minute)))
-        val (outcome, _) = PredictionAccuracy.outcome(forecast(t0, flat(), sensor = "S1"), 30, actual)
+        val (outcome, _) = PredictionAccuracy.outcome(forecast(t0, flat(), sensor = "S1"), 30, actual, nowMs = t0)
         assertEquals(Outcome.PENDING, outcome)
     }
 

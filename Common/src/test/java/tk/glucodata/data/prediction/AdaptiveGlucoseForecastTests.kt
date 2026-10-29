@@ -116,6 +116,21 @@ class AdaptiveGlucoseForecastTests {
     }
 
     @Test
+    fun aHoleInsideTheHourIsCaughtEvenWhenEverySpotLookupLands() {
+        // Readings at t−60 and from t−35 on: the 5/15/30/60-minute lookups all find values, but
+        // 25 minutes of the hour are missing, so the features must not be formed.
+        val h = history(days = 3.0)
+        val t = h.times[h.size - 40]
+        val keep = h.times.indices.filter { h.times[it] <= t - 60 * minute || h.times[it] >= t - 35 * minute }
+        val holed = AdaptiveHistory(
+            LongArray(keep.size) { h.times[keep[it]] }, FloatArray(keep.size) { h.mgdl[keep[it]] }, IntArray(keep.size) { h.segment[keep[it]] },
+        )
+        val model = AdaptiveGlucoseForecast.fit(h, h.times.last(), utc)!!
+        assertNotNull(AdaptiveGlucoseForecast.forecastDeltas(model, h, t, utc))
+        assertNull(AdaptiveGlucoseForecast.forecastDeltas(model, holed, t, utc))
+    }
+
+    @Test
     fun aSavedModelLoadsBackTheSame() {
         val model = AdaptiveGlucoseForecast.fit(history(days = 5.0), start + 5 * day - 10 * minute, utc)!!
         val loaded = AdaptiveForecastModel.decode(model.encode())!!

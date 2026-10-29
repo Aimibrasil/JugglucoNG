@@ -89,7 +89,9 @@ object Benchmark {
                 val view = OriginView(lane, i, OriginView.journalFor(laneJournal, config.journalMode, t0, maxHorizonMs),
                     dataset.presets, dataset.unit, profile, laneHistory, config.journalMode)
                 if (view.size - view.indexAtOrBefore(t0 - 60 * 60_000L) < 5) continue
-                val truths = FloatArray(horizons.size) { truthAt(pair.truth, t0 + horizons[it] * 60_000L, truthGap) }
+                // An outcome is only ever the origin's own sensor: never the next one in a pooled lane.
+                val segment = if (pair.truth.segments != null) lane.segmentAt(i) else null
+                val truths = FloatArray(horizons.size) { truthAt(pair.truth, t0 + horizons[it] * 60_000L, truthGap, segment) }
                 if (truths.none { it.isFinite() }) continue
                 val preds = Array(forecasters.size) { f ->
                     val p = try {
@@ -114,7 +116,7 @@ object Benchmark {
     }
 
     /** The lane's value at [t]: the reading on it, or a straight line between readings at most [maxGapMs] apart. */
-    fun truthAt(lane: Lane, t: Long, maxGapMs: Long): Float {
+    fun truthAt(lane: Lane, t: Long, maxGapMs: Long, segment: Int? = null): Float {
         var lo = 0
         var hi = lane.size - 1
         var i = -1
@@ -123,8 +125,10 @@ object Benchmark {
             if (lane.times[mid] <= t) { i = mid; lo = mid + 1 } else hi = mid - 1
         }
         if (i < 0) return Float.NaN
+        if (segment != null && lane.segmentAt(i) != segment) return Float.NaN
         if (lane.times[i] == t) return lane.mgdl(i)
         if (i + 1 >= lane.size) return Float.NaN
+        if (segment != null && lane.segmentAt(i + 1) != segment) return Float.NaN
         val t0 = lane.times[i]
         val t1 = lane.times[i + 1]
         if (t1 - t0 > maxGapMs) return Float.NaN
