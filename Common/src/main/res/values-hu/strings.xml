@@ -3162,4 +3162,66 @@ Az OK megnyomása létrehoz egy kapcsolatot ezen a telefonon, és megjelenít eg
     <string name="settings_search_hint">Keresés a beállításokban</string>
     <string name="settings_search_no_results">Nincs a(z) „%1$s” keresésnek megfelelő beállítás</string>
     <string name="settings_search_clear">Keresés törlése</string>
+    <string name="prediction_analysis_section">Előrejelzés-elemzés</string>
+    <string name="prediction_analysis_record">Előrejelzések rögzítése</string>
+    <string name="prediction_analysis_record_summary">Minden előrejelzés megőrzése ezen a telefonon, hogy összevethető legyen a történtekkel</string>
+    <string name="prediction_analysis_accuracy">Előrejelzések pontossága</string>
+    <string name="prediction_analysis_accuracy_summary">Átlagosan %1$s eltérés 30 percnél</string>
+    <string name="prediction_analysis_accuracy_waiting">Még nincs eredmény</string>
+    <string name="prediction_adaptive_title">Adaptív előrejelzés</string>
+    <string name="prediction_adaptive_summary">Kísérleti · a saját méréseiből tanul</string>
+    <string name="prediction_adaptive_learning">Kísérleti · tanul, 2 nap mérés kell hozzá</string>
+    <string name="prediction_adaptive_not_better">Kísérleti · még nem jobb a „nincs változás”-nál, a standard látható</string>
+    <string name="prediction_adaptive_caption">A standard helyett a saját méréseiből tanult előrejelzést rajzolja. A rögzített inzulint és szénhidrátot figyelmen kívül hagyja. A riasztások továbbra is a standard előrejelzést használják.</string>
+    <string name="prediction_analysis_typical_error">Jellemző hiba</string>
+    <string name="prediction_analysis_typical_error_caption">Az előrejelzés és az utána következő mérés átlagos távolsága</string>
+    <string name="prediction_analysis_minutes">%1$d perc</string>
+    <string name="prediction_analysis_not_enough">Még kevés</string>
+    <string name="prediction_analysis_early">Korai becslés</string>
+    <string name="prediction_analysis_compare_title">A „nincs változás”-hoz képest</string>
+    <string name="prediction_analysis_compare_caption">A „nincs változás” azt feltételezi, hogy a glükóz ott marad, ahol volt. Egy hasznos előrejelzés ennél jobb.</string>
+    <string name="prediction_analysis_model_standard">Standard előrejelzés</string>
+    <string name="prediction_analysis_model_adaptive">Adaptív előrejelzés</string>
+    <string name="prediction_analysis_model_no_change">Nincs változás</string>
+    <string name="prediction_analysis_bias_high">Átlagosan %1$s-tel magasabb volt</string>
+    <string name="prediction_analysis_bias_low">Átlagosan %1$s-tel alacsonyabb volt</string>
+    <string name="prediction_analysis_daily_title">Jellemző hiba naponként</string>
+    <string name="prediction_analysis_past_title">Korábbi előrejelzések</string>
+    <string name="prediction_analysis_past_summary">Mit mondott az egyes előrejelzés, és mi következett</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · 90 napig megőrizve</string>
+    <string name="prediction_analysis_clear">Rögzített előrejelzések törlése</string>
+    <string name="prediction_analysis_clear_summary">A pontosság számítása nulláról indul</string>
+    <string name="prediction_analysis_clear_title">Törli a rögzített előrejelzéseket?</string>
+    <string name="prediction_analysis_clear_body">Minden rögzített előrejelzés törlődik. A mérések és a napló bejegyzései megmaradnak.</string>
+    <string name="prediction_analysis_empty_title">Még nincs rögzített előrejelzés</string>
+    <string name="prediction_analysis_empty_off">Kapcsolja be a rögzítést, és innentől minden előrejelzés megmarad, hogy össze lehessen vetni a történtekkel.</string>
+    <string name="prediction_analysis_empty_on">A rögzítés be van kapcsolva. Az eredmények akkor jelennek meg, amikor az előrejelzéseknek volt idejük beteljesülni.</string>
+    <string name="prediction_analysis_turn_on">Bekapcsolás</string>
+    <string name="prediction_inspector_actual">Tényleges</string>
+    <string name="prediction_inspector_forecast_at">Előrejelzés: %1$s</string>
+    <string name="prediction_inspector_previous">Korábbi előrejelzés</string>
+    <string name="prediction_inspector_next">Későbbi előrejelzés</string>
+    <string name="prediction_inspector_in">Múlva</string>
+    <string name="prediction_inspector_pending">Még nem</string>
+    <string name="prediction_inspector_missing">Nincs mérés</string>
+    <string name="prediction_inspector_fallback">Az adaptív előrejelzés itt még nem volt kész, ezért a tartaléka szerepelt</string>
+    <string name="prediction_inspector_trend">Trend akkor: %1$s percenként</string>
+    <string name="prediction_inspector_empty">Még nincs rögzített előrejelzés</string>
+    <string name="prediction_inspector_shown">A grafikonon</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Kísérleti · %d nap méréseiből tanult</item>
+        <item quantity="other">Kísérleti · %d nap méréseiből tanult</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d nap</item>
+        <item quantity="other">%d nap</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d előrejelzés</item>
+        <item quantity="other">%d előrejelzés</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">%d tervezett naplóbejegyzés beszámítva</item>
+        <item quantity="other">%d tervezett naplóbejegyzés beszámítva</item>
+    </plurals>
 </resources>

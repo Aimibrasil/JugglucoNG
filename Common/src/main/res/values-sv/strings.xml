@@ -3093,4 +3093,66 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="settings_search_hint">Sök i inställningar</string>
     <string name="settings_search_no_results">Inga inställningar matchar ”%1$s”</string>
     <string name="settings_search_clear">Rensa sökning</string>
+    <string name="prediction_analysis_section">Prognosanalys</string>
+    <string name="prediction_analysis_record">Spara prognoser</string>
+    <string name="prediction_analysis_record_summary">Spara varje prognos på den här telefonen för att jämföra med vad som hände</string>
+    <string name="prediction_analysis_accuracy">Prognosernas träffsäkerhet</string>
+    <string name="prediction_analysis_accuracy_summary">I snitt %1$s fel efter 30 min</string>
+    <string name="prediction_analysis_accuracy_waiting">Inga resultat än</string>
+    <string name="prediction_adaptive_title">Adaptiv prognos</string>
+    <string name="prediction_adaptive_summary">Experimentellt · lär sig av dina egna mätvärden</string>
+    <string name="prediction_adaptive_learning">Experimentellt · lär sig, behöver 2 dagars mätvärden</string>
+    <string name="prediction_adaptive_not_better">Experimentellt · ännu inte bättre än ”ingen förändring”, standard visas</string>
+    <string name="prediction_adaptive_caption">Visar en prognos som lärts från dina egna mätvärden i stället för standardprognosen. Den bortser från loggat insulin och kolhydrater. Larm använder fortfarande standardprognosen.</string>
+    <string name="prediction_analysis_typical_error">Typiskt fel</string>
+    <string name="prediction_analysis_typical_error_caption">Genomsnittligt avstånd mellan en prognos och mätvärdet som följde</string>
+    <string name="prediction_analysis_minutes">%1$d min</string>
+    <string name="prediction_analysis_not_enough">För lite ännu</string>
+    <string name="prediction_analysis_early">Tidig uppskattning</string>
+    <string name="prediction_analysis_compare_title">Jämfört med ”ingen förändring”</string>
+    <string name="prediction_analysis_compare_caption">”Ingen förändring” antar att glukosen stannar där den var. En användbar prognos slår det.</string>
+    <string name="prediction_analysis_model_standard">Standardprognos</string>
+    <string name="prediction_analysis_model_adaptive">Adaptiv prognos</string>
+    <string name="prediction_analysis_model_no_change">Ingen förändring</string>
+    <string name="prediction_analysis_bias_high">I snitt %1$s för hög</string>
+    <string name="prediction_analysis_bias_low">I snitt %1$s för låg</string>
+    <string name="prediction_analysis_daily_title">Typiskt fel per dag</string>
+    <string name="prediction_analysis_past_title">Tidigare prognoser</string>
+    <string name="prediction_analysis_past_summary">Vad varje prognos sa och vad som följde</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · sparas i 90 dagar</string>
+    <string name="prediction_analysis_clear">Radera sparade prognoser</string>
+    <string name="prediction_analysis_clear_summary">Träffsäkerheten börjar om från noll</string>
+    <string name="prediction_analysis_clear_title">Radera sparade prognoser?</string>
+    <string name="prediction_analysis_clear_body">Alla sparade prognoser raderas. Mätvärden och journalposter finns kvar.</string>
+    <string name="prediction_analysis_empty_title">Inga prognoser sparade än</string>
+    <string name="prediction_analysis_empty_off">Slå på sparandet, så behålls varje prognos från och med nu för att jämföras med vad som hände.</string>
+    <string name="prediction_analysis_empty_on">Sparandet är på. Resultat visas när prognoserna har hunnit slå in.</string>
+    <string name="prediction_analysis_turn_on">Slå på</string>
+    <string name="prediction_inspector_actual">Faktiskt</string>
+    <string name="prediction_inspector_forecast_at">Prognos kl. %1$s</string>
+    <string name="prediction_inspector_previous">Tidigare prognos</string>
+    <string name="prediction_inspector_next">Senare prognos</string>
+    <string name="prediction_inspector_in">Om</string>
+    <string name="prediction_inspector_pending">Inte än</string>
+    <string name="prediction_inspector_missing">Inget mätvärde</string>
+    <string name="prediction_inspector_fallback">Den adaptiva prognosen var inte klar här, så dess reserv användes</string>
+    <string name="prediction_inspector_trend">Trend då: %1$s per min</string>
+    <string name="prediction_inspector_empty">Inga sparade prognoser än</string>
+    <string name="prediction_inspector_shown">I diagrammet</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Experimentellt · lärd från %d dags mätvärden</item>
+        <item quantity="other">Experimentellt · lärd från %d dagars mätvärden</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d dag</item>
+        <item quantity="other">%d dagar</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d prognos</item>
+        <item quantity="other">%d prognoser</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">%d planerad journalpost togs med</item>
+        <item quantity="other">%d planerade journalposter togs med</item>
+    </plurals>
 </resources>

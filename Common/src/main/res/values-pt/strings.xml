@@ -3095,4 +3095,66 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="settings_search_hint">Pesquisar definições</string>
     <string name="settings_search_no_results">Nenhuma definição corresponde a “%1$s”</string>
     <string name="settings_search_clear">Limpar pesquisa</string>
+    <string name="prediction_analysis_section">Análise das previsões</string>
+    <string name="prediction_analysis_record">Registar previsões</string>
+    <string name="prediction_analysis_record_summary">Guardar cada previsão neste telemóvel para comparar com o que aconteceu</string>
+    <string name="prediction_analysis_accuracy">Precisão das previsões</string>
+    <string name="prediction_analysis_accuracy_summary">Desvio médio de %1$s aos 30 min</string>
+    <string name="prediction_analysis_accuracy_waiting">Ainda sem resultados</string>
+    <string name="prediction_adaptive_title">Previsão adaptativa</string>
+    <string name="prediction_adaptive_summary">Experimental · aprende com as suas próprias leituras</string>
+    <string name="prediction_adaptive_learning">Experimental · a aprender, precisa de 2 dias de leituras</string>
+    <string name="prediction_adaptive_not_better">Experimental · ainda não é melhor do que «sem alteração», é mostrada a padrão</string>
+    <string name="prediction_adaptive_caption">Mostra uma previsão aprendida com as suas próprias leituras em vez da padrão. Ignora a insulina e os hidratos registados. Os alertas continuam a usar a previsão padrão.</string>
+    <string name="prediction_analysis_typical_error">Erro típico</string>
+    <string name="prediction_analysis_typical_error_caption">Distância média entre uma previsão e a leitura que se seguiu</string>
+    <string name="prediction_analysis_minutes">%1$d min</string>
+    <string name="prediction_analysis_not_enough">Ainda pouco</string>
+    <string name="prediction_analysis_early">Estimativa inicial</string>
+    <string name="prediction_analysis_compare_title">Comparado com «sem alteração»</string>
+    <string name="prediction_analysis_compare_caption">«Sem alteração» assume que a glicose fica onde estava. Uma previsão útil faz melhor.</string>
+    <string name="prediction_analysis_model_standard">Previsão padrão</string>
+    <string name="prediction_analysis_model_adaptive">Previsão adaptativa</string>
+    <string name="prediction_analysis_model_no_change">Sem alteração</string>
+    <string name="prediction_analysis_bias_high">Em média %1$s acima</string>
+    <string name="prediction_analysis_bias_low">Em média %1$s abaixo</string>
+    <string name="prediction_analysis_daily_title">Erro típico por dia</string>
+    <string name="prediction_analysis_past_title">Previsões anteriores</string>
+    <string name="prediction_analysis_past_summary">O que cada previsão dizia e o que se seguiu</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · guardadas 90 dias</string>
+    <string name="prediction_analysis_clear">Eliminar previsões registadas</string>
+    <string name="prediction_analysis_clear_summary">A precisão recomeça do zero</string>
+    <string name="prediction_analysis_clear_title">Eliminar previsões registadas?</string>
+    <string name="prediction_analysis_clear_body">Todas as previsões registadas serão eliminadas. As leituras e as entradas do diário mantêm-se.</string>
+    <string name="prediction_analysis_empty_title">Ainda não há previsões registadas</string>
+    <string name="prediction_analysis_empty_off">Ative o registo e, a partir daí, cada previsão fica guardada para comparar com o que aconteceu.</string>
+    <string name="prediction_analysis_empty_on">O registo está ativo. Os resultados aparecem quando as previsões tiverem tempo para se confirmar.</string>
+    <string name="prediction_analysis_turn_on">Ativar</string>
+    <string name="prediction_inspector_actual">Real</string>
+    <string name="prediction_inspector_forecast_at">Previsão das %1$s</string>
+    <string name="prediction_inspector_previous">Previsão anterior</string>
+    <string name="prediction_inspector_next">Previsão seguinte</string>
+    <string name="prediction_inspector_in">Daqui a</string>
+    <string name="prediction_inspector_pending">Ainda não</string>
+    <string name="prediction_inspector_missing">Sem leitura</string>
+    <string name="prediction_inspector_fallback">A previsão adaptativa ainda não estava pronta aqui, foi usada a alternativa</string>
+    <string name="prediction_inspector_trend">Tendência na altura: %1$s por min</string>
+    <string name="prediction_inspector_empty">Ainda não há previsões registadas</string>
+    <string name="prediction_inspector_shown">No gráfico</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Experimental · aprendida com %d dia de leituras</item>
+        <item quantity="other">Experimental · aprendida com %d dias de leituras</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d dia</item>
+        <item quantity="other">%d dias</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d previsão</item>
+        <item quantity="other">%d previsões</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">Incluída %d entrada de diário planeada</item>
+        <item quantity="other">Incluídas %d entradas de diário planeadas</item>
+    </plurals>
 </resources>

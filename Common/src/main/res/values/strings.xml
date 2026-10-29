@@ -3355,4 +3355,66 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="settings_search_hint">Search settings</string>
     <string name="settings_search_no_results">No settings match “%1$s”</string>
     <string name="settings_search_clear">Clear search</string>
+    <string name="prediction_analysis_section">Prediction analysis</string>
+    <string name="prediction_analysis_record">Record forecasts</string>
+    <string name="prediction_analysis_record_summary">Keep each forecast on this phone to compare with what happened</string>
+    <string name="prediction_analysis_accuracy">Prediction accuracy</string>
+    <string name="prediction_analysis_accuracy_summary">Off by %1$s on average at 30 min</string>
+    <string name="prediction_analysis_accuracy_waiting">No results yet</string>
+    <string name="prediction_adaptive_title">Adaptive prediction</string>
+    <string name="prediction_adaptive_summary">Experimental · learns from your own readings</string>
+    <string name="prediction_adaptive_learning">Experimental · learning, needs 2 days of readings</string>
+    <string name="prediction_adaptive_not_better">Experimental · not better than no change yet, standard shown</string>
+    <string name="prediction_adaptive_caption">Draws a forecast learned from your own readings instead of the standard one. It ignores logged insulin and carbs. Alerts keep using the standard forecast.</string>
+    <string name="prediction_analysis_typical_error">Typical error</string>
+    <string name="prediction_analysis_typical_error_caption">Average distance between a forecast and the reading that followed</string>
+    <string name="prediction_analysis_minutes">%1$d min</string>
+    <string name="prediction_analysis_not_enough">Not enough yet</string>
+    <string name="prediction_analysis_early">Early estimate</string>
+    <string name="prediction_analysis_compare_title">Compared with no change</string>
+    <string name="prediction_analysis_compare_caption">No change assumes glucose stays where it was. A useful forecast beats it.</string>
+    <string name="prediction_analysis_model_standard">Standard forecast</string>
+    <string name="prediction_analysis_model_adaptive">Adaptive forecast</string>
+    <string name="prediction_analysis_model_no_change">No change</string>
+    <string name="prediction_analysis_bias_high">Ran %1$s high on average</string>
+    <string name="prediction_analysis_bias_low">Ran %1$s low on average</string>
+    <string name="prediction_analysis_daily_title">Typical error by day</string>
+    <string name="prediction_analysis_past_title">Past forecasts</string>
+    <string name="prediction_analysis_past_summary">What each forecast said, and what followed</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · kept 90 days</string>
+    <string name="prediction_analysis_clear">Delete recorded forecasts</string>
+    <string name="prediction_analysis_clear_summary">Accuracy starts again from zero</string>
+    <string name="prediction_analysis_clear_title">Delete recorded forecasts?</string>
+    <string name="prediction_analysis_clear_body">Every recorded forecast is deleted. Readings and journal entries stay.</string>
+    <string name="prediction_analysis_empty_title">No forecasts recorded yet</string>
+    <string name="prediction_analysis_empty_off">Turn on recording, and each forecast from then on is kept to compare with what happened.</string>
+    <string name="prediction_analysis_empty_on">Recording is on. Results appear once forecasts have had time to come true.</string>
+    <string name="prediction_analysis_turn_on">Turn on</string>
+    <string name="prediction_inspector_actual">Actual</string>
+    <string name="prediction_inspector_forecast_at">Forecast at %1$s</string>
+    <string name="prediction_inspector_previous">Earlier forecast</string>
+    <string name="prediction_inspector_next">Later forecast</string>
+    <string name="prediction_inspector_in">In</string>
+    <string name="prediction_inspector_pending">Not yet</string>
+    <string name="prediction_inspector_missing">No reading</string>
+    <string name="prediction_inspector_fallback">The adaptive forecast wasn’t ready here, so its fallback was used</string>
+    <string name="prediction_inspector_trend">Trend then: %1$s per min</string>
+    <string name="prediction_inspector_empty">No recorded forecasts yet</string>
+    <string name="prediction_inspector_shown">On the chart</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Experimental · learned from %d day of readings</item>
+        <item quantity="other">Experimental · learned from %d days of readings</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d forecast</item>
+        <item quantity="other">%d forecasts</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">Included %d planned journal entry</item>
+        <item quantity="other">Included %d planned journal entries</item>
+    </plurals>
 </resources>

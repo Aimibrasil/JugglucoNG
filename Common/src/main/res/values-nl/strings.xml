@@ -3136,4 +3136,66 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="settings_search_hint">Instellingen zoeken</string>
     <string name="settings_search_no_results">Geen instellingen gevonden voor ‘%1$s’</string>
     <string name="settings_search_clear">Zoekopdracht wissen</string>
+    <string name="prediction_analysis_section">Voorspellingsanalyse</string>
+    <string name="prediction_analysis_record">Voorspellingen vastleggen</string>
+    <string name="prediction_analysis_record_summary">Elke voorspelling op deze telefoon bewaren om te vergelijken met wat er gebeurde</string>
+    <string name="prediction_analysis_accuracy">Nauwkeurigheid van voorspellingen</string>
+    <string name="prediction_analysis_accuracy_summary">Gemiddeld %1$s ernaast na 30 min</string>
+    <string name="prediction_analysis_accuracy_waiting">Nog geen resultaten</string>
+    <string name="prediction_adaptive_title">Adaptieve voorspelling</string>
+    <string name="prediction_adaptive_summary">Experimenteel · leert van je eigen metingen</string>
+    <string name="prediction_adaptive_learning">Experimenteel · leert, heeft 2 dagen metingen nodig</string>
+    <string name="prediction_adaptive_not_better">Experimenteel · nog niet beter dan ‘geen verandering’, standaard getoond</string>
+    <string name="prediction_adaptive_caption">Tekent een voorspelling die van je eigen metingen is geleerd in plaats van de standaard. Vastgelegde insuline en koolhydraten negeert ze. Meldingen gebruiken de standaardvoorspelling.</string>
+    <string name="prediction_analysis_typical_error">Typische fout</string>
+    <string name="prediction_analysis_typical_error_caption">Gemiddelde afstand tussen een voorspelling en de meting die volgde</string>
+    <string name="prediction_analysis_minutes">%1$d min</string>
+    <string name="prediction_analysis_not_enough">Nog te weinig</string>
+    <string name="prediction_analysis_early">Eerste schatting</string>
+    <string name="prediction_analysis_compare_title">Vergeleken met ‘geen verandering’</string>
+    <string name="prediction_analysis_compare_caption">‘Geen verandering’ gaat ervan uit dat de glucose blijft waar ze was. Een nuttige voorspelling doet het beter.</string>
+    <string name="prediction_analysis_model_standard">Standaardvoorspelling</string>
+    <string name="prediction_analysis_model_adaptive">Adaptieve voorspelling</string>
+    <string name="prediction_analysis_model_no_change">Geen verandering</string>
+    <string name="prediction_analysis_bias_high">Gemiddeld %1$s te hoog</string>
+    <string name="prediction_analysis_bias_low">Gemiddeld %1$s te laag</string>
+    <string name="prediction_analysis_daily_title">Typische fout per dag</string>
+    <string name="prediction_analysis_past_title">Eerdere voorspellingen</string>
+    <string name="prediction_analysis_past_summary">Wat elke voorspelling zei en wat er volgde</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · 90 dagen bewaard</string>
+    <string name="prediction_analysis_clear">Vastgelegde voorspellingen verwijderen</string>
+    <string name="prediction_analysis_clear_summary">De nauwkeurigheid begint weer bij nul</string>
+    <string name="prediction_analysis_clear_title">Vastgelegde voorspellingen verwijderen?</string>
+    <string name="prediction_analysis_clear_body">Alle vastgelegde voorspellingen worden verwijderd. Metingen en logboekregels blijven.</string>
+    <string name="prediction_analysis_empty_title">Nog geen voorspellingen vastgelegd</string>
+    <string name="prediction_analysis_empty_off">Zet vastleggen aan, dan wordt elke voorspelling vanaf dan bewaard om te vergelijken met wat er gebeurde.</string>
+    <string name="prediction_analysis_empty_on">Vastleggen staat aan. Resultaten verschijnen zodra voorspellingen tijd hebben gehad om uit te komen.</string>
+    <string name="prediction_analysis_turn_on">Aanzetten</string>
+    <string name="prediction_inspector_actual">Werkelijk</string>
+    <string name="prediction_inspector_forecast_at">Voorspelling om %1$s</string>
+    <string name="prediction_inspector_previous">Eerdere voorspelling</string>
+    <string name="prediction_inspector_next">Latere voorspelling</string>
+    <string name="prediction_inspector_in">Over</string>
+    <string name="prediction_inspector_pending">Nog niet</string>
+    <string name="prediction_inspector_missing">Geen meting</string>
+    <string name="prediction_inspector_fallback">De adaptieve voorspelling was hier nog niet klaar, dus is de vervanging gebruikt</string>
+    <string name="prediction_inspector_trend">Trend toen: %1$s per min</string>
+    <string name="prediction_inspector_empty">Nog geen vastgelegde voorspellingen</string>
+    <string name="prediction_inspector_shown">In de grafiek</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Experimenteel · geleerd van %d dag metingen</item>
+        <item quantity="other">Experimenteel · geleerd van %d dagen metingen</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d dag</item>
+        <item quantity="other">%d dagen</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d voorspelling</item>
+        <item quantity="other">%d voorspellingen</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">%d geplande logboekregel meegenomen</item>
+        <item quantity="other">%d geplande logboekregels meegenomen</item>
+    </plurals>
 </resources>

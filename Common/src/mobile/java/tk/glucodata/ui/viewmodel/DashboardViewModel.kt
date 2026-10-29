@@ -532,6 +532,12 @@ class DashboardViewModel(
     private val _predictionTrendMomentumEnabled = MutableStateFlow(true)
     val predictionTrendMomentumEnabled = _predictionTrendMomentumEnabled.asStateFlow()
 
+    private val _predictionAnalysisEnabled = MutableStateFlow(false)
+    val predictionAnalysisEnabled = _predictionAnalysisEnabled.asStateFlow()
+
+    private val _predictionAdaptiveEnabled = MutableStateFlow(false)
+    val predictionAdaptiveEnabled = _predictionAdaptiveEnabled.asStateFlow()
+
     private val _predictionCarbRatioGramsPerUnit = MutableStateFlow(PREDICTION_CARB_RATIO_DEFAULT)
     val predictionCarbRatioGramsPerUnit = _predictionCarbRatioGramsPerUnit.asStateFlow()
 
@@ -907,6 +913,10 @@ class DashboardViewModel(
         _predictiveSimulationNotificationChartEnabled.value = prefs.getBoolean(PREDICTION_NOTIFICATION_CHART_KEY, true)
         _predictionTrendMomentumEnabled.value =
             tk.glucodata.settings.SettingsRegistry.PREDICTION_TREND_MOMENTUM.readBool(prefs)
+        _predictionAnalysisEnabled.value =
+            tk.glucodata.settings.SettingsRegistry.PREDICTION_ANALYSIS.readBool(prefs)
+        _predictionAdaptiveEnabled.value =
+            tk.glucodata.settings.SettingsRegistry.PREDICTION_ADAPTIVE.readBool(prefs)
         _predictionCarbRatioGramsPerUnit.value =
             tk.glucodata.settings.SettingsRegistry.PREDICTION_CARB_RATIO.readFloatClamped(prefs)
         _predictionInsulinSensitivityMgDlPerUnit.value =
@@ -2063,6 +2073,22 @@ class DashboardViewModel(
         val prefs = context.getSharedPreferences("tk.glucodata_preferences", android.content.Context.MODE_PRIVATE)
         prefs.edit().putBoolean("dashboard_prediction_trend_momentum_enabled", enabled).apply()
         _predictionTrendMomentumEnabled.value = enabled
+        refreshNotificationPredictionSurfaces(context)
+    }
+
+    fun setPredictionAnalysisEnabled(enabled: Boolean) {
+        val context = tk.glucodata.Applic.app
+        val prefs = context.getSharedPreferences(tk.glucodata.settings.SettingsRegistry.FILE, android.content.Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(tk.glucodata.settings.KEY_PREDICTION_ANALYSIS, enabled).apply()
+        _predictionAnalysisEnabled.value = enabled
+    }
+
+    fun setPredictionAdaptiveEnabled(enabled: Boolean) {
+        val context = tk.glucodata.Applic.app
+        val prefs = context.getSharedPreferences(tk.glucodata.settings.SettingsRegistry.FILE, android.content.Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(tk.glucodata.settings.KEY_PREDICTION_ADAPTIVE, enabled).apply()
+        _predictionAdaptiveEnabled.value = enabled
+        if (enabled) tk.glucodata.data.prediction.analysis.AdaptivePredictionStore.requestRefresh(context)
         refreshNotificationPredictionSurfaces(context)
     }
 

@@ -3100,4 +3100,66 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="settings_search_hint">Rechercher dans les paramètres</string>
     <string name="settings_search_no_results">Aucun paramètre ne correspond à « %1$s »</string>
     <string name="settings_search_clear">Effacer la recherche</string>
+    <string name="prediction_analysis_section">Analyse des prévisions</string>
+    <string name="prediction_analysis_record">Enregistrer les prévisions</string>
+    <string name="prediction_analysis_record_summary">Garder chaque prévision sur ce téléphone pour la comparer à ce qui s\'est passé</string>
+    <string name="prediction_analysis_accuracy">Précision des prévisions</string>
+    <string name="prediction_analysis_accuracy_summary">Écart moyen de %1$s à 30 min</string>
+    <string name="prediction_analysis_accuracy_waiting">Pas encore de résultats</string>
+    <string name="prediction_adaptive_title">Prévision adaptative</string>
+    <string name="prediction_adaptive_summary">Expérimental · apprend à partir de vos propres mesures</string>
+    <string name="prediction_adaptive_learning">Expérimental · apprentissage, 2 jours de mesures nécessaires</string>
+    <string name="prediction_adaptive_not_better">Expérimental · pas encore meilleure que « aucun changement », standard affichée</string>
+    <string name="prediction_adaptive_caption">Affiche une prévision apprise à partir de vos propres mesures au lieu de la standard. Elle ignore l\'insuline et les glucides saisis. Les alertes utilisent toujours la prévision standard.</string>
+    <string name="prediction_analysis_typical_error">Écart typique</string>
+    <string name="prediction_analysis_typical_error_caption">Distance moyenne entre une prévision et la mesure qui a suivi</string>
+    <string name="prediction_analysis_minutes">%1$d min</string>
+    <string name="prediction_analysis_not_enough">Pas encore assez</string>
+    <string name="prediction_analysis_early">Première estimation</string>
+    <string name="prediction_analysis_compare_title">Comparé à « aucun changement »</string>
+    <string name="prediction_analysis_compare_caption">« Aucun changement » suppose que la glycémie reste où elle était. Une prévision utile fait mieux.</string>
+    <string name="prediction_analysis_model_standard">Prévision standard</string>
+    <string name="prediction_analysis_model_adaptive">Prévision adaptative</string>
+    <string name="prediction_analysis_model_no_change">Aucun changement</string>
+    <string name="prediction_analysis_bias_high">Trop haute de %1$s en moyenne</string>
+    <string name="prediction_analysis_bias_low">Trop basse de %1$s en moyenne</string>
+    <string name="prediction_analysis_daily_title">Écart typique par jour</string>
+    <string name="prediction_analysis_past_title">Prévisions passées</string>
+    <string name="prediction_analysis_past_summary">Ce que chaque prévision annonçait, et ce qui a suivi</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · conservées 90 jours</string>
+    <string name="prediction_analysis_clear">Supprimer les prévisions enregistrées</string>
+    <string name="prediction_analysis_clear_summary">La précision repart de zéro</string>
+    <string name="prediction_analysis_clear_title">Supprimer les prévisions enregistrées ?</string>
+    <string name="prediction_analysis_clear_body">Toutes les prévisions enregistrées seront supprimées. Les mesures et les entrées du journal restent.</string>
+    <string name="prediction_analysis_empty_title">Aucune prévision enregistrée</string>
+    <string name="prediction_analysis_empty_off">Activez l\'enregistrement : chaque prévision sera ensuite conservée pour la comparer à ce qui s\'est passé.</string>
+    <string name="prediction_analysis_empty_on">L\'enregistrement est actif. Les résultats apparaissent une fois que les prévisions ont eu le temps de se vérifier.</string>
+    <string name="prediction_analysis_turn_on">Activer</string>
+    <string name="prediction_inspector_actual">Réel</string>
+    <string name="prediction_inspector_forecast_at">Prévision de %1$s</string>
+    <string name="prediction_inspector_previous">Prévision précédente</string>
+    <string name="prediction_inspector_next">Prévision suivante</string>
+    <string name="prediction_inspector_in">Dans</string>
+    <string name="prediction_inspector_pending">Pas encore</string>
+    <string name="prediction_inspector_missing">Pas de mesure</string>
+    <string name="prediction_inspector_fallback">La prévision adaptative n\'était pas prête ici, son remplacement a été utilisé</string>
+    <string name="prediction_inspector_trend">Tendance alors : %1$s par min</string>
+    <string name="prediction_inspector_empty">Aucune prévision enregistrée</string>
+    <string name="prediction_inspector_shown">Sur le graphique</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Expérimental · apprise sur %d jour de mesures</item>
+        <item quantity="other">Expérimental · apprise sur %d jours de mesures</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d jour</item>
+        <item quantity="other">%d jours</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d prévision</item>
+        <item quantity="other">%d prévisions</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">%d entrée de journal prévue incluse</item>
+        <item quantity="other">%d entrées de journal prévues incluses</item>
+    </plurals>
 </resources>
