@@ -372,11 +372,11 @@ private fun ComparisonCard(
         val standard = report.model(ForecastModel.STANDARD)?.horizons?.firstOrNull { it.horizonMinutes == horizon }
         val rows = buildList {
             if (paired != null) {
-                add(Triple(modelName(ForecastModel.STANDARD), paired.standardMeanAbsoluteError, MaterialTheme.colorScheme.primary))
-                add(Triple(modelName(ForecastModel.ADAPTIVE), paired.adaptiveMeanAbsoluteError, MaterialTheme.colorScheme.tertiary))
+                add(Triple(modelName(ForecastModel.STANDARD), paired.standardMeanAbsoluteError, ForecastPalette.standard()))
+                add(Triple(modelName(ForecastModel.ADAPTIVE), paired.adaptiveMeanAbsoluteError, ForecastPalette.adaptive()))
                 add(Triple(stringResource(R.string.prediction_analysis_model_no_change), paired.noChangeMeanAbsoluteError, MaterialTheme.colorScheme.outline))
             } else if (standard != null) {
-                add(Triple(modelName(ForecastModel.STANDARD), standard.meanAbsoluteError, MaterialTheme.colorScheme.primary))
+                add(Triple(modelName(ForecastModel.STANDARD), standard.meanAbsoluteError, ForecastPalette.standard()))
                 add(Triple(stringResource(R.string.prediction_analysis_model_no_change), standard.noChangeMeanAbsoluteError, MaterialTheme.colorScheme.outline))
             }
         }
@@ -447,8 +447,8 @@ private fun ErrorBar(label: String, value: Float, fraction: Float, color: Color,
 
 @Composable
 private fun DailyErrorCard(daily: List<DailyAccuracy>, horizonMinutes: Int, isMmol: Boolean) {
-    val standardColor = MaterialTheme.colorScheme.primary
-    val adaptiveColor = MaterialTheme.colorScheme.tertiary
+    val standardColor = ForecastPalette.standard()
+    val adaptiveColor = ForecastPalette.adaptive()
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val measurer = rememberTextMeasurer()
@@ -488,7 +488,9 @@ private fun DailyErrorCard(daily: List<DailyAccuracy>, horizonMinutes: Int, isMm
                     if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
                     drawCircle(color, radius = 3.dp.toPx(), center = o)
                 }
-                drawPath(path, color, style = Stroke(width = 2.dp.toPx()))
+                // The same pattern each forecast has on the past-forecast chart.
+                val lineStyle = if (model == ForecastModel.ADAPTIVE) ForecastLineStyle.DOTTED else ForecastLineStyle.DASHED
+                drawPath(path, color, style = Stroke(width = 3.dp.toPx(), pathEffect = lineStyle.pathEffect(density), cap = lineStyle.cap))
             }
             listOf(days.first(), days.last()).distinct().forEach { day ->
                 val label = measurer.measure(dayFormat.format(java.util.Date(day)), labelStyle)
@@ -498,23 +500,25 @@ private fun DailyErrorCard(daily: List<DailyAccuracy>, horizonMinutes: Int, isMm
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            LegendSwatch(modelName(ForecastModel.STANDARD), standardColor)
-            if (daily.any { it.model == ForecastModel.ADAPTIVE }) LegendSwatch(modelName(ForecastModel.ADAPTIVE), adaptiveColor)
+            LegendSwatch(modelName(ForecastModel.STANDARD), standardColor, ForecastLineStyle.DASHED)
+            if (daily.any { it.model == ForecastModel.ADAPTIVE }) {
+                LegendSwatch(modelName(ForecastModel.ADAPTIVE), adaptiveColor, ForecastLineStyle.DOTTED)
+            }
         }
     }
 }
 
 @Composable
-internal fun LegendSwatch(label: String, color: Color, dashed: Boolean = false) {
+internal fun LegendSwatch(label: String, color: Color, style: ForecastLineStyle = ForecastLineStyle.SOLID) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Canvas(Modifier.width(16.dp).height(8.dp)) {
+        // The same pattern, width and cap as the line it names.
+        Canvas(Modifier.width(24.dp).height(8.dp)) {
             val y = size.height / 2f
-            if (dashed) {
-                drawLine(color, Offset(0f, y), Offset(size.width * 0.4f, y), strokeWidth = 2.dp.toPx())
-                drawLine(color, Offset(size.width * 0.6f, y), Offset(size.width, y), strokeWidth = 2.dp.toPx())
-            } else {
-                drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 3.dp.toPx())
-            }
+            drawLine(
+                color, Offset(if (style == ForecastLineStyle.DOTTED) 2.dp.toPx() else 0f, y), Offset(size.width, y),
+                strokeWidth = (if (style == ForecastLineStyle.DOTTED) 3.5f else 3f) * density,
+                pathEffect = style.pathEffect(density), cap = style.cap,
+            )
         }
         Spacer(Modifier.width(8.dp))
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

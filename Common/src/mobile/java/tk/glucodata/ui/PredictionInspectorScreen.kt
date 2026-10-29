@@ -190,10 +190,10 @@ internal fun PredictionInspectorContent(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         LegendSwatch(stringResource(R.string.prediction_inspector_actual), MaterialTheme.colorScheme.onSurface)
                         current.standard?.let {
-                            LegendSwatch(legendLabel(R.string.prediction_analysis_model_standard, it.shown), MaterialTheme.colorScheme.primary, dashed = true)
+                            LegendSwatch(legendLabel(R.string.prediction_analysis_model_standard, it.shown), ForecastPalette.standard(), ForecastLineStyle.DASHED)
                         }
                         current.adaptive?.let {
-                            LegendSwatch(legendLabel(R.string.prediction_analysis_model_adaptive, it.shown), MaterialTheme.colorScheme.tertiary, dashed = true)
+                            LegendSwatch(legendLabel(R.string.prediction_analysis_model_adaptive, it.shown), ForecastPalette.adaptive(), ForecastLineStyle.DOTTED)
                         }
                     }
                 }
@@ -219,8 +219,8 @@ private fun ForecastChart(
     targetHigh: Float,
 ) {
     val actualColor = MaterialTheme.colorScheme.onSurface
-    val standardColor = MaterialTheme.colorScheme.primary
-    val adaptiveColor = MaterialTheme.colorScheme.tertiary
+    val standardColor = ForecastPalette.standard()
+    val adaptiveColor = ForecastPalette.adaptive()
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val bandColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -270,7 +270,7 @@ private fun ForecastChart(
             drawText(label, topLeft = Offset(lx, bottom + 4.dp.toPx()))
         }
 
-        fun line(points: List<Pair<Long, Float>>, color: Color, dashed: Boolean, breakAfterMs: Long = Long.MAX_VALUE) {
+        fun line(points: List<Pair<Long, Float>>, color: Color, style: ForecastLineStyle, breakAfterMs: Long = Long.MAX_VALUE) {
             if (points.size < 2) return
             val path = Path()
             var last: Long? = null
@@ -281,14 +281,15 @@ private fun ForecastChart(
             drawPath(
                 path, color,
                 style = Stroke(
-                    width = (if (dashed) 2.5f else 3f) * density,
-                    pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(10f, 8f)) else null,
+                    width = (if (style == ForecastLineStyle.DOTTED) 3.5f else 3f) * density,
+                    pathEffect = style.pathEffect(density),
+                    cap = style.cap,
                 ),
             )
         }
-        line(actual, actualColor, dashed = false, breakAfterMs = 20 * MINUTE_MS)
-        line(standard, standardColor, dashed = true)
-        line(adaptive, adaptiveColor, dashed = true)
+        line(actual, actualColor, ForecastLineStyle.SOLID, breakAfterMs = 20 * MINUTE_MS)
+        line(standard, standardColor, ForecastLineStyle.DASHED)
+        line(adaptive, adaptiveColor, ForecastLineStyle.DOTTED)
         drawCircle(actualColor, radius = 4.dp.toPx(), center = Offset(x(moment.originTime), y((moment.standard ?: moment.adaptive)!!.baselineMgdl)))
     }
 }
