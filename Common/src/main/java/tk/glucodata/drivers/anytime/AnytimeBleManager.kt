@@ -1793,14 +1793,15 @@ class AnytimeBleManager(
         return (elapsed / intervalMs).toInt().coerceAtMost(maxOf(horizon, lastGlucoseId))
     }
 
-    /** Targeted catch-up after reconnect; the id currently in flight is left to live. */
+    /** Targeted catch-up after reconnect, including the newest overdue clock-estimated id. */
     private fun maybeStartCt5ReconnectCatchup() {
         if (!isCt5() || phase != Phase.STREAMING) return
         val expectedId = ct5ExpectedCurrentId()
         if (expectedId <= 0) return
-        val gap = ct5ReconnectGap(
+        val gap = ct5ReconnectCatchupGap(
             highestKnownId = ct5HighestKnownId(),
-            liveId = expectedId,
+            lastObservedId = lastGlucoseId,
+            expectedCurrentId = expectedId,
             maxRecords = CT5_MAX_GAP_REPAIR_RECORDS,
         ) ?: run {
             Log.i(TAG, "CT5 reconnect: no missing ids (have=${ct5HighestKnownId()} expected=$expectedId)")
