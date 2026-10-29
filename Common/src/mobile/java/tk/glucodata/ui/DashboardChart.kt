@@ -323,7 +323,7 @@ internal fun resolveDashboardChart(inputs: ChartResolutionInputs): ChartResoluti
         hideInitialWhenCalibrated = inputs.hideInitialWhenCalibrated,
     )
     chartModel.series.forEach { it.prepareLookups() }
-    return ChartResolution(renderData, peerChartSeries, chartModel)
+    return ChartResolution(renderData, peerChartSeries, chartModel, inputs)
 }
 
 private fun chartRangeThresholds(
@@ -763,6 +763,7 @@ fun DashboardChartSection(
     modifier: Modifier,
     glucoseHistory: List<GlucosePoint>,
     multiSensorDisplay: MultiSensorDisplayData = MultiSensorDisplayData.EMPTY,
+    primarySensorId: String? = null,
     mainSensorOwnership: tk.glucodata.chart.MainSensorOwnership = tk.glucodata.chart.MainSensorOwnership.NONE,
     peerPredictionSeries: Map<String, List<GlucosePredictionSeries>> = emptyMap(),
     journalMarkers: List<JournalChartMarker> = emptyList(),
@@ -826,6 +827,7 @@ fun DashboardChartSection(
                 if (glucoseHistory.isNotEmpty() || dataBounds != null) {
                     InteractiveGlucoseChart(
                         fullData = glucoseHistory,
+                        primarySensorId = primarySensorId,
                         dataBounds = dataBounds,
                         onVisibleRangeChanged = onVisibleRangeChanged,
                         multiSensorDisplay = multiSensorDisplay,
@@ -944,6 +946,7 @@ private data class ChartBleedClipShape(
 fun InteractiveGlucoseChart(
     fullData: List<GlucosePoint>,
     multiSensorDisplay: MultiSensorDisplayData = MultiSensorDisplayData.EMPTY,
+    primarySensorId: String? = null,
     mainSensorOwnership: tk.glucodata.chart.MainSensorOwnership = tk.glucodata.chart.MainSensorOwnership.NONE,
     peerPredictionSeries: Map<String, List<GlucosePredictionSeries>> = emptyMap(),
     journalMarkers: List<JournalChartMarker> = emptyList(),
@@ -1154,21 +1157,19 @@ fun InteractiveGlucoseChart(
     val safeData = remember(fullData) {
         if (fullData is java.util.RandomAccess) fullData else ArrayList(fullData)
     }
-    val primarySerial = fullData.lastOrNull()?.sensorSerial
-    val primaryIdentityColor = remember(primarySerial) {
-        val logical = SensorIdentity.resolveAppSensorId(primarySerial) ?: primarySerial
+    val inputPrimarySerial = fullData.lastOrNull()?.sensorSerial
+    val inputPrimaryIdentityColor = remember(inputPrimarySerial) {
+        val logical = SensorIdentity.resolveAppSensorId(inputPrimarySerial) ?: inputPrimarySerial
         SensorColors.getColor(logical.orEmpty())
     }
     // A colour the user picked for a sensor replaces the range colouring of its own trace.
     // Automatic (hash-assigned) colours deliberately do not, or every trace would lose the
     // low/high banding by default.
-    val primaryPickedColor = tk.glucodata.SensorVisuals.colorOverrideArgb(primarySerial)
-        ?.let { Color(it) }
     val calibrationRevision by tk.glucodata.data.calibration.CalibrationManager.revision.collectAsStateWithLifecycle()
     val isRawModeChart = viewMode == 1 || viewMode == 3
     // A fact, not a decision: whether a calibration applies to the primary lane.
-    val hasCalibration = remember(calibrationRevision, isRawModeChart, primarySerial) {
-        tk.glucodata.data.calibration.CalibrationManager.hasActiveCalibration(isRawModeChart, primarySerial)
+    val inputHasCalibration = remember(calibrationRevision, isRawModeChart, inputPrimarySerial) {
+        tk.glucodata.data.calibration.CalibrationManager.hasActiveCalibration(isRawModeChart, inputPrimarySerial)
     }
     // The preference applies to every calibrated series, including peers when
     // the current primary has no calibration of its own.
@@ -1185,8 +1186,8 @@ fun InteractiveGlucoseChart(
     // whole store. See rememberChartResolution.
     val resolutionInputs = remember(
         safeData, multiSensorDisplay, graphSmoothingMinutes, collapseSmoothedData,
-        mainSensorOwnership, calibrationRevision, viewMode, hasCalibration,
-        hideInitialWhenCalibrated, primarySerial, primaryIdentityColor,
+        mainSensorOwnership, calibrationRevision, viewMode, inputHasCalibration,
+        hideInitialWhenCalibrated, inputPrimarySerial, inputPrimaryIdentityColor,
     ) {
         ChartResolutionInputs(
             safeData = safeData,
@@ -1196,28 +1197,34 @@ fun InteractiveGlucoseChart(
             mainSensorOwnership = mainSensorOwnership,
             calibrationRevision = calibrationRevision,
             viewMode = viewMode,
-            hasCalibration = hasCalibration,
+            hasCalibration = inputHasCalibration,
             hideInitialWhenCalibrated = hideInitialWhenCalibrated,
-            primarySerial = primarySerial,
-            primaryColorArgb = primaryIdentityColor.toArgb(),
+            primarySerial = inputPrimarySerial,
+            primaryColorArgb = inputPrimaryIdentityColor.toArgb(),
         )
     }
     val resolution = rememberChartResolution(resolutionInputs, ::resolveDashboardChart)
     val renderData = resolution.renderData
     val peerChartSeries = resolution.peerChartSeries
     val chartModel = resolution.chartModel
+    val renderedInputs = resolution.inputs ?: resolutionInputs
+    val primarySerial = renderedInputs.primarySerial
+    val primaryIdentityColor = Color(renderedInputs.primaryColorArgb)
+    val primaryPickedColor = tk.glucodata.SensorVisuals.colorOverrideArgb(primarySerial)?.let { Color(it) }
+    val hasCalibration = renderedInputs.hasCalibration
+    val renderViewMode = renderedInputs.viewMode
     // Whether a calibration applies to each peer's own lane: the tooltip leads
     // with the calibrated number exactly as it does for the primary.
-    val peerHasCalibration = remember(calibrationRevision, peerChartSeries) {
+    val peerHasCalibration = remember(renderedInputs.calibrationRevision, peerChartSeries) {
         peerChartSeries.associate { peer ->
             val peerIsRaw = peer.viewMode == 1 || peer.viewMode == 3
             peer.sensorId to tk.glucodata.data.calibration.CalibrationManager.hasActiveCalibration(peerIsRaw, peer.sensorId)
         }
     }
-    val interactionData = remember(safeData, renderData, graphSmoothingMinutes) {
-        if (graphSmoothingMinutes > 0) renderData else safeData
+    val interactionData = remember(renderedInputs, renderData) {
+        if (renderedInputs.graphSmoothingMinutes > 0) renderData else renderedInputs.safeData
     }
-    val calibrationIsRawMode = viewMode == 1 || viewMode == 3
+    val calibrationIsRawMode = renderViewMode == 1 || renderViewMode == 3
     val visibleCalibrations = remember(calibrationRevision, calibrationIsRawMode, primarySerial) {
         tk.glucodata.data.calibration.CalibrationManager.getVisibleCalibrations(
             calibrationIsRawMode,
@@ -1284,6 +1291,8 @@ fun InteractiveGlucoseChart(
     // stale edge.
     val latestDataTimestamp = dataBounds?.latestMs ?: safeData.lastOrNull()?.timestamp ?: 0L
     val earliestDataTimestamp = dataBounds?.earliestMs ?: safeData.firstOrNull()?.timestamp ?: 0L
+    val autoFollow = remember { ChartAutoFollowState() }
+    val allowAutomaticFollow = autoFollow.observe(primarySensorId ?: primarySerial, latestDataTimestamp)
     // With bounds, the list's size is a matter of what is loaded and must not
     // count as a new series — but its first arrival must, since the effects
     // keyed on this wait for data before they centre the viewport.
@@ -1438,6 +1447,9 @@ fun InteractiveGlucoseChart(
     val currentLatestDataTimestamp by rememberUpdatedState(latestDataTimestamp)
     val currentSelectedTimeRange by rememberUpdatedState(selectedTimeRange)
     val currentResetToLatestOnResume by rememberUpdatedState(resetToLatestOnResume)
+    val currentLiveCenter by rememberUpdatedState<(Long, Long) -> Long> { timestamp, duration ->
+        liveCenterTimeFor(timestamp, duration)
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -1482,9 +1494,7 @@ fun InteractiveGlucoseChart(
             return@LaunchedEffect
         }
 
-        val switchedToOlderSeries = lastAutoScrolledTimestamp > 0L && latestDataTimestamp + 60_000L < lastAutoScrolledTimestamp
-
-        if (lastAutoScrolledTimestamp == 0L || switchedToOlderSeries) {
+        if (lastAutoScrolledTimestamp == 0L) {
             val targetCenter = liveCenterTimeFor(latestDataTimestamp, visibleDuration)
             centerTime = targetCenter
             previewCenterTime = previewCenterTimeForWindowEnd(targetCenter + visibleDuration / 2L)
@@ -1493,14 +1503,14 @@ fun InteractiveGlucoseChart(
     }
 
     LaunchedEffect(predictionEndTimestamp, latestDataTimestamp, visibleDuration) {
-        if (safeData.isEmpty() || latestDataTimestamp <= 0L || !hasPredictionOverlay || isUserInteracting) {
+        if (!allowAutomaticFollow || safeData.isEmpty() || latestDataTimestamp <= 0L || !hasPredictionOverlay || isUserInteracting) {
             return@LaunchedEffect
         }
         val currentEnd = centerTime + visibleDuration / 2
         if (abs(currentEnd - latestDataTimestamp) < 75L * 60L * 1000L) {
             val targetCenter = liveCenterTimeFor(latestDataTimestamp, visibleDuration)
-            centerTime = targetCenter
-            previewCenterTime = previewCenterTimeForWindowEnd(targetCenter + visibleDuration / 2L)
+            centerTime = maxOf(centerTime, targetCenter)
+            previewCenterTime = previewCenterTimeForWindowEnd(centerTime + visibleDuration / 2L)
         }
     }
 
@@ -1522,7 +1532,8 @@ fun InteractiveGlucoseChart(
         }
     }
 
-    LaunchedEffect(latestDataTimestamp, isResumed, isUserInteracting, autoScrollJob, lastInteractionTimestamp) {
+    LaunchedEffect(latestDataTimestamp, isResumed, isUserInteracting, autoScrollJob, lastInteractionTimestamp, allowAutomaticFollow) {
+        if (!allowAutomaticFollow) return@LaunchedEffect
         if (latestDataTimestamp > lastAutoScrolledTimestamp) {
             val currentEnd = centerTime + visibleDuration / 2
             val dist = kotlin.math.abs(lastAutoScrolledTimestamp - currentEnd)
@@ -1531,8 +1542,8 @@ fun InteractiveGlucoseChart(
             if (!isResumed) {
                 if (isMonitoring) {
                     val targetCenter = liveCenterTimeFor(latestDataTimestamp, visibleDuration)
-                    centerTime = targetCenter
-                    previewCenterTime = previewCenterTimeForWindowEnd(targetCenter + visibleDuration / 2L)
+                    centerTime = maxOf(centerTime, targetCenter)
+                    previewCenterTime = previewCenterTimeForWindowEnd(centerTime + visibleDuration / 2L)
                 }
                 lastAutoScrolledTimestamp = latestDataTimestamp
                 return@LaunchedEffect
@@ -1544,8 +1555,8 @@ fun InteractiveGlucoseChart(
             // Keep monitoring users on live data, but preserve viewport when they were browsing history.
             if (isMonitoring) {
                 val targetCenter = liveCenterTimeFor(latestDataTimestamp, visibleDuration)
-                centerTime = targetCenter
-                previewCenterTime = previewCenterTimeForWindowEnd(targetCenter + visibleDuration / 2L)
+                centerTime = maxOf(centerTime, targetCenter)
+                previewCenterTime = previewCenterTimeForWindowEnd(centerTime + visibleDuration / 2L)
             }
             lastAutoScrolledTimestamp = latestDataTimestamp
         }
@@ -1561,7 +1572,7 @@ fun InteractiveGlucoseChart(
         if (!isResumed) return@LaunchedEffect
         while (true) {
             kotlinx.coroutines.delay(30_000L)
-            if (isUserInteracting || autoScrollJob != null) continue
+            if (!autoFollow.canFollow(currentLatestDataTimestamp) || isUserInteracting || autoScrollJob != null) continue
             if (System.currentTimeMillis() - lastInteractionTimestamp < 1200L) continue
 
             val currentEnd = centerTime + visibleDuration / 2
@@ -1569,11 +1580,11 @@ fun InteractiveGlucoseChart(
             val isMonitoring = lastAutoScrolledTimestamp == 0L || dist < 60 * 60 * 1000L
             if (!isMonitoring) continue
 
-            val targetCenter = liveCenterTimeFor(latestDataTimestamp, visibleDuration)
+            val targetCenter = currentLiveCenter(currentLatestDataTimestamp, visibleDuration)
             // Only advance forward, never rewind (avoids fighting other effects).
             if (targetCenter > centerTime) {
-                centerTime = targetCenter
-                previewCenterTime = previewCenterTimeForWindowEnd(targetCenter + visibleDuration / 2L)
+                centerTime = maxOf(centerTime, targetCenter)
+                previewCenterTime = previewCenterTimeForWindowEnd(centerTime + visibleDuration / 2L)
             }
         }
     }
@@ -1602,9 +1613,9 @@ fun InteractiveGlucoseChart(
     fun predictionBand(series: GlucosePredictionSeries): tk.glucodata.chart.PredictionBand {
         val first = series.points.first()
         val isRawLane = series.kind == GlucosePredictionSeriesKind.RAW ||
-            (series.kind == GlucosePredictionSeriesKind.CALIBRATED && (viewMode == 1 || viewMode == 3))
+            (series.kind == GlucosePredictionSeriesKind.CALIBRATED && (renderViewMode == 1 || renderViewMode == 3))
         val sourceLane = series.kind == GlucosePredictionSeriesKind.AUTO &&
-            (hasCalibration || viewMode == 3)
+            (hasCalibration || renderViewMode == 3)
         val interval = if (uncertaintyRibbonEnabled) chartModel.primary
             ?.uncertaintyAt(first.timestamp, isRawLane, sourceLane) else null
         return tk.glucodata.chart.PredictionBand(first.value, first.confidence, interval, first.timestamp)
@@ -1617,7 +1628,7 @@ fun InteractiveGlucoseChart(
         peerPredictionSeries,
         centerTime,
         visibleDuration,
-        viewMode,
+        renderViewMode,
         hasCalibration,
         hideInitialWhenCalibrated,
         chartModel,
@@ -1645,8 +1656,8 @@ fun InteractiveGlucoseChart(
                 if (prediction.points.isEmpty()) return@forEach
                 val band = predictionBand(prediction)
                 val main = prediction.kind == GlucosePredictionSeriesKind.CALIBRATED ||
-                    (prediction.kind == GlucosePredictionSeriesKind.RAW && (viewMode == 1 || viewMode == 3)) ||
-                    (prediction.kind == GlucosePredictionSeriesKind.AUTO && (viewMode == 0 || viewMode == 2))
+                    (prediction.kind == GlucosePredictionSeriesKind.RAW && (renderViewMode == 1 || renderViewMode == 3)) ||
+                    (prediction.kind == GlucosePredictionSeriesKind.AUTO && (renderViewMode == 0 || renderViewMode == 2))
                 prediction.points.forEach { point ->
                     if (point.timestamp in viewportStart..viewportEnd) {
                         include(point.value)
@@ -1679,7 +1690,7 @@ fun InteractiveGlucoseChart(
         isResumed,
         centerTime,
         visibleDuration,
-        viewMode,
+        renderViewMode,
         chartModel,
     ) {
         if (!isResumed || renderData.isEmpty()) return@LaunchedEffect
@@ -1802,12 +1813,7 @@ fun InteractiveGlucoseChart(
                 startScroll = targetTime - (if (diff > 0) maxScroll else -maxScroll)
                 centerTime = startScroll
             }
-            androidx.compose.animation.core.Animatable(startScroll.toFloat()).animateTo(
-                targetValue = targetTime.toFloat(),
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            ) {
-                centerTime = value.toLong()
-            }
+            animateChartTime(startScroll, targetTime) { centerTime = it }
         }
         autoScrollJob = job
         job.invokeOnCompletion {
@@ -1893,7 +1899,7 @@ fun InteractiveGlucoseChart(
     // Use rememberUpdatedState to ensure the running gesture coroutine always sees the latest data
     val currentSafeData by rememberUpdatedState(safeData)
     val currentInteractionData by rememberUpdatedState(interactionData)
-    val currentViewMode by rememberUpdatedState(viewMode)
+    val currentViewMode by rememberUpdatedState(renderViewMode)
     val currentChartModel by rememberUpdatedState(chartModel)
     val currentRenderedYMin by rememberUpdatedState(renderedYMin)
     val currentRenderedYMax by rememberUpdatedState(renderedYMax)
@@ -2794,7 +2800,7 @@ fun InteractiveGlucoseChart(
                         val p = renderData[i]
                         // Determine value based on mode commonality
                         // If showing Raw (Mode 1) or Raw-Primary (Mode 3), prioritize Raw
-                        val useRaw = viewMode == 1 || viewMode == 3
+                        val useRaw = renderViewMode == 1 || renderViewMode == 3
                         val v = if (hasCalibration && hideInitialWhenCalibrated) {
                             chartModel.primary?.valueAt(p.timestamp) ?: Float.NaN
                         } else {
@@ -3115,8 +3121,8 @@ fun InteractiveGlucoseChart(
                             tk.glucodata.SensorVisuals.LANE_IDENTITY_TINT,
                         ).copy(alpha = if (tertiary) 0.4f else 0.62f)
                     }
-                    val rawLaneColor = laneColor(tertiary = hasCalibration && viewMode == 2)
-                    val autoLaneColor = laneColor(tertiary = hasCalibration && viewMode == 3)
+                    val rawLaneColor = laneColor(tertiary = hasCalibration && renderViewMode == 2)
+                    val autoLaneColor = laneColor(tertiary = hasCalibration && renderViewMode == 3)
                     // The primary drawn where it is not main: its own identity
                     // colour, thin, faded — the same treatment a peer gets.
                     val demotedColor = androidx.compose.ui.graphics.lerp(
@@ -3233,13 +3239,13 @@ fun InteractiveGlucoseChart(
                 }
 
                 val predictionRawColor = when {
-                    hasCalibration && viewMode == 2 -> tertiaryColor
-                    hasCalibration || viewMode == 2 -> secondaryColor
+                    hasCalibration && renderViewMode == 2 -> tertiaryColor
+                    hasCalibration || renderViewMode == 2 -> secondaryColor
                     else -> primaryColor
                 }
                 val predictionAutoColor = when {
-                    hasCalibration && viewMode == 3 -> tertiaryColor
-                    hasCalibration || viewMode == 3 -> secondaryColor
+                    hasCalibration && renderViewMode == 3 -> tertiaryColor
+                    hasCalibration || renderViewMode == 3 -> secondaryColor
                     else -> primaryColor
                 }
 
@@ -3265,8 +3271,8 @@ fun InteractiveGlucoseChart(
                         GlucosePredictionSeriesKind.CALIBRATED -> primaryColor
                     }
                     val isPrimaryPrediction = series.kind == GlucosePredictionSeriesKind.CALIBRATED ||
-                        (series.kind == GlucosePredictionSeriesKind.RAW && (viewMode == 1 || viewMode == 3)) ||
-                        (series.kind == GlucosePredictionSeriesKind.AUTO && (viewMode == 0 || viewMode == 2))
+                        (series.kind == GlucosePredictionSeriesKind.RAW && (renderViewMode == 1 || renderViewMode == 3)) ||
+                        (series.kind == GlucosePredictionSeriesKind.AUTO && (renderViewMode == 0 || renderViewMode == 2))
 
                     val lineSamples = visiblePredictionPoints.mapNotNull { point ->
                         val x = timeToDataX(point.timestamp)
@@ -4777,11 +4783,11 @@ fun InteractiveGlucoseChart(
                 val axisFontSize = 12.sp
 
                 // Compute calibrated value for tooltip
-                val isRawModeTT = viewMode == 1 || viewMode == 3
+                val isRawModeTT = renderViewMode == 1 || renderViewMode == 3
                 val calibratedValueTT = chartModel.primary?.valueAt(point.timestamp)
                     ?.takeIf { it.isFinite() && it > 0.1f }
                     ?.takeIf { hasCalibration || it != (if (isRawModeTT) point.rawValue else point.value) }
-                val dvs = getDisplayValues(point, viewMode, unit, calibratedValueTT)
+                val dvs = getDisplayValues(point, renderViewMode, unit, calibratedValueTT)
                 // Peer rows read what the peer's line drew — calibrated, smoothed,
                 // recorded — not the sensor's own point from before any of that.
                 val tooltipPeerRows = chartModel.peers.mapNotNull { series ->
@@ -5303,12 +5309,7 @@ fun InteractiveGlucoseChart(
                                 }
     
                                 // Animate the remaining distance
-                                androidx.compose.animation.core.Animatable(startScroll.toFloat()).animateTo(
-                                    targetValue = targetTime.toFloat(),
-                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                                ) {
-                                    centerTime = value.toLong()
-                                }
+                                animateChartTime(startScroll, targetTime) { centerTime = it }
                             }
                         },
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
@@ -5347,7 +5348,7 @@ fun InteractiveGlucoseChart(
                     renderData = renderData,
                     chartModel = chartModel,
                     previewCenterTime = previewCenterTime,
-                    viewMode = viewMode,
+                    viewMode = renderViewMode,
                     rangeThresholds = rangeThresholds,
                     rangePalette = chartBandPalette,
                     isMmol = isMmol,
