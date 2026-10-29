@@ -3165,8 +3165,8 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="nightscout_permissions_upload">Gulukoos\napi:entries:create\napi:entries:update\n\nDir insuliin iyo karbohaydraytyo\napi:treatments:create\napi:treatments:update\napi:treatments:delete\n\nHel insuliin iyo karbohaydraytyo\napi:treatments:read\n\nDir insuliinta firfircoon\napi:devicestatus:create\n\nMarkaad beddesho oggolaanshaha, cusboonaysii token-ka.</string>
     <string name="data_smoothing_scope_title">Ku dabaq</string>
     <string name="data_smoothing_on_desc">Akhrisyada waxaa la celceliyay %1$d daq</string>
-    <string name="data_smoothing_column_smooth">Siman</string>
-    <string name="data_smoothing_column_fewer">Ka yar</string>
+    <string name="data_smoothing_place_current_short">Hadda</string>
+    <string name="data_smoothing_place_sent_short">La diray</string>
     <string name="data_smoothing_target_chart_title">Garaafka</string>
     <string name="data_smoothing_target_chart_desc">Garaafyada app-ka, ogeysiiska iyo saacadda</string>
     <string name="data_smoothing_target_current_title">Gulukoosta hadda</string>

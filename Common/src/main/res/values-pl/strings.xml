@@ -3024,8 +3024,8 @@
     <string name="nightscout_permissions_upload">Glukoza\napi:entries:create\napi:entries:update\n\nWysyłaj insulinę i węglowodany\napi:treatments:create\napi:treatments:update\napi:treatments:delete\n\nOdbieraj insulinę i węglowodany\napi:treatments:read\n\nWysyłaj aktywną insulinę\napi:devicestatus:create\n\nPo zmianie uprawnień odśwież token.</string>
     <string name="data_smoothing_scope_title">Wygładzaj</string>
     <string name="data_smoothing_on_desc">Odczyty uśredniane z %1$d min</string>
-    <string name="data_smoothing_column_smooth">Wygładź</string>
-    <string name="data_smoothing_column_fewer">Rzadziej</string>
+    <string name="data_smoothing_place_current_short">Bieżąca</string>
+    <string name="data_smoothing_place_sent_short">Wysyłane</string>
     <string name="data_smoothing_target_chart_title">Wykres</string>
     <string name="data_smoothing_target_chart_desc">Wykresy w aplikacji, powiadomieniu i na zegarku</string>
     <string name="data_smoothing_target_current_title">Bieżąca glukoza</string>

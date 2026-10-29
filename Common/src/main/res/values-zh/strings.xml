@@ -2994,8 +2994,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="nightscout_permissions_upload">血糖\napi:entries:create\napi:entries:update\n\n发送胰岛素和碳水记录\napi:treatments:create\napi:treatments:update\napi:treatments:delete\n\n接收胰岛素和碳水记录\napi:treatments:read\n\n发送活性胰岛素\napi:devicestatus:create\n\n更改权限后，请刷新令牌。</string>
     <string name="data_smoothing_scope_title">平滑范围</string>
     <string name="data_smoothing_on_desc">读数按 %1$d 分钟取平均</string>
-    <string name="data_smoothing_column_smooth">平滑</string>
-    <string name="data_smoothing_column_fewer">减少</string>
+    <string name="data_smoothing_place_current_short">当前</string>
+    <string name="data_smoothing_place_sent_short">发送</string>
     <string name="data_smoothing_target_chart_title">图表</string>
     <string name="data_smoothing_target_chart_desc">应用、通知和手表中的图表</string>
     <string name="data_smoothing_target_current_title">当前血糖</string>

@@ -130,6 +130,8 @@ fun DisclosingSwitchCard(
     position: CardPosition,
     iconTint: Color? = null,
     enabled: Boolean = true,
+    /** 1 keeps a short status on one line; a sentence that must survive large text wraps. */
+    subtitleMaxLines: Int = 1,
     content: @Composable () -> Unit,
 ) {
     val tint = iconTint ?: MaterialTheme.colorScheme.primary
@@ -159,7 +161,7 @@ fun DisclosingSwitchCard(
                             text = subtitle,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            maxLines = subtitleMaxLines,
                             overflow = TextOverflow.Ellipsis
                         )
                     }

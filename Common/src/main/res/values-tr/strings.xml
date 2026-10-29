@@ -3008,8 +3008,8 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="nightscout_permissions_upload">Glikoz\napi:entries:create\napi:entries:update\n\nİnsülin ve karbonhidrat gönder\napi:treatments:create\napi:treatments:update\napi:treatments:delete\n\nİnsülin ve karbonhidrat al\napi:treatments:read\n\nAktif insülini gönder\napi:devicestatus:create\n\nİzinleri değiştirdikten sonra belirteci yenileyin.</string>
     <string name="data_smoothing_scope_title">Uygulama alanı</string>
     <string name="data_smoothing_on_desc">Değerlerin %1$d dk ortalaması alınır</string>
-    <string name="data_smoothing_column_smooth">Yumuşat</string>
-    <string name="data_smoothing_column_fewer">Seyrek</string>
+    <string name="data_smoothing_place_current_short">Güncel</string>
+    <string name="data_smoothing_place_sent_short">Gönderilen</string>
     <string name="data_smoothing_target_chart_title">Grafik</string>
     <string name="data_smoothing_target_chart_desc">Uygulama, bildirim ve saat grafikleri</string>
     <string name="data_smoothing_target_current_title">Güncel glikoz</string>

@@ -16,7 +16,7 @@ class SettingsCopyLocalizationTests {
     private val keys = listOf(
         "data_smoothing_window_title", "data_smoothing_window_desc", "data_smoothing_on_desc",
         "data_smoothing_scope_title", "data_smoothing_scope_all",
-        "data_smoothing_column_smooth", "data_smoothing_column_fewer",
+        "data_smoothing_place_current_short", "data_smoothing_place_sent_short",
         "data_smoothing_target_chart_title", "data_smoothing_target_chart_desc",
         "data_smoothing_target_current_title", "data_smoothing_target_current_desc",
         "data_smoothing_target_sent_title", "data_smoothing_target_sent_desc",
