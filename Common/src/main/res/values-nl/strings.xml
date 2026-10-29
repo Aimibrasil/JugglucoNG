@@ -3111,8 +3111,8 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="settings_import_title">Importeren</string>
     <string name="settings_xdrip_broadcast_title">xDrip+-broadcast</string>
     <string name="settings_xdrip_broadcast_desc">Voor xDrip+ en AAPS</string>
-    <string name="settings_patched_libre_title">Broadcast van gepatchte Libre-app</string>
-    <string name="settings_patched_libre_desc">Voor apps die de gepatchte Libre-app lezen</string>
+    <string name="settings_patched_libre_title">xDrip+ (gepatchte Libre)</string>
+    <string name="settings_patched_libre_desc">Selecteer in xDrip+ “Libre2 (patched App)” als gegevensbron</string>
     <string name="settings_glucodata_title">Glucodata-broadcast</string>
     <string name="settings_glucodata_desc">Voor GlucoDataHandler</string>
     <string name="settings_health_connect_desc">Waarden delen met gezondheidsapps</string>

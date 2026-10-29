@@ -3149,8 +3149,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="settings_import_title">Імпорт</string>
     <string name="settings_xdrip_broadcast_title">Трансляція xDrip+</string>
     <string name="settings_xdrip_broadcast_desc">Для xDrip+ і AAPS</string>
-    <string name="settings_patched_libre_title">Трансляція патченого застосунку Libre</string>
-    <string name="settings_patched_libre_desc">Для застосунків, що читають патчений застосунок Libre</string>
+    <string name="settings_patched_libre_title">xDrip+ (патчений Libre)</string>
+    <string name="settings_patched_libre_desc">У xDrip+ виберіть «Libre2 (patched App)» як джерело даних</string>
     <string name="settings_glucodata_title">Трансляція Glucodata</string>
     <string name="settings_glucodata_desc">Для GlucoDataHandler</string>
     <string name="settings_health_connect_desc">Ділитися значеннями із застосунками здоров’я</string>

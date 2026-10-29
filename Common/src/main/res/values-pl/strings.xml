@@ -3114,8 +3114,8 @@
     <string name="settings_import_title">Import</string>
     <string name="settings_xdrip_broadcast_title">Broadcast xDrip+</string>
     <string name="settings_xdrip_broadcast_desc">Dla xDrip+ i AAPS</string>
-    <string name="settings_patched_libre_title">Broadcast zmodyfikowanej aplikacji Libre</string>
-    <string name="settings_patched_libre_desc">Dla aplikacji czytających zmodyfikowaną aplikację Libre</string>
+    <string name="settings_patched_libre_title">xDrip+ (zmodyfikowane Libre)</string>
+    <string name="settings_patched_libre_desc">W xDrip+ wybierz „Libre2 (patched App)” jako źródło danych</string>
     <string name="settings_glucodata_title">Broadcast Glucodata</string>
     <string name="settings_glucodata_desc">Dla GlucoDataHandler</string>
     <string name="settings_health_connect_desc">Udostępniaj odczyty aplikacjom zdrowotnym</string>

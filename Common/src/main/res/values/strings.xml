@@ -3330,8 +3330,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="settings_import_title">Import</string>
     <string name="settings_xdrip_broadcast_title">xDrip+ broadcast</string>
     <string name="settings_xdrip_broadcast_desc">For xDrip+ and AAPS</string>
-    <string name="settings_patched_libre_title">Patched Libre app broadcast</string>
-    <string name="settings_patched_libre_desc">For apps set to read the patched Libre app</string>
+    <string name="settings_patched_libre_title">xDrip+ (patched Libre)</string>
+    <string name="settings_patched_libre_desc">In xDrip+, select “Libre2 (patched App)” as the data source</string>
     <string name="settings_glucodata_title">Glucodata broadcast</string>
     <string name="settings_glucodata_desc">For GlucoDataHandler</string>
     <string name="settings_health_connect_desc">Share readings with health apps</string>

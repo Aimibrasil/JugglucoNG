@@ -3169,8 +3169,8 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="settings_import_title">Импорт</string>
     <string name="settings_xdrip_broadcast_title">xDrip+ broadcast</string>
     <string name="settings_xdrip_broadcast_desc">xDrip+ ба AAPS-д</string>
-    <string name="settings_patched_libre_title">Засварласан Libre аппын broadcast</string>
-    <string name="settings_patched_libre_desc">Засварласан Libre аппыг уншдаг аппуудад</string>
+    <string name="settings_patched_libre_title">xDrip+ (засварласан Libre)</string>
+    <string name="settings_patched_libre_desc">xDrip+ дээр өгөгдлийн эх үүсвэрээр “Libre2 (patched App)”-г сонгоно уу</string>
     <string name="settings_glucodata_title">Glucodata broadcast</string>
     <string name="settings_glucodata_desc">GlucoDataHandler-д</string>
     <string name="settings_health_connect_desc">Утгыг эрүүл мэндийн аппуудтай хуваалцах</string>

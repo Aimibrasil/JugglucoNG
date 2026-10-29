@@ -81,12 +81,21 @@ fun PhoneAppsSettingsScreen(
             item(key = "apps") {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     SettingsSwitchItem(
+                        title = stringResource(R.string.settings_patched_libre_title),
+                        subtitle = stringResource(R.string.settings_patched_libre_desc),
+                        checked = patchedLibreEnabled,
+                        icon = Icons.Default.Share,
+                        iconTint = appColor,
+                        position = CardPosition.TOP,
+                        onCheckedChange = { viewModel.togglePatchedLibreBroadcast(it) }
+                    )
+                    SettingsSwitchItem(
                         title = stringResource(R.string.settings_xdrip_broadcast_title),
                         subtitle = stringResource(R.string.settings_xdrip_broadcast_desc),
                         checked = xdripEnabled,
                         icon = Icons.Default.Radio,
                         iconTint = appColor,
-                        position = CardPosition.TOP,
+                        position = CardPosition.MIDDLE,
                         onCheckedChange = { viewModel.toggleXDripBroadcast(it) }
                     )
                     SettingsSwitchItem(
@@ -97,15 +106,6 @@ fun PhoneAppsSettingsScreen(
                         iconTint = appColor,
                         position = CardPosition.MIDDLE,
                         onCheckedChange = { viewModel.setXdripFollowerEnabled(it) }
-                    )
-                    SettingsSwitchItem(
-                        title = stringResource(R.string.settings_patched_libre_title),
-                        subtitle = stringResource(R.string.settings_patched_libre_desc),
-                        checked = patchedLibreEnabled,
-                        icon = Icons.Default.Share,
-                        iconTint = appColor,
-                        position = CardPosition.MIDDLE,
-                        onCheckedChange = { viewModel.togglePatchedLibreBroadcast(it) }
                     )
                     SettingsSwitchItem(
                         title = stringResource(R.string.settings_glucodata_title),

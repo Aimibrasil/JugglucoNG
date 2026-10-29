@@ -3253,8 +3253,8 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="settings_import_title">Soo gali</string>
     <string name="settings_xdrip_broadcast_title">Baahinta xDrip+</string>
     <string name="settings_xdrip_broadcast_desc">xDrip+ iyo AAPS</string>
-    <string name="settings_patched_libre_title">Baahinta app-ka Libre ee la beddelay</string>
-    <string name="settings_patched_libre_desc">Apps-ka akhriya app-ka Libre ee la beddelay</string>
+    <string name="settings_patched_libre_title">xDrip+ (Libre la beddelay)</string>
+    <string name="settings_patched_libre_desc">Gudaha xDrip+, dooro “Libre2 (patched App)” inuu noqdo isha xogta</string>
     <string name="settings_glucodata_title">Baahinta Glucodata</string>
     <string name="settings_glucodata_desc">GlucoDataHandler</string>
     <string name="settings_health_connect_desc">La wadaag akhrisyada apps-ka caafimaadka</string>
