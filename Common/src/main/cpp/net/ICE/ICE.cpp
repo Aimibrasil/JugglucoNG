@@ -1380,7 +1380,7 @@ static RendezvousAttemptResult waitonDescription(
             con->beginRendezvous();
             return RendezvousAttemptResult::Lost;
             }
-        if(attempt.isSuperseded())
+        if(attempt.isSuperseded()||con->remoteDescriptionSet.load())
             return RendezvousAttemptResult::Lost;
         auto [resbody,code]=ContextHTTPS::getContext().getRequest(
             endpoint.host,endpoint.port,description,sdpdata.getSpan(),{},
@@ -1454,6 +1454,19 @@ static RendezvousAttemptResult putDescription(
         return RendezvousAttemptResult::Failed;
     }
     const uint64_t generation=con->currentAgentGeneration();
+    // Side 1 has already applied this server's offer, so no other server can
+    // take over the exchange. If the answer cannot be delivered here, restart
+    // the negotiation (keeping every server in play) instead of retrying.
+    constexpr int maxAnswerTries=3;
+    int answerFailures=0;
+    const auto answerUndeliverable=[&] {
+        if(side==givefirst||++answerFailures<maxAnswerTries)
+            return false;
+        con->rendezvousEscalated=true;
+        restartRejectedNegotiation(con,agent,generation,allindex,
+                                   "answer could not be delivered");
+        return true;
+    };
     while(true) {
             if(!con->isCurrentAgent(agent,generation)||con->endConnect.load())
                 return RendezvousAttemptResult::Failed;
@@ -1489,6 +1502,8 @@ static RendezvousAttemptResult putDescription(
                     }
                  else {
                     LOGGERICE("putdescription: %s %d: Remote small body in :\n%s\n",commonLabel.data(),side,(const char *)resbody.data());
+                    if(answerUndeliverable())
+                        return RendezvousAttemptResult::Failed;
                     if(!waitForAttempt(con,agent,attempt,1))
                         return stoppedAttempt(attempt);
                     }
@@ -1501,6 +1516,8 @@ static RendezvousAttemptResult putDescription(
                 if(code<0)
                     attempt.connectFailures.fetch_add(1,std::memory_order_release);
                 LOGGERICE("putdescription: %s %d via %s: Http error\n",commonLabel.data(),side,endpoint.host.c_str());
+                if(answerUndeliverable())
+                    return RendezvousAttemptResult::Failed;
                 if(!waitForAttempt(con,agent,attempt,5))
                     return stoppedAttempt(attempt);
                 }
