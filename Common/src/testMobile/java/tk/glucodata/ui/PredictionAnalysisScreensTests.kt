@@ -63,10 +63,10 @@ class PredictionAnalysisScreensTests {
     )))
 
     /** A standard forecast that overshoots the trend and an adaptive one that follows it more closely. */
-    private fun forecast(origin: Long, model: ForecastModel): RecordedForecastEntity {
+    private fun forecast(origin: Long, model: ForecastModel, steps: Int = 24): RecordedForecastEntity {
         val baseline = glucose(origin)
         val slope = (glucose(origin) - glucose(origin - 10 * minute)) / 10f
-        val values = FloatArray(24) { k ->
+        val values = FloatArray(steps) { k ->
             val m = (k + 1) * 5
             when (model) {
                 ForecastModel.STANDARD -> baseline + slope * m * kotlin.math.exp(-m / 70f) * 1.6f
@@ -157,6 +157,29 @@ class PredictionAnalysisScreensTests {
         compose.onAllNodesWithText("Actual").onFirst().assertIsDisplayed()
         compose.onNodeWithText("Standard forecast · On the chart").assertIsDisplayed()
         capture("past-forecast")
+    }
+
+    @Test
+    fun shortForecastStillShowsLaterActualReadings() {
+        val origin = origins[origins.size / 2]
+        val short = forecast(origin, ForecastModel.STANDARD, steps = 6)
+        val (times, values) = actual.readings("SENSOR", ForecastLane.AUTO, origin - 60 * minute, origin + 30 * minute)
+        val moment = ForecastMoment(origin, "SENSOR", ForecastLane.AUTO, short, null, times, values, actual)
+        compose.setContent {
+            Frame {
+                PredictionInspectorContent(
+                    origins = listOf(origin), selected = 0, moment = moment, isMmol = false,
+                    targetLowMgdl = 70f, targetHighMgdl = 180f, onSelect = {},
+                )
+            }
+        }
+        compose.onNodeWithText("No reading").assertDoesNotExist()
+        compose.onNodeWithText("Not yet").assertDoesNotExist()
+        for (h in listOf(60, 120)) {
+            compose.onAllNodesWithText(tk.glucodata.ui.util.GlucoseFormatter.formatFromMgDl(
+                actual.valueAt("SENSOR", ForecastLane.AUTO, origin + h * minute), false,
+            )).onFirst().assertIsDisplayed()
+        }
     }
 
     @Test

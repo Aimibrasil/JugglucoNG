@@ -40,6 +40,20 @@ class PredictionAccuracyTests {
     }
 
     @Test
+    fun actualReadingsBeyondAShortForecastRemainVisibleWithoutBeingScored() {
+        val short = forecast(t0, FloatArray(6) { 100f })
+        val actual = ActualGlucose(mapOf("S1" to readings(t0, t0 + 130 * minute)))
+        for (h in listOf(60, 120)) {
+            val (outcome, value) = PredictionAccuracy.actualOutcome("S1", ForecastLane.AUTO, t0 + h * minute, actual)
+            assertEquals(Outcome.RESOLVED, outcome)
+            assertEquals(110f, value, 0f)
+            assertEquals(Outcome.MISSING, PredictionAccuracy.outcome(short, h, actual).first)
+        }
+        assertEquals(Outcome.MISSING, PredictionAccuracy.actualOutcome("other", ForecastLane.AUTO, t0, actual, t0 + 60 * minute).first)
+        assertEquals(Outcome.PENDING, PredictionAccuracy.actualOutcome("S1", ForecastLane.AUTO, t0 + 150 * minute, actual, t0 + 140 * minute).first)
+    }
+
+    @Test
     fun errorsBiasAndNoChangeAreComputedFromTheOutcomes() {
         // Actual is 110 everywhere; the forecast says 100: error −10 at every horizon, and
         // "no change" from a baseline of 100 is off by 10 as well.

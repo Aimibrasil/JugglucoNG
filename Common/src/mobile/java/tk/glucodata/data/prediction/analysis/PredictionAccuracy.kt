@@ -142,11 +142,21 @@ object PredictionAccuracy {
     ): Pair<Outcome, Float> {
         val predicted = forecast.valueAt(horizonMinutes)
         if (!predicted.isFinite()) return Outcome.MISSING to Float.NaN
-        val target = forecast.originTime + horizonMinutes * 60_000L
-        if (target > actual.latestTime(forecast.sensorSerial)) {
+        return actualOutcome(forecast.sensorSerial, forecast.lane, forecast.originTime + horizonMinutes * 60_000L, actual, nowMs)
+    }
+
+    /** Resolve a measured outcome even when no forecast was saved at this horizon. */
+    fun actualOutcome(
+        sensorSerial: String,
+        lane: Int,
+        target: Long,
+        actual: ActualGlucose,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Pair<Outcome, Float> {
+        if (target > actual.latestTime(sensorSerial)) {
             return (if (target > nowMs - ARRIVAL_ALLOWANCE_MS) Outcome.PENDING else Outcome.MISSING) to Float.NaN
         }
-        val value = actual.valueAt(forecast.sensorSerial, forecast.lane, target)
+        val value = actual.valueAt(sensorSerial, lane, target)
         return if (value.isFinite()) Outcome.RESOLVED to value else Outcome.MISSING to Float.NaN
     }
 

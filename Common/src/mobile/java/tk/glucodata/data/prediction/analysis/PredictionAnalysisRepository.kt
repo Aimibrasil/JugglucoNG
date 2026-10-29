@@ -67,7 +67,9 @@ class PredictionAnalysisRepository(private val context: Context) {
         val any = standard ?: adaptive ?: return@withContext null
         val longest = forecasts.maxOf { it.values.size * it.stepMinutes }
         val from = originTime - HOUR_MS
-        val actual = actualFor(forecasts, from)
+        // The table always shows all standard horizons, even for a shorter saved curve.
+        val lastOutcome = originTime + maxOf(longest, PredictionAccuracy.DEFAULT_HORIZONS.max()) * MINUTE_MS
+        val actual = actualFor(forecasts, from, lastOutcome + 20 * MINUTE_MS)
         val (times, values) = actual.readings(any.sensorSerial, any.lane, from, originTime + longest * MINUTE_MS)
         ForecastMoment(
             originTime = originTime,
@@ -84,12 +86,12 @@ class PredictionAnalysisRepository(private val context: Context) {
     suspend fun clear(): Int = withContext(Dispatchers.IO) { dao.deleteAll() }
 
     /** The readings each forecast is scored against, per sensor and per lane it was recorded in. */
-    private suspend fun actualFor(forecasts: List<RecordedForecastEntity>, fromMs: Long): ActualGlucose {
+    private suspend fun actualFor(forecasts: List<RecordedForecastEntity>, fromMs: Long, toMs: Long = Long.MAX_VALUE): ActualGlucose {
         val history = HistoryRepository()
         val isMmol = GlucoseFormatter.isMmolApp()
         val bySensor = HashMap<String, ActualGlucose.SensorLanes>()
         for ((sensor, list) in forecasts.groupBy { it.sensorSerial }) {
-            val points = history.getHistoryForSensor(sensor, fromMs - HOUR_MS)
+            val points = history.getHistoryForSensor(sensor, fromMs - HOUR_MS, toMs)
                 .filter { it.timestamp > 0L }
                 .sortedBy { it.timestamp }
             if (points.isEmpty()) continue

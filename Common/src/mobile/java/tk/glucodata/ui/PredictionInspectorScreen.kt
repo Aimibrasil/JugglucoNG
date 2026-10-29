@@ -312,8 +312,9 @@ private fun OutcomeTable(moment: ForecastMoment, isMmol: Boolean) {
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             PredictionAccuracy.DEFAULT_HORIZONS.forEach { h ->
-                val reference = forecasts.firstOrNull()?.second ?: return@forEach
-                val (outcome, actual) = PredictionAccuracy.outcome(reference, h, moment.actual)
+                val (outcome, actual) = PredictionAccuracy.actualOutcome(
+                    moment.sensorSerial, moment.lane, moment.originTime + h * MINUTE_MS, moment.actual,
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BodyCell(stringResource(R.string.prediction_analysis_minutes, h), Modifier.weight(0.8f))
                     BodyCell(
