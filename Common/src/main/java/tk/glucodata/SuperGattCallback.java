@@ -825,6 +825,8 @@ public abstract class SuperGattCallback extends BluetoothGattCallback {
             Log.stack(LOG_ID, SerialNumber, e);
         }
         CustomAlertAccess.checkAndTrigger(Applic.app, reading, rate, timmsec, SerialNumber, sensorgen);
+        // Opt-in forecast recording; returns at once and records off this thread.
+        PredictionAnalysisAccess.onRealtimeReading(SerialNumber, timmsec);
         {
             if (doLog) {
                 Log.v(LOG_ID, SerialNumber + " " + tim + " glucose=" + gl + " " + rate);

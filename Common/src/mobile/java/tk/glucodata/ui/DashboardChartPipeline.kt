@@ -7,6 +7,7 @@ import tk.glucodata.data.prediction.GlucosePredictionSeries
 import tk.glucodata.data.prediction.GlucosePredictionSeriesKind
 import tk.glucodata.data.prediction.PredictiveSimulationSettings
 import tk.glucodata.data.prediction.buildGlucosePrediction
+import tk.glucodata.data.prediction.analysis.AdaptivePredictionStore
 
 internal enum class PredictionHistorySource {
     AUTO,
@@ -140,8 +141,9 @@ internal fun buildPredictionSeriesForChart(
         kind: GlucosePredictionSeriesKind,
         source: PredictionHistorySource
     ): GlucosePredictionSeries? {
-        val seriesPoints = buildGlucosePrediction(
-            history = buildDisplayHistoryForPrediction(predictionHistory, source),
+        val history = buildDisplayHistoryForPrediction(predictionHistory, source)
+        fun standard(settings: PredictiveSimulationSettings) = buildGlucosePrediction(
+            history = history,
             journalEntries = journalEntries,
             insulinPresetsById = insulinPresetsById,
             unit = unit,
@@ -149,7 +151,25 @@ internal fun buildPredictionSeriesForChart(
             targetHigh = targetHigh,
             settings = settings
         )
-        return seriesPoints.takeIf { it.size >= 2 }?.let { GlucosePredictionSeries(kind, it) }
+        if (!settings.adaptive) {
+            return standard(settings).takeIf { it.size >= 2 }?.let { GlucosePredictionSeries(kind, it) }
+        }
+        val rawLane = source == PredictionHistorySource.RAW || source == PredictionHistorySource.CALIBRATED_RAW
+        val adaptive = tk.glucodata.Applic.app?.let { context ->
+            runCatching {
+                AdaptivePredictionStore.forecastPoints(
+                    context = context,
+                    history = history,
+                    isMmol = tk.glucodata.ui.util.GlucoseFormatter.isMmol(unit),
+                    rawLane = rawLane,
+                    horizonMinutes = settings.horizonMinutes,
+                )
+            }.getOrNull()
+        }
+        // Until the adaptive forecast can answer, the standard forecast without momentum:
+        // on the benchmark it never did worse than "no change", which the momentum term did.
+        val points = adaptive ?: standard(settings.copy(trendMomentumEnabled = false))
+        return points.takeIf { it.size >= 2 }?.let { GlucosePredictionSeries(kind, it, adaptiveFallback = adaptive == null) }
     }
 
     // Without a calibration the primary lane's own forecast is the primary
