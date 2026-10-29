@@ -3085,8 +3085,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="settings_import_title">Importer</string>
     <string name="settings_xdrip_broadcast_title">Diffusion xDrip+</string>
     <string name="settings_xdrip_broadcast_desc">Pour xDrip+ et AAPS</string>
-    <string name="settings_patched_libre_title">Diffusion de l’appli Libre patchée</string>
-    <string name="settings_patched_libre_desc">Pour les applis qui lisent l’appli Libre patchée</string>
+    <string name="settings_patched_libre_title">xDrip+ (Libre patchée)</string>
+    <string name="settings_patched_libre_desc">Dans xDrip+, sélectionnez « Libre2 (patched App) » comme source de données</string>
     <string name="settings_glucodata_title">Diffusion Glucodata</string>
     <string name="settings_glucodata_desc">Pour GlucoDataHandler</string>
     <string name="settings_health_connect_desc">Partager les valeurs avec les applis de santé</string>

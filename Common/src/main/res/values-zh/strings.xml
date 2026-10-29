@@ -3091,8 +3091,8 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="settings_import_title">导入</string>
     <string name="settings_xdrip_broadcast_title">xDrip+ 广播</string>
     <string name="settings_xdrip_broadcast_desc">用于 xDrip+ 和 AAPS</string>
-    <string name="settings_patched_libre_title">修改版 Libre 应用广播</string>
-    <string name="settings_patched_libre_desc">用于读取修改版 Libre 应用的应用</string>
+    <string name="settings_patched_libre_title">xDrip+（修改版 Libre）</string>
+    <string name="settings_patched_libre_desc">在 xDrip+ 中选择“Libre2 (patched App)”作为数据源</string>
     <string name="settings_glucodata_title">Glucodata 广播</string>
     <string name="settings_glucodata_desc">用于 GlucoDataHandler</string>
     <string name="settings_health_connect_desc">与健康应用共享读数</string>

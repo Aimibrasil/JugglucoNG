@@ -3106,8 +3106,8 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="settings_import_title">İçe aktar</string>
     <string name="settings_xdrip_broadcast_title">xDrip+ yayını</string>
     <string name="settings_xdrip_broadcast_desc">xDrip+ ve AAPS için</string>
-    <string name="settings_patched_libre_title">Yamalı Libre uygulaması yayını</string>
-    <string name="settings_patched_libre_desc">Yamalı Libre uygulamasını okuyan uygulamalar için</string>
+    <string name="settings_patched_libre_title">xDrip+ (yamalı Libre)</string>
+    <string name="settings_patched_libre_desc">xDrip+ içinde veri kaynağı olarak “Libre2 (patched App)” seçin</string>
     <string name="settings_glucodata_title">Glucodata yayını</string>
     <string name="settings_glucodata_desc">GlucoDataHandler için</string>
     <string name="settings_health_connect_desc">Değerleri sağlık uygulamalarıyla paylaşın</string>

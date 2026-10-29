@@ -3147,8 +3147,8 @@ Az OK megnyomása létrehoz egy kapcsolatot ezen a telefonon, és megjelenít eg
     <string name="settings_import_title">Importálás</string>
     <string name="settings_xdrip_broadcast_title">xDrip+ broadcast</string>
     <string name="settings_xdrip_broadcast_desc">xDrip+ és AAPS számára</string>
-    <string name="settings_patched_libre_title">Patchelt Libre alkalmazás broadcast</string>
-    <string name="settings_patched_libre_desc">A patchelt Libre alkalmazást olvasó alkalmazásokhoz</string>
+    <string name="settings_patched_libre_title">xDrip+ (patchelt Libre)</string>
+    <string name="settings_patched_libre_desc">Az xDrip+ adatforrásaként válaszd a „Libre2 (patched App)” lehetőséget</string>
     <string name="settings_glucodata_title">Glucodata broadcast</string>
     <string name="settings_glucodata_desc">GlucoDataHandler számára</string>
     <string name="settings_health_connect_desc">Értékek megosztása egészségügyi alkalmazásokkal</string>
