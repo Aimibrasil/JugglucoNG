@@ -582,26 +582,14 @@ fun SettingsSlider(
     range: ClosedFloatingPointRange<Float>,
     steps: Int = 0,
     modifier: Modifier = Modifier,
-    subtitle: String? = null,
-    enabled: Boolean = true,
-    onValueChangeFinished: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(title, style = MaterialTheme.typography.titleMedium)
-        if (subtitle != null) {
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
         Slider(
             value = value,
             onValueChange = onValueChange,
-            onValueChangeFinished = onValueChangeFinished,
             valueRange = range,
             steps = steps,
-            enabled = enabled,
             colors = SliderDefaults.colors(
                 activeTickColor = Color.Transparent,
                 inactiveTickColor = Color.Transparent
