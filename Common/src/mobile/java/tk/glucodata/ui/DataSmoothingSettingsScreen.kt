@@ -108,8 +108,14 @@ internal fun DataSmoothingSettingsContent(
     val selectedMinutes = options[sliderIndex.roundToInt().coerceIn(0, options.lastIndex)]
     val selectedLabel = stringResource(R.string.minutes_short_format, selectedMinutes)
     val collapseIntervalMinutes = DataSmoothing.collapseIntervalMinutes(configuredMinutes)
+    // "Smoothed over" only where it is true: a thinned place that is also smoothed, or, before
+    // any place is picked, a place that would be picked first.
+    val thinsSmoothed = DataSmoothingPlace.entries
+        .filter { it.fewer(targets) }
+        .ifEmpty { DataSmoothingPlace.entries }
+        .any { it.smoothed(targets) }
     val collapseSubtitle = when {
-        collapseIntervalMinutes in 1 until configuredMinutes ->
+        thinsSmoothed && collapseIntervalMinutes in 1 until configuredMinutes ->
             stringResource(R.string.data_smoothing_collapse_desc_capped, configuredMinutes)
         else ->
             stringResource(R.string.data_smoothing_collapse_desc_match, collapseIntervalMinutes)
