@@ -17,8 +17,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -326,15 +327,22 @@ private fun FewerReadingsCard(
         shape = MaterialTheme.shapes.extraLarge,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        // A control card, as the window card above: one padded column on one surface.
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        // A control card, as the window card above: one column on one surface. The heading
+        // spans the card so its ripple fills the card's shape; padding sits inside the ripple.
+        // Collapsed it is the whole card; expanded its lower edge meets the controls below.
+        val headingShape = if (checked) {
+            MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp))
+        } else {
+            MaterialTheme.shapes.extraLarge
+        }
+        Column(modifier = Modifier.fillMaxWidth()) {
             // The whole heading is the switch's touch target, read as one switch by TalkBack.
             // It shares its press with the switch, so a tap anywhere on it ripples and moves the switch.
             val headingInteraction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 48.dp)
+                    .clip(headingShape)
                     .toggleable(
                         value = checked,
                         interactionSource = headingInteraction,
@@ -342,7 +350,8 @@ private fun FewerReadingsCard(
                         enabled = enabled,
                         role = Role.Switch,
                         onValueChange = onCheckedChange
-                    ),
+                    )
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -368,14 +377,15 @@ private fun FewerReadingsCard(
                 )
             }
 
-            // The 16dp gap lives inside the revealed section, so the card closes to the heading.
+            // The heading's bottom padding is the 16dp gap above the controls, so the card
+            // closes to the heading when they hide.
             AnimatedVisibility(
                 visible = checked,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ConnectedButtonGroup(
