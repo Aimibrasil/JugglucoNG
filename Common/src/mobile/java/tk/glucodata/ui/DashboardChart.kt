@@ -5077,6 +5077,19 @@ fun InteractiveGlucoseChart(
             }
             // Brace removed here to keep subsequent elements inside BoxWithConstraints
 
+            // --- DATE HEADER OVERLAY ---
+            // Show only if NOT today AND not "recent" (to avoid showing date when day just started)
+            val now = System.currentTimeMillis()
+            // Bucketed to a local day so panning within one day neither reformats the label
+            // nor restarts the transition below — centerTime itself changes every frame.
+            val headerDay = localDayIndex(centerTime)
+            val isToday = headerDay == localDayIndex(now)
+            val isRecent = abs(now - centerTime) < 4 * 60 * 60 * 1000L // 4 Hour buffer for "just started" days
+            val showHeaderDate = !isToday && !isRecent
+            val headerDate = remember(headerDay) {
+                java.text.SimpleDateFormat("EEEE, d MMMM", java.util.Locale.getDefault()).format(java.util.Date(centerTime))
+            }
+
             // --- CALIBRATION TOOLTIPS ---
             // Show permanent tooltips for calibration points in visible range (respects mode)
             // Keep the timestamp glyph on the same baseline as the Canvas-drawn x-axis labels.
@@ -5092,6 +5105,18 @@ fun InteractiveGlucoseChart(
             val calibrationTimestampTextMeasurer = rememberTextMeasurer()
             val calibrationTimestampTextStyle = MaterialTheme.typography.labelSmall
             val calibrationTimestampChipHeightPx = with(LocalDensity.current) { 24.dp.toPx() }
+            // Align only the value text baseline with the existing date label.
+            val dateChipHeightPx = with(LocalDensity.current) { 32.dp.roundToPx() }
+            val dateTextLayout = calibrationTimestampTextMeasurer.measure(
+                text = headerDate,
+                style = MaterialTheme.typography.labelLarge,
+                constraints = androidx.compose.ui.unit.Constraints(maxHeight = dateChipHeightPx),
+                maxLines = 1,
+                softWrap = false
+            )
+            val dateTextBaselinePx = with(LocalDensity.current) {
+                androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha).toPx()
+            } + (dateChipHeightPx - dateTextLayout.size.height) / 2 + dateTextLayout.firstBaseline
             val viewportStartTooltip = overlayViewportStart
             val viewportEndTooltip = overlayViewportEnd
             val visibleCalibrationsTooltip = visibleCalibrations.filter {
@@ -5129,6 +5154,17 @@ fun InteractiveGlucoseChart(
                 val calibrationTimestampChipTopPx =
                     chartTimeLabelBaselinePx - calibrationTimestampTextBaselineOffsetPx
 
+                val valueTextLayout = calibrationTimestampTextMeasurer.measure(
+                    text = calValueStr,
+                    style = MaterialTheme.typography.labelMediumEmphasized,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                val valueTextBaselineOffsetPx = with(LocalDensity.current) {
+                    4.dp.roundToPx() +
+                        (maxOf(12.dp.roundToPx(), valueTextLayout.size.height) - valueTextLayout.size.height) / 2
+                } + valueTextLayout.firstBaseline
+
                 // Top: Value chip with waterdrop icon (clickable to edit)
                 Surface(
                     modifier = Modifier
@@ -5137,7 +5173,7 @@ fun InteractiveGlucoseChart(
                         .offset {
                             androidx.compose.ui.unit.IntOffset(
                                 x = calXOffset.toInt(),
-                                y = 8.dp.roundToPx()
+                                y = (dateTextBaselinePx - valueTextBaselineOffsetPx).roundToInt()
                             )
                         }
                         .graphicsLayer { translationX = -size.width / 2f }
@@ -5197,19 +5233,6 @@ fun InteractiveGlucoseChart(
                 }
             }
 
-
-            // --- DATE HEADER OVERLAY ---
-            // Show only if NOT today AND not "recent" (to avoid showing date when day just started)
-            val now = System.currentTimeMillis()
-            // Bucketed to a local day so panning within one day neither reformats the label
-            // nor restarts the transition below — centerTime itself changes every frame.
-            val headerDay = localDayIndex(centerTime)
-            val isToday = headerDay == localDayIndex(now)
-            val isRecent = abs(now - centerTime) < 4 * 60 * 60 * 1000L // 4 Hour buffer for "just started" days
-            val showHeaderDate = !isToday && !isRecent
-            val headerDate = remember(headerDay) {
-                java.text.SimpleDateFormat("EEEE, d MMMM", java.util.Locale.getDefault()).format(java.util.Date(centerTime))
-            }
 
             androidx.compose.animation.AnimatedVisibility(
                 visible = showHeaderDate,
