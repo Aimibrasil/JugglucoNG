@@ -604,7 +604,7 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="data_smoothing_graph_only_title">Nur Diagramm</string>
     <string name="data_smoothing_exchange_only_title">Nur gesendete Werte</string>
     <string name="data_smoothing_causal_title">Kalman-Filter für den aktuellen Wert</string>
-    <string name="data_smoothing_causal_desc">Schätzt den neuesten Messwert nur aus früheren Werten, sodass er sich mit neuen Werten nicht mehr ändert. Diagrammverlauf und Nightscout behalten das Mittelungsfenster</string>
+    <string name="data_smoothing_causal_desc">Schätzt den neuesten Wert nur aus früheren, sodass er sich später nicht verschiebt. Diagramm und Nightscout behalten das Glättungsfenster</string>
     <string name="data_smoothing_collapse_title">Weniger Messwerte</string>
     <string name="data_smoothing_collapse_summary_format">Alle %1$d Min.</string>
     <string name="preview_window_title">Vorschaufenster</string>

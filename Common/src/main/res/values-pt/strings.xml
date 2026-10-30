@@ -400,7 +400,7 @@
     <string name="data_smoothing_graph_only_title">Apenas gráfico</string>
     <string name="data_smoothing_exchange_only_title">Apenas leituras enviadas</string>
     <string name="data_smoothing_causal_title">Filtro de Kalman para o valor atual</string>
-    <string name="data_smoothing_causal_desc">Estima a leitura mais recente apenas a partir das anteriores, para que não mude quando chegam novas leituras. O histórico do gráfico e o Nightscout mantêm a janela de média</string>
+    <string name="data_smoothing_causal_desc">Estima a leitura mais recente apenas a partir das anteriores, para que não mude depois. O gráfico e o Nightscout mantêm a janela de suavização</string>
     <string name="data_smoothing_collapse_title">Menos leituras</string>
     <string name="data_smoothing_collapse_summary_format">A cada %1$d min</string>
     <string name="preview_window_title">Janela de pré-visualização</string>

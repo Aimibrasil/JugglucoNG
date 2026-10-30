@@ -443,7 +443,7 @@
     <string name="data_smoothing_graph_only_title">Толькі графік</string>
     <string name="data_smoothing_exchange_only_title">Толькі перадаваныя паказанні</string>
     <string name="data_smoothing_causal_title">Фільтр Калмана для бягучага значэння</string>
-    <string name="data_smoothing_causal_desc">Ацэньвае апошняе паказанне толькі па папярэдніх, таму яно не мяняецца з прыходам новых. Гісторыя графіка і Nightscout застаюцца на акне усярэднення</string>
+    <string name="data_smoothing_causal_desc">Ацэньвае апошняе паказанне толькі па папярэдніх, таму яно потым не зрушваецца. Графік і Nightscout застаюцца на інтэрвале згладжвання</string>
     <string name="data_smoothing_collapse_title">Менш паказанняў</string>
     <string name="data_smoothing_collapse_summary_format">Кожныя %1$d хв</string>
     <string name="preview_window_title">Акно папярэдняга прагляду</string>

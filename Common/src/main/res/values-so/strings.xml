@@ -882,7 +882,7 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="data_smoothing_graph_only_title">Garaafka oo keliya</string>
     <string name="data_smoothing_exchange_only_title">Cabbirrada la diro oo keliya</string>
     <string name="data_smoothing_causal_title">Shaandheeyaha Kalman ee qiimaha hadda</string>
-    <string name="data_smoothing_causal_desc">Wuxuu qiyaasaa akhrinta ugu dambeysay isagoo isticmaalaya oo keliya kuwii hore, si aysan isu beddelin marka akhrin cusub timaado. Taariikhda garaafka iyo Nightscout waxay sii hayaan daaqadda celceliska</string>
+    <string name="data_smoothing_causal_desc">Wuxuu qiyaasaa akhrinta ugu dambeysay isagoo kaliya adeegsanaya kuwii hore, si aysan hadhow isu beddelin. Garaafka iyo Nightscout waxay sii hayaan daaqadda simidda</string>
     <string name="data_smoothing_collapse_title">Cabbirro ka yar</string>
     <string name="data_smoothing_collapse_summary_format">%1$d daqiiqo kasta</string>
     <string name="preview_window_title">Daaqada horudhac</string>

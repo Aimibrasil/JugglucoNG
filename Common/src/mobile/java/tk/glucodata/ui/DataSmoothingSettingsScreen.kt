@@ -1,7 +1,13 @@
 package tk.glucodata.ui
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,8 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.FilterAlt
-import tk.glucodata.ui.components.DisclosingSwitchCard
 import tk.glucodata.ui.util.ConnectedButtonGroup
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Functions
@@ -42,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlin.math.roundToInt
@@ -52,6 +57,7 @@ import tk.glucodata.ui.components.CardPosition
 import tk.glucodata.ui.components.MasterSwitchCard
 import tk.glucodata.ui.components.SectionLabel
 import tk.glucodata.ui.components.SettingsSwitchItem
+import tk.glucodata.ui.components.StyledSwitch
 import tk.glucodata.ui.viewmodel.DashboardViewModel
 
 @Composable
@@ -251,52 +257,15 @@ internal fun DataSmoothingSettingsContent(
                     }
                 }
 
-                // Fewer readings is one setting that reveals where it applies, as a
-                // multi-select group; clearing the last place turns it off. It works with or
-                // without smoothing at that place.
-                val fewerPlaces = DataSmoothingPlace.entries.filter { it.fewer(targets) }
+                // Fewer readings works with or without smoothing at a place.
                 Spacer(Modifier.height(24.dp))
-                DisclosingSwitchCard(
-                    title = stringResource(R.string.data_smoothing_collapse_title),
-                    subtitle = collapseSubtitle,
-                    icon = Icons.Default.FilterAlt,
-                    iconTint = MaterialTheme.colorScheme.secondary,
-                    checked = fewerPlaces.isNotEmpty(),
-                    onCheckedChange = { on ->
-                        onTargetsChange(
-                            if (on) {
-                                // Start where readings are smoothed, as the single switch did.
-                                val smoothed = DataSmoothingPlace.entries.filter { it.smoothed(targets) }
-                                (smoothed.ifEmpty { DataSmoothingPlace.entries })
-                                    .fold(targets) { t, place -> place.withFewer(t, true) }
-                            } else {
-                                DataSmoothingPlace.entries.fold(targets) { t, place -> place.withFewer(t, false) }
-                            }
-                        )
-                    },
-                    position = CardPosition.SINGLE,
-                    enabled = isEnabled,
-                    subtitleMaxLines = Int.MAX_VALUE
-                ) {
-                    ConnectedButtonGroup(
-                        options = DataSmoothingPlace.entries,
-                        selectedOptions = fewerPlaces,
-                        multiSelect = true,
-                        onOptionSelected = { place -> onTargetsChange(place.toggleFewer(targets)) },
-                        label = {},
-                        labelText = { placeLabels.getValue(it) },
-                        modifier = Modifier.fillMaxWidth(),
-                        unselectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                    )
-                }
-                if (fewerPlaces.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.data_smoothing_preserve_originals),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
-                    )
-                }
+                FewerReadingsCard(
+                    description = collapseSubtitle,
+                    targets = targets,
+                    placeLabels = placeLabels,
+                    onTargetsChange = onTargetsChange,
+                    enabled = isEnabled
+                )
 
                 Spacer(Modifier.height(16.dp))
                 SettingsSwitchItem(
@@ -309,6 +278,103 @@ internal fun DataSmoothingSettingsContent(
                     position = CardPosition.SINGLE,
                     enabled = isEnabled
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Fewer readings as one container, styled like the window card above it: the heading row is the
+ * group switch, and while it is on the places it applies to sit under it as a multi-select group.
+ * Switching on starts where readings are smoothed; clearing the last place switches it off.
+ */
+@Composable
+private fun FewerReadingsCard(
+    description: String,
+    targets: DataSmoothing.Targets,
+    placeLabels: Map<DataSmoothingPlace, String>,
+    onTargetsChange: (DataSmoothing.Targets) -> Unit,
+    enabled: Boolean,
+) {
+    val fewerPlaces = DataSmoothingPlace.entries.filter { it.fewer(targets) }
+    val checked = fewerPlaces.isNotEmpty()
+    val onCheckedChange: (Boolean) -> Unit = { on ->
+        val places = if (on) {
+            DataSmoothingPlace.entries.filter { it.smoothed(targets) }.ifEmpty { DataSmoothingPlace.entries }
+        } else {
+            DataSmoothingPlace.entries
+        }
+        onTargetsChange(places.fold(targets) { t, place -> place.withFewer(t, on) })
+    }
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (enabled) {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLowest
+            }
+        ),
+        shape = MaterialTheme.shapes.extraLarge,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column {
+            // The whole heading is the switch's touch target, read as one switch by TalkBack.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = checked,
+                        enabled = enabled,
+                        role = Role.Switch,
+                        onValueChange = onCheckedChange
+                    )
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.data_smoothing_collapse_title),
+                        style = MaterialTheme.typography.titleMediumEmphasized
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                StyledSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
+            }
+
+            AnimatedVisibility(
+                visible = checked,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ConnectedButtonGroup(
+                        options = DataSmoothingPlace.entries,
+                        selectedOptions = fewerPlaces,
+                        multiSelect = true,
+                        onOptionSelected = { place -> onTargetsChange(place.toggleFewer(targets)) },
+                        label = {},
+                        labelText = { placeLabels.getValue(it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        unselectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        enabled = enabled
+                    )
+                    Text(
+                        text = stringResource(R.string.data_smoothing_preserve_originals),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

@@ -903,7 +903,7 @@ Pressing OK will generate a connection on this phone and display a QR code that 
     <string name="data_smoothing_graph_only_title">Chart only</string>
     <string name="data_smoothing_exchange_only_title">Sent readings only</string>
     <string name="data_smoothing_causal_title">Kalman filter for the current value</string>
-    <string name="data_smoothing_causal_desc">Estimate the newest reading from earlier ones only, so it won\'t change as new readings arrive. Chart history and Nightscout keep the averaging window</string>
+    <string name="data_smoothing_causal_desc">Estimates the newest reading from earlier ones only, so it won\'t shift later. Chart and Nightscout keep the smoothing window</string>
     <string name="data_smoothing_collapse_title">Fewer readings</string>
     <string name="data_smoothing_collapse_summary_format">Every %1$d min</string>
     <string name="preview_window_title">Preview window</string>

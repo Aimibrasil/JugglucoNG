@@ -373,7 +373,7 @@
     <string name="data_smoothing_graph_only_title">Solo grafico</string>
     <string name="data_smoothing_exchange_only_title">Solo valori inviati</string>
     <string name="data_smoothing_causal_title">Filtro di Kalman per il valore corrente</string>
-    <string name="data_smoothing_causal_desc">Stima l’ultima lettura solo dalle precedenti, così non cambia quando arrivano nuove letture. La cronologia del grafico e Nightscout mantengono la finestra di media</string>
+    <string name="data_smoothing_causal_desc">Stima l’ultima lettura solo dalle precedenti, così non cambia in seguito. Il grafico e Nightscout mantengono la finestra di smussamento</string>
     <string name="data_smoothing_collapse_title">Meno valori</string>
     <string name="data_smoothing_collapse_summary_format">Ogni %1$d min</string>
     <string name="preview_window_title">Finestra di anteprima</string>

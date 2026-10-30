@@ -575,7 +575,7 @@
     <string name="data_smoothing_graph_only_title">Tylko wykres</string>
     <string name="data_smoothing_exchange_only_title">Tylko wysyłane odczyty</string>
     <string name="data_smoothing_causal_title">Filtr Kalmana dla bieżącej wartości</string>
-    <string name="data_smoothing_causal_desc">Szacuje najnowszy odczyt wyłącznie na podstawie wcześniejszych, więc nie zmienia się po nadejściu nowych. Historia wykresu i Nightscout pozostają przy oknie uśredniania</string>
+    <string name="data_smoothing_causal_desc">Szacuje najnowszy odczyt tylko z wcześniejszych, więc później się nie przesuwa. Wykres i Nightscout pozostają przy oknie wygładzania</string>
     <string name="data_smoothing_collapse_title">Mniej odczytów</string>
     <string name="data_smoothing_collapse_summary_format">Co %1$d min</string>
     <string name="preview_window_title">Okno podglądu</string>

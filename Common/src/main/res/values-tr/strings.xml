@@ -552,7 +552,7 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="data_smoothing_graph_only_title">Yalnızca grafik</string>
     <string name="data_smoothing_exchange_only_title">Yalnızca gönderilen ölçümler</string>
     <string name="data_smoothing_causal_title">Geçerli değer için Kalman filtresi</string>
-    <string name="data_smoothing_causal_desc">En yeni ölçümü yalnızca önceki ölçümlerden tahmin eder; böylece yeni ölçümler geldiğinde değişmez. Grafik geçmişi ve Nightscout ortalama penceresini korur</string>
+    <string name="data_smoothing_causal_desc">En yeni ölçümü yalnızca öncekilerden tahmin eder, böylece sonradan kaymaz. Grafik ve Nightscout yumuşatma aralığını korur</string>
     <string name="data_smoothing_collapse_title">Daha az ölçüm</string>
     <string name="data_smoothing_collapse_summary_format">Her %1$d dakikada</string>
     <string name="preview_window_title">Önizleme penceresi</string>

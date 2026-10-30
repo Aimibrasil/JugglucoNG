@@ -592,7 +592,7 @@ Als je op OK drukt, wordt er een verbinding gemaakt op deze telefoon en wordt er
     <string name="data_smoothing_graph_only_title">Alleen grafiek</string>
     <string name="data_smoothing_exchange_only_title">Alleen verzonden waarden</string>
     <string name="data_smoothing_causal_title">Kalmanfilter voor de huidige waarde</string>
-    <string name="data_smoothing_causal_desc">Schat de nieuwste meting alleen uit eerdere metingen, zodat die niet meer verandert als er nieuwe binnenkomen. Grafiekgeschiedenis en Nightscout houden het middelingsvenster</string>
+    <string name="data_smoothing_causal_desc">Schat de nieuwste meting alleen uit eerdere, zodat die later niet verschuift. Grafiek en Nightscout houden het afvlakvenster</string>
     <string name="data_smoothing_collapse_title">Minder meetwaarden</string>
     <string name="data_smoothing_collapse_summary_format">Elke %1$d min</string>
     <string name="preview_window_title">Voorbeeldvenster</string>

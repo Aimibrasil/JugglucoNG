@@ -507,7 +507,7 @@
     <string name="data_smoothing_graph_only_title">仅图表</string>
     <string name="data_smoothing_exchange_only_title">仅发送的读数</string>
     <string name="data_smoothing_causal_title">当前值的卡尔曼滤波</string>
-    <string name="data_smoothing_causal_desc">仅根据之前的读数估算最新读数，因此新读数到来后它不会再改变。图表历史和 Nightscout 仍使用平均窗口</string>
+    <string name="data_smoothing_causal_desc">仅根据之前的读数估算最新读数，之后不会再变动。图表和 Nightscout 仍使用平滑窗口</string>
     <string name="data_smoothing_collapse_title">减少读数</string>
     <string name="data_smoothing_collapse_summary_format">每 %1$d 分钟</string>
     <string name="preview_window_title">预览窗口</string>
