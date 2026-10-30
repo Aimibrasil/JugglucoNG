@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddAlert
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Badge
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -254,6 +256,12 @@ internal object SettingsSearchIndex {
             keywords = listOf(R.string.settings_prediction_desc, R.string.predictive_trend_momentum,
                 R.string.predictive_forecast_horizon, R.string.predictive_notification_chart,
                 R.string.predictive_model_tuning)),
+        SettingsSearchEntry(R.string.prediction_analysis_accuracy, DISPLAY + R.string.predictive_simulation_title,
+            Icons.Default.Insights, S, route("settings/predictive-simulation/analysis"),
+            keywords = listOf(R.string.prediction_analysis_section, R.string.prediction_analysis_record,
+                R.string.prediction_analysis_past_title)),
+        SettingsSearchEntry(R.string.prediction_adaptive_title, DISPLAY + R.string.predictive_simulation_title,
+            Icons.Default.AutoAwesome, S, route("settings/predictive-simulation")),
         SettingsSearchEntry(R.string.notification_settings_title, DISPLAY, Icons.Default.ClearAll, S, route("settings/notification-display"),
             keywords = listOf(R.string.notification_settings_subtitle, R.string.typography)),
         SettingsSearchEntry(R.string.show_trend_arrow, DISPLAY + R.string.notification_settings_title,

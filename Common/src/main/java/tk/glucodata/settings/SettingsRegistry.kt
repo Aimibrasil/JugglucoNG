@@ -21,6 +21,8 @@ const val KEY_PREDICTION_CARB_RATIO = "dashboard_prediction_carb_ratio_g_per_u"
 const val KEY_PREDICTION_INSULIN_SENSITIVITY = "dashboard_prediction_insulin_sensitivity_mgdl_per_u"
 const val KEY_PREDICTION_CARB_ABSORPTION = "dashboard_prediction_carb_absorption_g_per_h"
 const val KEY_PREDICTION_HORIZON = "dashboard_prediction_horizon_minutes"
+const val KEY_PREDICTION_ANALYSIS = "dashboard_prediction_analysis_enabled"
+const val KEY_PREDICTION_ADAPTIVE = "dashboard_prediction_adaptive_enabled"
 const val KEY_SENSOR_SELECTION = "dashboard_multi_sensor_selection_order"
 const val KEY_SENSOR_COLORS = "sensor_color_overrides_argb"
 
@@ -39,6 +41,8 @@ const val DEFAULT_PREDICTION_CARB_RATIO_G_PER_U = 10f
 const val DEFAULT_PREDICTION_INSULIN_SENSITIVITY_MGDL_PER_U = 54f
 const val DEFAULT_PREDICTION_CARB_ABSORPTION_G_PER_H = 35f
 const val DEFAULT_PREDICTION_HORIZON_MINUTES = 120
+const val DEFAULT_PREDICTION_ANALYSIS = false
+const val DEFAULT_PREDICTION_ADAPTIVE = false
 
 /** Where a setting belongs and who may write it. */
 enum class SettingScope { PHONE, WATCH, MIRRORED }
@@ -201,6 +205,16 @@ object SettingsRegistry {
         KEY_PREDICTION_HORIZON, SettingType.INT, DEFAULT_PREDICTION_HORIZON_MINUTES,
         SettingScope.MIRRORED, SettingBackup.INCLUDED, minValue = 30f, maxValue = 360f,
     )
+    /** Record every forecast for Prediction analysis. Phone only: the watch draws, it does not record. */
+    val PREDICTION_ANALYSIS = SettingDefinition(
+        KEY_PREDICTION_ANALYSIS, SettingType.BOOL, DEFAULT_PREDICTION_ANALYSIS,
+        SettingScope.PHONE, SettingBackup.INCLUDED,
+    )
+    /** Draw the adaptive forecast instead of the standard one. Phone only, like the model it reads. */
+    val PREDICTION_ADAPTIVE = SettingDefinition(
+        KEY_PREDICTION_ADAPTIVE, SettingType.BOOL, DEFAULT_PREDICTION_ADAPTIVE,
+        SettingScope.PHONE, SettingBackup.INCLUDED,
+    )
     val SENSOR_SELECTION = SettingDefinition(
         KEY_SENSOR_SELECTION, SettingType.STRING, "",
         SettingScope.MIRRORED, SettingBackup.INCLUDED, effectiveString = ::effectiveSensorSelection,
@@ -223,6 +237,8 @@ object SettingsRegistry {
         PREDICTION_INSULIN_SENSITIVITY,
         PREDICTION_CARB_ABSORPTION,
         PREDICTION_HORIZON,
+        PREDICTION_ANALYSIS,
+        PREDICTION_ADAPTIVE,
         SENSOR_SELECTION,
         SENSOR_COLORS,
     )

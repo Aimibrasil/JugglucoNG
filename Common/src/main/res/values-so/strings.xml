@@ -3288,4 +3288,66 @@ Marka la cadaadiyo OK waxay dhalin doontaa xidhiidh teleefankan oo waxa ay soo b
     <string name="settings_search_hint">Raadi dejinta</string>
     <string name="settings_search_no_results">Ma jiro dejin u dhiganta “%1$s”</string>
     <string name="settings_search_clear">Tirtir raadinta</string>
+    <string name="prediction_analysis_section">Falanqaynta saadaasha</string>
+    <string name="prediction_analysis_record">Kaydi saadaashada</string>
+    <string name="prediction_analysis_record_summary">Ku hay saadaasha kasta taleefankan si loogu barbardhigo waxa dhacay</string>
+    <string name="prediction_analysis_accuracy">Saxnaanta saadaashada</string>
+    <string name="prediction_analysis_accuracy_summary">Celcelis ahaan %1$s ka leexasho 30 daqiiqo kadib</string>
+    <string name="prediction_analysis_accuracy_waiting">Natiijo weli ma jirto</string>
+    <string name="prediction_adaptive_title">Saadaal la-qabsasho leh</string>
+    <string name="prediction_adaptive_summary">Tijaabo · wuxuu wax ka bartaa akhrisyadaada</string>
+    <string name="prediction_adaptive_learning">Tijaabo · wuu baranayaa, wuxuu u baahan yahay 2 maalmood oo akhris ah</string>
+    <string name="prediction_adaptive_not_better">Tijaabo · weli kama fiicna \"isbeddel la\'aan\", tan caadiga ah ayaa la tusay</string>
+    <string name="prediction_adaptive_caption">Waxay sawirtaa saadaal laga bartay akhrisyadaada halkii tan caadiga ah. Ma tixgeliso insuliinta iyo karbohaydraytka la diiwaangeliyay. Digniinuhu waxay sii isticmaalayaan saadaasha caadiga ah.</string>
+    <string name="prediction_analysis_typical_error">Khaladka caadiga ah</string>
+    <string name="prediction_analysis_typical_error_caption">Celceliska fogaanta u dhexeysa saadaal iyo akhriska ka dambeeyay</string>
+    <string name="prediction_analysis_minutes">%1$d daqiiqo</string>
+    <string name="prediction_analysis_not_enough">Weli kuma filna</string>
+    <string name="prediction_analysis_early">Qiyaas hore</string>
+    <string name="prediction_analysis_compare_title">Marka la barbardhigo \"isbeddel la\'aan\"</string>
+    <string name="prediction_analysis_compare_caption">\"Isbeddel la\'aan\" waxay u qaadataa in gulukoosku meeshiisii ku sii jiro. Saadaal waxtar leh way ka fiican tahay.</string>
+    <string name="prediction_analysis_model_standard">Saadaasha caadiga ah</string>
+    <string name="prediction_analysis_model_adaptive">Saadaal la-qabsasho leh</string>
+    <string name="prediction_analysis_model_no_change">Isbeddel la\'aan</string>
+    <string name="prediction_analysis_bias_high">Celcelis ahaan %1$s ayay sarreysay</string>
+    <string name="prediction_analysis_bias_low">Celcelis ahaan %1$s ayay hooseysay</string>
+    <string name="prediction_analysis_daily_title">Khaladka caadiga ah maalinba</string>
+    <string name="prediction_analysis_past_title">Saadaalihii hore</string>
+    <string name="prediction_analysis_past_summary">Waxa saadaal kastaa sheegtay iyo waxa xigay</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · la hayaa 90 maalmood</string>
+    <string name="prediction_analysis_clear">Tirtir saadaalaha la kaydiyay</string>
+    <string name="prediction_analysis_clear_summary">Saxnaantu waxay ka bilaabanaysaa eber</string>
+    <string name="prediction_analysis_clear_title">Tirtir saadaalaha la kaydiyay?</string>
+    <string name="prediction_analysis_clear_body">Dhammaan saadaalaha la kaydiyay waa la tirtirayaa. Akhrisyada iyo diiwaanka joornaalku way sii jirayaan.</string>
+    <string name="prediction_analysis_empty_title">Weli saadaal lama kaydin</string>
+    <string name="prediction_analysis_empty_off">Daar kaydinta, saadaal kasta oo xigtana waa la hayn doonaa si loogu barbardhigo waxa dhacay.</string>
+    <string name="prediction_analysis_empty_on">Kaydintu way shidan tahay. Natiijooyinku waxay soo baxayaan marka saadaaluhu waqti u helaan inay rumoobaan.</string>
+    <string name="prediction_analysis_turn_on">Daar</string>
+    <string name="prediction_inspector_actual">Dhab ahaan</string>
+    <string name="prediction_inspector_forecast_at">Saadaasha %1$s</string>
+    <string name="prediction_inspector_previous">Saadaashii hore</string>
+    <string name="prediction_inspector_next">Saadaasha xigta</string>
+    <string name="prediction_inspector_in">Kadib</string>
+    <string name="prediction_inspector_pending">Weli maya</string>
+    <string name="prediction_inspector_missing">Akhris ma jiro</string>
+    <string name="prediction_inspector_fallback">Saadaasha la-qabsashadu halkan diyaar ma ahayn, tan kaydka ah ayaa la isticmaalay</string>
+    <string name="prediction_inspector_trend">Isbeddelka markaas: %1$s daqiiqaddii</string>
+    <string name="prediction_inspector_empty">Weli saadaal la kaydiyay ma jirto</string>
+    <string name="prediction_inspector_shown">Jaantuska</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Tijaabo · laga bartay %d maalin oo akhris ah</item>
+        <item quantity="other">Tijaabo · laga bartay %d maalmood oo akhris ah</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d maalin</item>
+        <item quantity="other">%d maalmood</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d saadaal</item>
+        <item quantity="other">%d saadaalo</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">Waxaa lagu daray %d qoraal joornaal oo qorsheysan</item>
+        <item quantity="other">Waxaa lagu daray %d qoraal joornaal oo qorsheysan</item>
+    </plurals>
 </resources>

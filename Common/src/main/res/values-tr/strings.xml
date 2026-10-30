@@ -3131,4 +3131,66 @@ Tamam\'a basmak bağlantı için QR kod görüntüleyecektir. QR kodu diğer tel
     <string name="settings_search_hint">Ayarlarda ara</string>
     <string name="settings_search_no_results">“%1$s” ile eşleşen ayar yok</string>
     <string name="settings_search_clear">Aramayı temizle</string>
+    <string name="prediction_analysis_section">Tahmin analizi</string>
+    <string name="prediction_analysis_record">Tahminleri kaydet</string>
+    <string name="prediction_analysis_record_summary">Her tahmini, olanlarla karşılaştırmak için bu telefonda sakla</string>
+    <string name="prediction_analysis_accuracy">Tahmin doğruluğu</string>
+    <string name="prediction_analysis_accuracy_summary">30 dk\'da ortalama %1$s sapma</string>
+    <string name="prediction_analysis_accuracy_waiting">Henüz sonuç yok</string>
+    <string name="prediction_adaptive_title">Uyarlanabilir tahmin</string>
+    <string name="prediction_adaptive_summary">Deneysel · kendi okumalarınızdan öğrenir</string>
+    <string name="prediction_adaptive_learning">Deneysel · öğreniyor, 2 günlük okuma gerekli</string>
+    <string name="prediction_adaptive_not_better">Deneysel · henüz \"değişiklik yok\"tan iyi değil, standart gösteriliyor</string>
+    <string name="prediction_adaptive_caption">Standart tahmin yerine kendi okumalarınızdan öğrenilen bir tahmin çizer. Kaydedilen insülin ve karbonhidratı dikkate almaz. Uyarılar standart tahmini kullanmaya devam eder.</string>
+    <string name="prediction_analysis_typical_error">Tipik hata</string>
+    <string name="prediction_analysis_typical_error_caption">Bir tahmin ile ardından gelen okuma arasındaki ortalama fark</string>
+    <string name="prediction_analysis_minutes">%1$d dk</string>
+    <string name="prediction_analysis_not_enough">Henüz yeterli değil</string>
+    <string name="prediction_analysis_early">İlk tahmin</string>
+    <string name="prediction_analysis_compare_title">\"Değişiklik yok\" ile karşılaştırma</string>
+    <string name="prediction_analysis_compare_caption">\"Değişiklik yok\", glukozun olduğu yerde kalacağını varsayar. Faydalı bir tahmin bundan iyidir.</string>
+    <string name="prediction_analysis_model_standard">Standart tahmin</string>
+    <string name="prediction_analysis_model_adaptive">Uyarlanabilir tahmin</string>
+    <string name="prediction_analysis_model_no_change">Değişiklik yok</string>
+    <string name="prediction_analysis_bias_high">Ortalamada %1$s yüksek kaldı</string>
+    <string name="prediction_analysis_bias_low">Ortalamada %1$s düşük kaldı</string>
+    <string name="prediction_analysis_daily_title">Günlere göre tipik hata</string>
+    <string name="prediction_analysis_past_title">Geçmiş tahminler</string>
+    <string name="prediction_analysis_past_summary">Her tahminin ne söylediği ve ardından ne olduğu</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · 90 gün saklanır</string>
+    <string name="prediction_analysis_clear">Kaydedilen tahminleri sil</string>
+    <string name="prediction_analysis_clear_summary">Doğruluk sıfırdan başlar</string>
+    <string name="prediction_analysis_clear_title">Kaydedilen tahminler silinsin mi?</string>
+    <string name="prediction_analysis_clear_body">Kaydedilen tüm tahminler silinir. Okumalar ve günlük kayıtları kalır.</string>
+    <string name="prediction_analysis_empty_title">Henüz kayıtlı tahmin yok</string>
+    <string name="prediction_analysis_empty_off">Kaydı açın; bundan sonraki her tahmin, olanlarla karşılaştırmak için saklanır.</string>
+    <string name="prediction_analysis_empty_on">Kayıt açık. Tahminlerin gerçekleşmek için zamanı olduğunda sonuçlar görünür.</string>
+    <string name="prediction_analysis_turn_on">Aç</string>
+    <string name="prediction_inspector_actual">Gerçek</string>
+    <string name="prediction_inspector_forecast_at">%1$s tahmini</string>
+    <string name="prediction_inspector_previous">Önceki tahmin</string>
+    <string name="prediction_inspector_next">Sonraki tahmin</string>
+    <string name="prediction_inspector_in">Sonra</string>
+    <string name="prediction_inspector_pending">Henüz değil</string>
+    <string name="prediction_inspector_missing">Okuma yok</string>
+    <string name="prediction_inspector_fallback">Uyarlanabilir tahmin burada hazır değildi, yedeği kullanıldı</string>
+    <string name="prediction_inspector_trend">O anki eğilim: dakikada %1$s</string>
+    <string name="prediction_inspector_empty">Henüz kayıtlı tahmin yok</string>
+    <string name="prediction_inspector_shown">Grafikte</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Deneysel · %d günlük okumadan öğrendi</item>
+        <item quantity="other">Deneysel · %d günlük okumadan öğrendi</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d gün</item>
+        <item quantity="other">%d gün</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d tahmin</item>
+        <item quantity="other">%d tahmin</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">%d planlanmış günlük kaydı dahil edildi</item>
+        <item quantity="other">%d planlanmış günlük kaydı dahil edildi</item>
+    </plurals>
 </resources>

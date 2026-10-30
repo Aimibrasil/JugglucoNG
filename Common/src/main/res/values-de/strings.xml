@@ -3216,4 +3216,66 @@ Durch Drücken von „OK“ wird eine Verbindung auf diesem Telefon hergestellt 
     <string name="settings_search_hint">Einstellungen durchsuchen</string>
     <string name="settings_search_no_results">Keine Einstellung passt zu „%1$s“</string>
     <string name="settings_search_clear">Suche löschen</string>
+    <string name="prediction_analysis_section">Prognoseanalyse</string>
+    <string name="prediction_analysis_record">Prognosen aufzeichnen</string>
+    <string name="prediction_analysis_record_summary">Jede Prognose auf diesem Telefon behalten, um sie mit dem Verlauf zu vergleichen</string>
+    <string name="prediction_analysis_accuracy">Prognosegenauigkeit</string>
+    <string name="prediction_analysis_accuracy_summary">Im Mittel %1$s daneben nach 30 Min.</string>
+    <string name="prediction_analysis_accuracy_waiting">Noch keine Ergebnisse</string>
+    <string name="prediction_adaptive_title">Adaptive Prognose</string>
+    <string name="prediction_adaptive_summary">Experimentell · lernt aus Ihren eigenen Messwerten</string>
+    <string name="prediction_adaptive_learning">Experimentell · lernt, braucht 2 Tage Messwerte</string>
+    <string name="prediction_adaptive_not_better">Experimentell · noch nicht besser als „keine Änderung“, Standard wird gezeigt</string>
+    <string name="prediction_adaptive_caption">Zeigt statt der Standardprognose eine aus Ihren eigenen Messwerten gelernte. Erfasstes Insulin und Kohlenhydrate berücksichtigt sie nicht. Alarme nutzen weiter die Standardprognose.</string>
+    <string name="prediction_analysis_typical_error">Typischer Fehler</string>
+    <string name="prediction_analysis_typical_error_caption">Mittlerer Abstand zwischen einer Prognose und dem Messwert, der folgte</string>
+    <string name="prediction_analysis_minutes">%1$d Min.</string>
+    <string name="prediction_analysis_not_enough">Noch zu wenig</string>
+    <string name="prediction_analysis_early">Erste Schätzung</string>
+    <string name="prediction_analysis_compare_title">Im Vergleich zu „keine Änderung“</string>
+    <string name="prediction_analysis_compare_caption">„Keine Änderung“ nimmt an, dass die Glukose bleibt, wo sie war. Eine nützliche Prognose schlägt das.</string>
+    <string name="prediction_analysis_model_standard">Standardprognose</string>
+    <string name="prediction_analysis_model_adaptive">Adaptive Prognose</string>
+    <string name="prediction_analysis_model_no_change">Keine Änderung</string>
+    <string name="prediction_analysis_bias_high">Lag im Mittel %1$s zu hoch</string>
+    <string name="prediction_analysis_bias_low">Lag im Mittel %1$s zu niedrig</string>
+    <string name="prediction_analysis_daily_title">Typischer Fehler pro Tag</string>
+    <string name="prediction_analysis_past_title">Frühere Prognosen</string>
+    <string name="prediction_analysis_past_summary">Was jede Prognose sagte und was folgte</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · 90 Tage aufbewahrt</string>
+    <string name="prediction_analysis_clear">Aufgezeichnete Prognosen löschen</string>
+    <string name="prediction_analysis_clear_summary">Die Genauigkeit beginnt wieder bei null</string>
+    <string name="prediction_analysis_clear_title">Aufgezeichnete Prognosen löschen?</string>
+    <string name="prediction_analysis_clear_body">Alle aufgezeichneten Prognosen werden gelöscht. Messwerte und Journaleinträge bleiben erhalten.</string>
+    <string name="prediction_analysis_empty_title">Noch keine Prognosen aufgezeichnet</string>
+    <string name="prediction_analysis_empty_off">Schalten Sie die Aufzeichnung ein, dann wird ab jetzt jede Prognose zum Vergleich mit dem Verlauf aufbewahrt.</string>
+    <string name="prediction_analysis_empty_on">Die Aufzeichnung läuft. Ergebnisse erscheinen, sobald Prognosen Zeit hatten, einzutreffen.</string>
+    <string name="prediction_analysis_turn_on">Einschalten</string>
+    <string name="prediction_inspector_actual">Tatsächlich</string>
+    <string name="prediction_inspector_forecast_at">Prognose um %1$s</string>
+    <string name="prediction_inspector_previous">Frühere Prognose</string>
+    <string name="prediction_inspector_next">Spätere Prognose</string>
+    <string name="prediction_inspector_in">In</string>
+    <string name="prediction_inspector_pending">Noch nicht</string>
+    <string name="prediction_inspector_missing">Kein Messwert</string>
+    <string name="prediction_inspector_fallback">Die adaptive Prognose war hier noch nicht bereit, daher wurde ihr Ersatz verwendet</string>
+    <string name="prediction_inspector_trend">Trend damals: %1$s pro Min.</string>
+    <string name="prediction_inspector_empty">Noch keine aufgezeichneten Prognosen</string>
+    <string name="prediction_inspector_shown">Im Diagramm</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Experimentell · aus %d Tag Messwerten gelernt</item>
+        <item quantity="other">Experimentell · aus %d Tagen Messwerten gelernt</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d Tag</item>
+        <item quantity="other">%d Tage</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d Prognose</item>
+        <item quantity="other">%d Prognosen</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">%d geplanter Journaleintrag einbezogen</item>
+        <item quantity="other">%d geplante Journaleinträge einbezogen</item>
+    </plurals>
 </resources>

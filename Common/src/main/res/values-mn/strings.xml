@@ -3204,4 +3204,66 @@ OK дарснаар энэ утсан дээр холболт үүсч, өөр A
     <string name="settings_search_hint">Тохиргооноос хайх</string>
     <string name="settings_search_no_results">“%1$s”-тэй тохирох тохиргоо алга</string>
     <string name="settings_search_clear">Хайлтыг арилгах</string>
+    <string name="prediction_analysis_section">Таамаглалын шинжилгээ</string>
+    <string name="prediction_analysis_record">Таамаглалыг хадгалах</string>
+    <string name="prediction_analysis_record_summary">Болсон үйл явдалтай харьцуулахын тулд таамаглал бүрийг энэ утсанд хадгална</string>
+    <string name="prediction_analysis_accuracy">Таамаглалын нарийвчлал</string>
+    <string name="prediction_analysis_accuracy_summary">30 мин-д дунджаар %1$s зөрүүтэй</string>
+    <string name="prediction_analysis_accuracy_waiting">Үр дүн хараахан алга</string>
+    <string name="prediction_adaptive_title">Дасан зохицох таамаглал</string>
+    <string name="prediction_adaptive_summary">Туршилтын · таны өөрийн хэмжилтээс суралцана</string>
+    <string name="prediction_adaptive_learning">Туршилтын · суралцаж байна, 2 өдрийн хэмжилт хэрэгтэй</string>
+    <string name="prediction_adaptive_not_better">Туршилтын · «өөрчлөлтгүй»-өөс хараахан сайн биш, стандартыг харуулж байна</string>
+    <string name="prediction_adaptive_caption">Стандарт таамаглалын оронд таны өөрийн хэмжилтээс суралцсан таамаглалыг зурна. Бүртгэсэн инсулин, нүүрс усыг тооцохгүй. Сэрэмжлүүлэг стандарт таамаглалыг үргэлжлүүлэн ашиглана.</string>
+    <string name="prediction_analysis_typical_error">Ердийн алдаа</string>
+    <string name="prediction_analysis_typical_error_caption">Таамаглал болон дараа нь гарсан хэмжилтийн дундаж зөрүү</string>
+    <string name="prediction_analysis_minutes">%1$d мин</string>
+    <string name="prediction_analysis_not_enough">Хараахан хангалтгүй</string>
+    <string name="prediction_analysis_early">Анхны үнэлгээ</string>
+    <string name="prediction_analysis_compare_title">«Өөрчлөлтгүй»-тэй харьцуулахад</string>
+    <string name="prediction_analysis_compare_caption">«Өөрчлөлтгүй» нь глюкоз байсан түвшиндээ үлдэнэ гэж үзнэ. Хэрэгтэй таамаглал үүнээс илүү байна.</string>
+    <string name="prediction_analysis_model_standard">Стандарт таамаглал</string>
+    <string name="prediction_analysis_model_adaptive">Дасан зохицох таамаглал</string>
+    <string name="prediction_analysis_model_no_change">Өөрчлөлтгүй</string>
+    <string name="prediction_analysis_bias_high">Дунджаар %1$s өндөр байсан</string>
+    <string name="prediction_analysis_bias_low">Дунджаар %1$s бага байсан</string>
+    <string name="prediction_analysis_daily_title">Өдрөөр ердийн алдаа</string>
+    <string name="prediction_analysis_past_title">Өмнөх таамаглалууд</string>
+    <string name="prediction_analysis_past_summary">Таамаглал бүр юу гэж хэлж, дараа нь юу болсон</string>
+    <string name="prediction_analysis_storage">%1$s · %2$s · 90 хоног хадгална</string>
+    <string name="prediction_analysis_clear">Хадгалсан таамаглалыг устгах</string>
+    <string name="prediction_analysis_clear_summary">Нарийвчлал тэгээс дахин эхэлнэ</string>
+    <string name="prediction_analysis_clear_title">Хадгалсан таамаглалыг устгах уу?</string>
+    <string name="prediction_analysis_clear_body">Хадгалсан бүх таамаглал устна. Хэмжилт болон тэмдэглэлийн бичлэгүүд үлдэнэ.</string>
+    <string name="prediction_analysis_empty_title">Хадгалсан таамаглал алга</string>
+    <string name="prediction_analysis_empty_off">Хадгалалтыг асаавал цаашдын таамаглал бүр болсон үйл явдалтай харьцуулахаар хадгалагдана.</string>
+    <string name="prediction_analysis_empty_on">Хадгалалт асаалттай. Таамаглалууд биелэх хугацаа өнгөрсний дараа үр дүн гарна.</string>
+    <string name="prediction_analysis_turn_on">Асаах</string>
+    <string name="prediction_inspector_actual">Бодит</string>
+    <string name="prediction_inspector_forecast_at">%1$s-ийн таамаглал</string>
+    <string name="prediction_inspector_previous">Өмнөх таамаглал</string>
+    <string name="prediction_inspector_next">Дараагийн таамаглал</string>
+    <string name="prediction_inspector_in">Дараа</string>
+    <string name="prediction_inspector_pending">Хараахан үгүй</string>
+    <string name="prediction_inspector_missing">Хэмжилт алга</string>
+    <string name="prediction_inspector_fallback">Дасан зохицох таамаглал энд бэлэн биш байсан тул нөөцийг нь ашигласан</string>
+    <string name="prediction_inspector_trend">Тухайн үеийн чиг хандлага: минутад %1$s</string>
+    <string name="prediction_inspector_empty">Хадгалсан таамаглал алга</string>
+    <string name="prediction_inspector_shown">Графикт</string>
+    <plurals name="prediction_adaptive_ready">
+        <item quantity="one">Туршилтын · %d өдрийн хэмжилтээс суралцсан</item>
+        <item quantity="other">Туршилтын · %d өдрийн хэмжилтээс суралцсан</item>
+    </plurals>
+    <plurals name="prediction_analysis_period_days">
+        <item quantity="one">%d өдөр</item>
+        <item quantity="other">%d өдөр</item>
+    </plurals>
+    <plurals name="prediction_analysis_forecasts">
+        <item quantity="one">%d таамаглал</item>
+        <item quantity="other">%d таамаглал</item>
+    </plurals>
+    <plurals name="prediction_inspector_planned">
+        <item quantity="one">Төлөвлөсөн %d тэмдэглэл тооцсон</item>
+        <item quantity="other">Төлөвлөсөн %d тэмдэглэл тооцсон</item>
+    </plurals>
 </resources>

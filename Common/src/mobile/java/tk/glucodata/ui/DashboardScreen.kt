@@ -390,6 +390,7 @@ fun DashboardScreen(
     val journalFoodLibraryEnabled by viewModel.journalFoodLibraryEnabled.collectAsStateWithLifecycle()
     val predictiveSimulationEnabled by viewModel.predictiveSimulationEnabled.collectAsStateWithLifecycle()
     val predictionTrendMomentumEnabled by viewModel.predictionTrendMomentumEnabled.collectAsStateWithLifecycle()
+    val predictionAdaptiveEnabled by viewModel.predictionAdaptiveEnabled.collectAsStateWithLifecycle()
     val predictionCarbRatioGramsPerUnit by viewModel.predictionCarbRatioGramsPerUnit.collectAsStateWithLifecycle()
     val predictionInsulinSensitivityMgDlPerUnit by viewModel.predictionInsulinSensitivityMgDlPerUnit.collectAsStateWithLifecycle()
     val predictionModelProfile by viewModel.predictionModelProfile.collectAsStateWithLifecycle()
@@ -527,7 +528,8 @@ fun DashboardScreen(
         predictionCarbAbsorptionGramsPerHour,
         predictionHorizonMinutes,
         journalEnabled,
-        journalFoodMacrosEnabled
+        journalFoodMacrosEnabled,
+        predictionAdaptiveEnabled
     ) {
         PredictiveSimulationSettings(
             enabled = predictiveSimulationEnabled,
@@ -537,7 +539,8 @@ fun DashboardScreen(
             insulinSensitivityMgDlPerUnit = predictionInsulinSensitivityMgDlPerUnit,
             carbAbsorptionGramsPerHour = predictionCarbAbsorptionGramsPerHour,
             foodMacrosEnabled = journalEnabled && journalFoodMacrosEnabled,
-            modelProfile = predictionModelProfile
+            modelProfile = predictionModelProfile,
+            adaptive = predictionAdaptiveEnabled
         )
     }
     val consumerHistory = remember(
