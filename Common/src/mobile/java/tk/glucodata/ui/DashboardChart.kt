@@ -3946,17 +3946,16 @@ fun InteractiveGlucoseChart(
             val calibrationValueChipHeight = with(LocalDensity.current) {
                 maxOf(12.dp, calibrationValueTextHeight.toDp()) + 8.dp
             }
-            // Both corner chips share a row. Calibration values sit above it: inside the
-            // collapsed card, or in the space above the plot when the backdrop is open.
-            val headerTopInset = androidx.compose.ui.unit.lerp(
-                16.dp + if (visibleCalibrationsTooltip.isNotEmpty()) calibrationValueChipHeight else 0.dp,
-                0.dp,
-                backdropAlpha
-            )
+            // Keep calibration values inside the chart, above the shared corner-chip row.
+            // The backdrop can extend behind banners, but interactive chips must not.
+            val calibrationHeaderSpace =
+                if (visibleCalibrationsTooltip.isNotEmpty()) calibrationValueChipHeight else 0.dp
+            val headerTopInset =
+                androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha) + calibrationHeaderSpace
             val headerSideInset = androidx.compose.ui.unit.lerp(16.dp, backdropContentInset, backdropAlpha)
             val calibrationValueTop = androidx.compose.ui.unit.lerp(
                 8.dp,
-                -calibrationValueChipHeight,
+                0.dp,
                 backdropAlpha
             )
             val journalChipMinTopPx = with(LocalDensity.current) { 8.dp.toPx() }
@@ -5238,9 +5237,8 @@ fun InteractiveGlucoseChart(
                     targetScale = 0.85f,
                     transformOrigin = TransformOrigin(1f, 0f)
                 ),
-                // Inside a card it keeps its 16 dp from the card's corner. Full-bleed there
-                // is no corner to keep off: it sits at the top of the plot, the list's
-                // spacing below the hero row, and ends on the same line as the cards.
+                // The shared row follows any calibration values. Its side inset moves
+                // from the card's corner to the host cards' edge as the backdrop opens.
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(
