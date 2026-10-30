@@ -188,17 +188,14 @@ read at 18dp.
     supporting line in `bodyMedium` / `onSurfaceVariant`. A value chip or `StyledSwitch` can
     trail the heading, 12dp from the text.
   - The control sits 16dp under the heading, and a `bodySmall` caption sits 12dp under the
-    control. A revealed section under a heading switch adds 8dp top padding to the heading's
-    16dp, so its controls stay clear of the heading's press highlight. With 16dp horizontal
-    and bottom padding, it lives inside `AnimatedVisibility`, so the card closes to the
-    heading when the section is hidden.
-  - A heading switch makes the whole heading its touch target (`toggleable`,
-    `Role.Switch`) with `indication = ripple(bounded = true)`, and passes its
-    `interactionSource` to the switch (`onCheckedChange = null`), so both show the press.
-    The heading spans the card edge to edge. Its modifiers go in this order:
-    `clip(shape)`, then `toggleable`, then `padding(16.dp)`. The shape is the card's shape
-    while collapsed, and only the top corners while expanded. When the feature is off,
-    every control in the card is disabled, not only dimmed.
+    control. A revealed section keeps that 16dp as top padding inside `AnimatedVisibility`,
+    so the card closes to the heading when the section is hidden.
+  - The heading is text, not a touch target. The control is what you press: the slider, the
+    buttons, or a trailing `StyledSwitch` with its own 48dp target and state layer. Label
+    that switch with the title (`semantics { contentDescription = title }`). Don't make the
+    heading `clickable`/`toggleable`: in a card its press highlight reads as a block stuck
+    onto the surface. When the feature is off, every control in the card is disabled, not
+    only dimmed.
   - Examples: Smoothing window (slider) and Fewer readings (switch that reveals a
     multi-select group).
 - **Dialog** — a decision that blocks: confirmation, short text entry, 2–4 exclusive options.

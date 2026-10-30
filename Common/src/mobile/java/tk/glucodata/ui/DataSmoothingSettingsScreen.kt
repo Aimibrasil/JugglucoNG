@@ -7,8 +7,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -37,7 +34,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -47,10 +43,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlin.math.roundToInt
@@ -327,31 +323,12 @@ private fun FewerReadingsCard(
         shape = MaterialTheme.shapes.extraLarge,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        // A control card, as the window card above: one column on one surface. The heading
-        // spans the card so its ripple fills the card's shape; padding sits inside the ripple.
-        // Collapsed it is the whole card; expanded its lower edge meets the controls below.
-        val headingShape = if (checked) {
-            MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp))
-        } else {
-            MaterialTheme.shapes.extraLarge
-        }
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // The whole heading is the switch's touch target, read as one switch by TalkBack.
-            // It shares its press with the switch, so a tap anywhere on it ripples and moves the switch.
-            val headingInteraction = remember { MutableInteractionSource() }
+        // A control card, as the window card above: the heading is text, and the switch is
+        // the control, as the slider is there.
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            val title = stringResource(R.string.data_smoothing_collapse_title)
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(headingShape)
-                    .toggleable(
-                        value = checked,
-                        interactionSource = headingInteraction,
-                        indication = ripple(bounded = true),
-                        enabled = enabled,
-                        role = Role.Switch,
-                        onValueChange = onCheckedChange
-                    )
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -360,7 +337,7 @@ private fun FewerReadingsCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.data_smoothing_collapse_title),
+                        text = title,
                         style = MaterialTheme.typography.titleMediumEmphasized
                     )
                     Text(
@@ -371,21 +348,20 @@ private fun FewerReadingsCard(
                 }
                 StyledSwitch(
                     checked = checked,
-                    onCheckedChange = null,
-                    enabled = enabled,
-                    interactionSource = headingInteraction
+                    onCheckedChange = onCheckedChange,
+                    modifier = Modifier.semantics { contentDescription = title },
+                    enabled = enabled
                 )
             }
 
-            // 8dp on top of the heading's own 16dp, so the buttons sit clear of its press
-            // highlight; it lives inside the revealed section, so the card closes to the heading.
+            // The gap lives inside the revealed section, so the card closes to the heading.
             AnimatedVisibility(
                 visible = checked,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ConnectedButtonGroup(
