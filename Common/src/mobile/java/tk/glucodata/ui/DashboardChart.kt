@@ -3932,6 +3932,33 @@ fun InteractiveGlucoseChart(
             val overlayDurationMillis = overlayDuration.toLong()
             val overlayViewportStart = centerTime - overlayDurationMillis / 2
             val overlayViewportEnd = centerTime + overlayDurationMillis / 2
+            val visibleCalibrationsTooltip = visibleCalibrations.filter {
+                it.timestamp in overlayViewportStart..overlayViewportEnd
+            }
+            val calibrationValueTextStyle = MaterialTheme.typography.labelMediumEmphasized
+            val calibrationValueTextMeasurer = rememberTextMeasurer()
+            val calibrationValueTextHeight = calibrationValueTextMeasurer.measure(
+                text = "0",
+                style = calibrationValueTextStyle,
+                maxLines = 1,
+                softWrap = false
+            ).size.height
+            val calibrationValueChipHeight = with(LocalDensity.current) {
+                maxOf(12.dp, calibrationValueTextHeight.toDp()) + 8.dp
+            }
+            // Both corner chips share a row. Calibration values sit above it: inside the
+            // collapsed card, or in the space above the plot when the backdrop is open.
+            val headerTopInset = androidx.compose.ui.unit.lerp(
+                16.dp + if (visibleCalibrationsTooltip.isNotEmpty()) calibrationValueChipHeight else 0.dp,
+                0.dp,
+                backdropAlpha
+            )
+            val headerSideInset = androidx.compose.ui.unit.lerp(16.dp, backdropContentInset, backdropAlpha)
+            val calibrationValueTop = androidx.compose.ui.unit.lerp(
+                8.dp,
+                -calibrationValueChipHeight,
+                backdropAlpha
+            )
             val journalChipMinTopPx = with(LocalDensity.current) { 8.dp.toPx() }
             val journalActionChipYOffsetPx = with(LocalDensity.current) { (chartHeightPx - 34.dp.toPx()).coerceAtLeast(12.dp.toPx()) }
             val journalActionDotInsetPx = with(LocalDensity.current) { 12.dp.toPx() }
@@ -4615,13 +4642,13 @@ fun InteractiveGlucoseChart(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = 12.dp, top = 12.dp)
+                        .padding(start = headerSideInset, top = headerTopInset)
                         .widthIn(max = activeInsulinMaxWidth)
                         .zIndex(1.6f)
                         .clip(activeInsulinShape)
                         .clickable(enabled = summary != null || activeCarbsGrams != null) { isActiveInsulinExpanded = !isActiveInsulinExpanded },
                     shape = activeInsulinShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     tonalElevation = 0.dp,
                     shadowElevation = 0.dp
                 ) {
@@ -5083,9 +5110,6 @@ fun InteractiveGlucoseChart(
             val calibrationTimestampChipHeightPx = with(LocalDensity.current) { 24.dp.toPx() }
             val viewportStartTooltip = overlayViewportStart
             val viewportEndTooltip = overlayViewportEnd
-            val visibleCalibrationsTooltip = visibleCalibrations.filter {
-                it.timestamp in viewportStartTooltip..viewportEndTooltip
-            }
 
             val calibrationLabelLocale = java.util.Locale.getDefault()
             val calibrationLabelTimeZone = java.util.TimeZone.getDefault()
@@ -5126,7 +5150,7 @@ fun InteractiveGlucoseChart(
                         .offset {
                             androidx.compose.ui.unit.IntOffset(
                                 x = calXOffset.toInt(),
-                                y = 8.dp.roundToPx()
+                                y = calibrationValueTop.roundToPx()
                             )
                         }
                         .graphicsLayer { translationX = -size.width / 2f }
@@ -5153,7 +5177,7 @@ fun InteractiveGlucoseChart(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = calValueStr,
-                            style = MaterialTheme.typography.labelMediumEmphasized
+                            style = calibrationValueTextStyle
                         )
                     }
                 }
@@ -5220,8 +5244,8 @@ fun InteractiveGlucoseChart(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(
-                        top = androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha),
-                        end = androidx.compose.ui.unit.lerp(16.dp, backdropContentInset, backdropAlpha)
+                        top = headerTopInset,
+                        end = headerSideInset
                     )
             ) {
                 Box(
