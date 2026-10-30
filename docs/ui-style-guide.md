@@ -147,6 +147,7 @@ Reach for these before building a surface by hand.
 | A setting or a destination | `SettingsItem`, `SettingsSwitchItem`, `SettingsNavSwitchItem` | `components/SettingsComponents.kt` |
 | A setting that reveals more | `ExpandableSettingsCard`, `DisclosingSwitchCard` | same |
 | A feature's on/off hero | `MasterSwitchCard` | same |
+| A setting with its own inline controls (slider, button group) | Control card, composed locally; see below | `DataSmoothingSettingsScreen.kt` |
 | A destructive row | `DangerItem` | same |
 | Group label | `SectionLabel` (24 above, 8 below) | same |
 | Leading icon of a row/card | `IconTile` | `components/IconTile.kt` |
@@ -175,6 +176,26 @@ read at 18dp.
   Group related rows with `CardPosition` and a 2dp gap.
 - **Card** — status: where things stand, and the thing to do about it. Title first, actions
   at the bottom. A card holding one line of text is a row in costume; use a caption.
+- **Control card** — one setting whose control doesn't fit a row's trailing slot: a slider,
+  a `ConnectedButtonGroup`, or a switch that reveals one. Not the same as a
+  `SettingsSwitchItem` (one setting, one trailing switch) or a `MasterSwitchCard` (the whole
+  feature on or off, at the top of its screen). A control card is a local composition, not a
+  shared component:
+  - A `Card` in `shapes.extraLarge` on `surfaceContainerLow` (`surfaceContainerLowest` while
+    the feature is off), with no elevation. One surface throughout, with no divider, inner
+    card, header surface or icon tile.
+  - 16dp padding on every side. Title in `titleMediumEmphasized`, then 4dp, then the
+    supporting line in `bodyMedium` / `onSurfaceVariant`. A value chip or `StyledSwitch` can
+    trail the heading, 12dp from the text.
+  - The control sits 16dp under the heading, and a `bodySmall` caption sits 12dp under the
+    control. A revealed section carries its own 16dp top gap inside `AnimatedVisibility`, so
+    the card closes to the heading when it's hidden.
+  - A heading switch makes the whole heading its touch target (`toggleable`,
+    `Role.Switch`). The row draws no indication and passes its `interactionSource` to the
+    switch, which shows the press. When the feature is off, every control in the card is
+    disabled, not only dimmed.
+  - Examples: Smoothing window (slider) and Fewer readings (switch that reveals a
+    multi-select group).
 - **Dialog** — a decision that blocks: confirmation, short text entry, 2–4 exclusive options.
 - **Bottom sheet** — a task with its own content, or one that needs the screen behind it.
 

@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
@@ -323,18 +325,23 @@ private fun FewerReadingsCard(
         shape = MaterialTheme.shapes.extraLarge,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column {
+        // A control card, as the window card above: one padded column on one surface.
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             // The whole heading is the switch's touch target, read as one switch by TalkBack.
+            // It shares its press with the switch, which shows it, so no row surface appears.
+            val headingInteraction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 48.dp)
                     .toggleable(
                         value = checked,
+                        interactionSource = headingInteraction,
+                        indication = null,
                         enabled = enabled,
                         role = Role.Switch,
                         onValueChange = onCheckedChange
-                    )
-                    .padding(16.dp),
+                    ),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -352,16 +359,22 @@ private fun FewerReadingsCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                StyledSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
+                StyledSwitch(
+                    checked = checked,
+                    onCheckedChange = null,
+                    enabled = enabled,
+                    interactionSource = headingInteraction
+                )
             }
 
+            // The 16dp gap lives inside the revealed section, so the card closes to the heading.
             AnimatedVisibility(
                 visible = checked,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ConnectedButtonGroup(
