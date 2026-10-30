@@ -284,11 +284,22 @@ fun DashboardCombinedHeader(
     }
     val sensorContentColor = if (isExpiring) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
 
+    // The arrow and Δ describe the shown value, so they end at its reading. With Fewer
+    // readings on the current value, that is the last completed interval's reading, older
+    // than the newest stored one; readings after it must not move the arrow or the Δ.
+    val movementHistory = remember(history, currentSnapshot?.timeMillis) {
+        val shownAt = currentSnapshot?.timeMillis
+        if (shownAt == null || (history.lastOrNull()?.timestamp ?: Long.MIN_VALUE) <= shownAt) {
+            history
+        } else {
+            history.filter { it.timestamp <= shownAt }
+        }
+    }
     // Advanced Trend
-    val trendResult = remember(history, latestPoint, currentSnapshot) {
-        if (history.isNotEmpty()) {
+    val trendResult = remember(movementHistory, latestPoint, currentSnapshot) {
+        if (movementHistory.isNotEmpty()) {
              // Map Kotlin UI points to Native Java points for shared TrendEngine
-             val nativeList = history.map { tk.glucodata.GlucosePoint(it.timestamp, it.value, it.rawValue) }
+             val nativeList = movementHistory.map { tk.glucodata.GlucosePoint(it.timestamp, it.value, it.rawValue) }
              // The canonical trend list (live-augmented, newest-anchored window) —
              // the same points the notification and broadcast arrows regress over.
              val trendPoints = tk.glucodata.DisplayTrendSource.resolveTrendPoints(nativeList, currentSnapshot, null)
@@ -305,9 +316,9 @@ fun DashboardCombinedHeader(
     // number to sanity-check the estimated arrow against. Same computation as
     // the per-row deltas in the readings list, anchored at the newest point.
     val heroDeltaText = if (showDelta) {
-        remember(history, isMmol, deltaIntervalMinutes, viewMode) {
-            history.lastOrNull()?.let { newest ->
-                readingDeltaTexts(listOf(newest.timestamp), history, isMmol, deltaIntervalMinutes,
+        remember(movementHistory, isMmol, deltaIntervalMinutes, viewMode) {
+            movementHistory.lastOrNull()?.let { newest ->
+                readingDeltaTexts(listOf(newest.timestamp), movementHistory, isMmol, deltaIntervalMinutes,
                     useRaw = viewMode == 1 || viewMode == 3)
                     .first()
             }
