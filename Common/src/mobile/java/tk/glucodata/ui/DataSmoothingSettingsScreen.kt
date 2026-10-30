@@ -377,15 +377,15 @@ private fun FewerReadingsCard(
                 )
             }
 
-            // The heading's bottom padding is the 16dp gap above the controls, so the card
-            // closes to the heading when they hide.
+            // 8dp on top of the heading's own 16dp, so the buttons sit clear of its press
+            // highlight; it lives inside the revealed section, so the card closes to the heading.
             AnimatedVisibility(
                 visible = checked,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ConnectedButtonGroup(

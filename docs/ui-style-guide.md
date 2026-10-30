@@ -188,9 +188,10 @@ read at 18dp.
     supporting line in `bodyMedium` / `onSurfaceVariant`. A value chip or `StyledSwitch` can
     trail the heading, 12dp from the text.
   - The control sits 16dp under the heading, and a `bodySmall` caption sits 12dp under the
-    control. A revealed section takes 16dp horizontal and bottom padding inside
-    `AnimatedVisibility`. The heading's own bottom padding gives the gap above it, so the
-    card closes to the heading when the section is hidden.
+    control. A revealed section under a heading switch adds 8dp top padding to the heading's
+    16dp, so its controls stay clear of the heading's press highlight. With 16dp horizontal
+    and bottom padding, it lives inside `AnimatedVisibility`, so the card closes to the
+    heading when the section is hidden.
   - A heading switch makes the whole heading its touch target (`toggleable`,
     `Role.Switch`) with `indication = ripple(bounded = true)`, and passes its
     `interactionSource` to the switch (`onCheckedChange = null`), so both show the press.
