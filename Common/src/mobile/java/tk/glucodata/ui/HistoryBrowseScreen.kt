@@ -414,7 +414,6 @@ fun HistoryBrowseScreen(
     /** The window the reading itself carries here; see DataSmoothing.localSmoothingMinutes. */
     evaluationSmoothingMinutes: Int,
     graphCollapseMinutes: Int,
-    evaluationCollapseMinutes: Int,
     previewWindowMode: Int,
     calibrations: List<tk.glucodata.data.calibration.CalibrationEntity>,
     title: String,
@@ -566,12 +565,13 @@ fun HistoryBrowseScreen(
     // index is built once per history; the visible window only asks it.
     // The Δ states a movement, so it reads the reading as the app reasons with it rather
     // than as it was stored — the same series the dashboard, the notification and the delta
-    // alarms use. Built once per history alongside the index it feeds.
-    val evaluationHistory = remember(sortedHistory, evaluationSmoothingMinutes, evaluationCollapseMinutes) {
+    // alarms use. Built once per history alongside the index it feeds. Not thinned: the
+    // rows list every stored reading, and each row's Δ must start from that row's own reading.
+    val evaluationHistory = remember(sortedHistory, evaluationSmoothingMinutes) {
         buildSmoothedConsumerHistory(
             points = sortedHistory,
             evaluationSmoothingMinutes = evaluationSmoothingMinutes,
-            evaluationCollapseMinutes = evaluationCollapseMinutes
+            evaluationCollapseMinutes = 0
         )
     }
     val rowDeltaIndex = remember(showRowDelta, evaluationHistory) {

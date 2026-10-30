@@ -169,7 +169,6 @@ private fun HistoryRoute(
         targets = dataSmoothingTargets
     )
     val visualCollapseMinutes = tk.glucodata.DataSmoothing.graphCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
-    val evaluationCollapseMinutes = tk.glucodata.DataSmoothing.localCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
     val previewWindowMode by dashboardViewModel.previewWindowMode.collectAsStateWithLifecycle()
     val journalEnabled by dashboardViewModel.journalEnabled.collectAsStateWithLifecycle()
     val journalDoseCalculatorEnabled by dashboardViewModel.journalDoseCalculatorEnabled.collectAsStateWithLifecycle()
@@ -207,7 +206,6 @@ private fun HistoryRoute(
         graphSmoothingMinutes = visualSmoothingMinutes,
         evaluationSmoothingMinutes = evaluationSmoothingMinutes,
         graphCollapseMinutes = visualCollapseMinutes,
-        evaluationCollapseMinutes = evaluationCollapseMinutes,
         previewWindowMode = previewWindowMode,
         calibrations = calibrations,
         title = title,
@@ -338,7 +336,6 @@ private fun JournalRoute(
         targets = dataSmoothingTargets
     )
     val visualCollapseMinutes = tk.glucodata.DataSmoothing.graphCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
-    val evaluationCollapseMinutes = tk.glucodata.DataSmoothing.localCollapseMinutes(chartSmoothingMinutes, dataSmoothingTargets)
     val previewWindowMode by dashboardViewModel.previewWindowMode.collectAsStateWithLifecycle()
     val journalEnabled by dashboardViewModel.journalEnabled.collectAsStateWithLifecycle()
     val journalDoseCalculatorEnabled by dashboardViewModel.journalDoseCalculatorEnabled.collectAsStateWithLifecycle()
