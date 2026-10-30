@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -47,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -328,25 +327,23 @@ private fun FewerReadingsCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         // A control card, as the window card above: one column on one surface. The heading
-        // spans the card so its ripple fills the card's shape; padding sits inside the ripple.
-        // Collapsed it is the whole card; expanded its lower edge meets the controls below.
-        val headingShape = if (checked) {
-            MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp))
-        } else {
-            MaterialTheme.shapes.extraLarge
-        }
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // takes the tap, but its ripple is drawn over the whole card, which clips it to the
+        // card's shape, so a press reads as pressing the card rather than a block inside it.
+        val headingInteraction = remember { MutableInteractionSource() }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .indication(headingInteraction, ripple())
+        ) {
             // The whole heading is the switch's touch target, read as one switch by TalkBack.
-            // It shares its press with the switch, so a tap anywhere on it ripples and moves the switch.
-            val headingInteraction = remember { MutableInteractionSource() }
+            // Its press shows on the card (above) and on the switch, which shares it.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(headingShape)
                     .toggleable(
                         value = checked,
                         interactionSource = headingInteraction,
-                        indication = ripple(bounded = true),
+                        indication = null,
                         enabled = enabled,
                         role = Role.Switch,
                         onValueChange = onCheckedChange
@@ -377,15 +374,15 @@ private fun FewerReadingsCard(
                 )
             }
 
-            // 8dp on top of the heading's own 16dp, so the buttons sit clear of its press
-            // highlight; it lives inside the revealed section, so the card closes to the heading.
+            // The heading's bottom padding is the 16dp gap above the controls, so the card
+            // closes to the heading when they hide.
             AnimatedVisibility(
                 visible = checked,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ConnectedButtonGroup(

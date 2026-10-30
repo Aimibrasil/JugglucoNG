@@ -188,17 +188,16 @@ read at 18dp.
     supporting line in `bodyMedium` / `onSurfaceVariant`. A value chip or `StyledSwitch` can
     trail the heading, 12dp from the text.
   - The control sits 16dp under the heading, and a `bodySmall` caption sits 12dp under the
-    control. A revealed section under a heading switch adds 8dp top padding to the heading's
-    16dp, so its controls stay clear of the heading's press highlight. With 16dp horizontal
-    and bottom padding, it lives inside `AnimatedVisibility`, so the card closes to the
-    heading when the section is hidden.
-  - A heading switch makes the whole heading its touch target (`toggleable`,
-    `Role.Switch`) with `indication = ripple(bounded = true)`, and passes its
-    `interactionSource` to the switch (`onCheckedChange = null`), so both show the press.
-    The heading spans the card edge to edge. Its modifiers go in this order:
-    `clip(shape)`, then `toggleable`, then `padding(16.dp)`. The shape is the card's shape
-    while collapsed, and only the top corners while expanded. When the feature is off,
-    every control in the card is disabled, not only dimmed.
+    control. A revealed section takes 16dp horizontal and bottom padding inside
+    `AnimatedVisibility`. The heading's own bottom padding gives the gap above it, so the
+    card closes to the heading when the section is hidden.
+  - A heading switch makes the whole heading its touch target: `toggleable` with
+    `Role.Switch`, and `padding(16.dp)` inside it. Its `interactionSource` goes to the switch
+    (`onCheckedChange = null`) and to `Modifier.indication(source, ripple())` on the card's
+    content column. The ripple then fills the card, clipped to its shape, rather than showing
+    as a block inside it. The heading itself passes `indication = null`, because the card
+    draws the press for it. When the feature is off, every control in the card is disabled,
+    not only dimmed.
   - Examples: Smoothing window (slider) and Fewer readings (switch that reveals a
     multi-select group).
 - **Dialog** — a decision that blocks: confirmation, short text entry, 2–4 exclusive options.
