@@ -1680,11 +1680,13 @@ fun DashboardScreen(
                         .padding(top = 8.dp, bottom = 8.dp)
                 ) {
                         Box(modifier = Modifier.weight(1f).fillMaxSize()) {
-                            key(sensorName) {
+                            // Sensor role changes keep the existing viewport and plot state.
+                            key(Unit) {
                                 FontScaleCap {
                                     DashboardChartSection(
                                         modifier = Modifier.fillMaxSize(),
                                         glucoseHistory = glucoseHistory,
+                                        primarySensorId = sensorName,
                                         dataBounds = chartDataBounds,
                                         onVisibleRangeChanged = viewModel::onChartViewportChanged,
                                         multiSensorDisplay = multiSensorDisplay,
@@ -1925,13 +1927,15 @@ fun DashboardScreen(
                                 .fillMaxWidth()
                                 .height(animatedChartItemHeight)
                         ) {
-                            key(sensorName) {
+                            // Sensor role changes keep the existing viewport and plot state.
+                            key(Unit) {
                                 FontScaleCap {
                                     DashboardChartSection(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .padding(bottom = 0.dp),
                                         glucoseHistory = glucoseHistory,
+                                        primarySensorId = sensorName,
                                         dataBounds = chartDataBounds,
                                         onVisibleRangeChanged = viewModel::onChartViewportChanged,
                                         multiSensorDisplay = multiSensorDisplay,
