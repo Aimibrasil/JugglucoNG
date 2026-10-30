@@ -814,11 +814,8 @@ fun DashboardChartSection(
      * The host's side margin. With the backdrop showing, the chart has no visible edge of
      * its own, so its top-end date label lines up with the host's cards instead.
      */
-    backdropContentInset: androidx.compose.ui.unit.Dp = 16.dp,
-    /** Free space above this chart, before another card or banner starts. */
-    backdropHeaderClearance: androidx.compose.ui.unit.Dp = 0.dp
+    backdropContentInset: androidx.compose.ui.unit.Dp = 16.dp
 ) {
-    val calibrationHeaderHeight = calibrationHeaderStripHeight()
     val chartContent: @Composable () -> Unit = {
         Column(modifier = Modifier.padding(bottom = 0.dp)) {
              Box(modifier = Modifier.weight(1f)) {
@@ -901,12 +898,7 @@ fun DashboardChartSection(
         )
     }
     Surface(
-        modifier = modifier
-            .extendChartTop(
-                calibrationHeaderHeight * if (backdropBleed > 0.dp) chartBackdropProgress(safeExpandedProgress) else 0f,
-                backdropHeaderClearance
-            )
-            .background(containerColor, RoundedCornerShape(cornerRadius)),
+        modifier = modifier.background(containerColor, RoundedCornerShape(cornerRadius)),
         shape = clipShape,
         color = Color.Transparent,
         contentColor = contentColorFor(containerColor),
@@ -2008,18 +2000,8 @@ fun InteractiveGlucoseChart(
     // axis labels. Laid out rather than offset: an offset only moved the picker's paint,
     // and left the space it was measured into as a hole underneath it.
     val pickerLift = chartUnderlayBottomDp + (8.dp * safeExpandedProgress)
-    val calibrationHeaderHeight = calibrationHeaderStripHeight()
-    // Share the zoom state without reading it here: only the plot and strip recompose per frame.
-    val visibleDurationAnimation = animateFloatAsState(
-        targetValue = visibleDuration.toFloat(),
-        animationSpec = spring<Float>(stiffness = Spring.StiffnessMedium),
-        label = "ChartZoomAnimation"
-    )
-    ChartPlotLayout(
+    Layout(
         modifier = Modifier.fillMaxSize(),
-        topGutter = calibrationHeaderHeight * backdropAlpha,
-        pickerLift = pickerLift,
-        onPickerOverhangChanged = { pickerOverhangPx.floatValue = it },
         content = {
         BoxWithConstraints(
             modifier = Modifier
@@ -2543,7 +2525,11 @@ fun InteractiveGlucoseChart(
                 }
         ) {
             android.os.Trace.beginSection("DashboardPlot.compose")
-            val animatedVisibleDuration by visibleDurationAnimation
+            val animatedVisibleDuration by animateFloatAsState(
+                targetValue = visibleDuration.toFloat(),
+                animationSpec = spring<Float>(stiffness = Spring.StiffnessMedium),
+                label = "ChartZoomAnimation"
+            )
             val journalActionIndicatorProgress by animateFloatAsState(
                 targetValue = if (journalActionTimestamp != null && selectedPoint == null) 1f else 0f,
                 animationSpec = spring(
@@ -3947,9 +3933,7 @@ fun InteractiveGlucoseChart(
             val visibleCalibrationsTooltip = visibleCalibrations.filter {
                 it.timestamp in overlayViewportStart..overlayViewportEnd
             }
-            // The measured strip is a sibling above this plot. Expanded headers keep
-            // their original plot-top anchor, independent of visible calibrations.
-            val headerTopInset = chartHeaderTopInset(calibrationHeaderHeight, backdropAlpha)
+            val headerTopInset = androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha)
             val headerSideInset = androidx.compose.ui.unit.lerp(16.dp, backdropContentInset, backdropAlpha)
             val journalChipMinTopPx = with(LocalDensity.current) { 8.dp.toPx() }
             val journalActionChipYOffsetPx = with(LocalDensity.current) { (chartHeightPx - 34.dp.toPx()).coerceAtLeast(12.dp.toPx()) }
@@ -4543,220 +4527,221 @@ fun InteractiveGlucoseChart(
                     }
                 }
 
-            if (activeInsulinSummary != null || activeCarbsGrams != null || stateDoseHint != null) {
-                val summary = activeInsulinSummary
-                val unitsLabel = { units: Float ->
-                    if (units % 1f < 0.05f) {
-                        units.roundToInt().toString()
-                    } else {
-                        String.format(java.util.Locale.getDefault(), "%.1f", units)
-                    }
-                }
-                val iobValue = summary?.let { stringResource(R.string.unit_insulin_value, unitsLabel(it.iobUnits)) }
-                val eiobValue = summary?.let { stringResource(R.string.unit_insulin_value, unitsLabel(it.eiobUnits)) }
-                val totalUnitsLabel = summary?.let { unitsLabel(it.totalUnits) }
-                val remainingLabel = formatRemainingDuration(
-                    LocalContext.current,
-                    summary?.activeUntil?.minus(System.currentTimeMillis())
-                )
-                val doseHintAmount = remember(stateDoseHint?.kind, stateDoseHint?.amount) {
-                    stateDoseHint?.let { hint ->
-                        NumberFormat.getNumberInstance().apply {
-                            minimumFractionDigits =
-                                if (hint.kind == StateDoseHintKind.INSULIN) 1 else 0
-                            maximumFractionDigits = minimumFractionDigits
-                            isGroupingUsed = false
-                        }.format(hint.amount)
-                    }
-                }
-                val doseHintTargetLabel = stateDoseHint?.let { hint ->
-                    if (isMmol) {
-                        stringResource(
-                            R.string.predictive_dose_target_value_mmol,
-                            GlucoseFormatter.mgToMmol(hint.targetMgDl)
-                        )
-                    } else {
-                        stringResource(R.string.predictive_dose_target_value_mgdl, hint.targetMgDl)
-                    }
-                }
-                // Collapsed shows the bare amount and, where there is one, when the state it
-                // is about arrives — a number with no time reads as "do this now", which is
-                // only true of the insulin case. Expanded has room to name both.
-                val doseHintLabel = if (stateDoseHint != null && doseHintAmount != null) {
-                    val minutesAhead = stateDoseHint.minutesAhead?.takeIf { it > 0 }
-                    when (stateDoseHint.kind) {
-                        StateDoseHintKind.CARBS -> if (!isActiveInsulinExpanded) {
-                            val amount = stringResource(R.string.unit_carbs_value, doseHintAmount)
-                            if (minutesAhead != null) {
-                                stringResource(R.string.dashboard_dose_hint_short_in, amount, minutesAhead)
-                            } else {
-                                stringResource(R.string.dashboard_dose_hint_short, amount)
-                            }
-                        } else if (minutesAhead != null && doseHintTargetLabel != null) {
-                            stringResource(
-                                R.string.dashboard_dose_hint_carbs_in,
-                                doseHintAmount,
-                                doseHintTargetLabel,
-                                minutesAhead
-                            )
-                        } else if (doseHintTargetLabel != null) {
-                            stringResource(
-                                R.string.dashboard_dose_hint_carbs_below,
-                                doseHintAmount,
-                                doseHintTargetLabel
-                            )
+            val insulinHeader: @Composable () -> Unit = {
+                if (activeInsulinSummary != null || activeCarbsGrams != null || stateDoseHint != null) {
+                    val summary = activeInsulinSummary
+                    val unitsLabel = { units: Float ->
+                        if (units % 1f < 0.05f) {
+                            units.roundToInt().toString()
                         } else {
-                            stringResource(R.string.dashboard_dose_hint_carbs, doseHintAmount)
-                        }
-                        StateDoseHintKind.INSULIN -> if (summary == null || isActiveInsulinExpanded) {
-                            stringResource(R.string.dashboard_dose_hint_insulin, doseHintAmount)
-                        } else {
-                            stringResource(
-                                R.string.dashboard_dose_hint_short,
-                                stringResource(R.string.unit_insulin_value, doseHintAmount)
-                            )
+                            String.format(java.util.Locale.getDefault(), "%.1f", units)
                         }
                     }
-                } else null
-                val activeInsulinCorner by animateDpAsState(
-                    targetValue = if (isActiveInsulinExpanded) 24.dp else 16.dp,
-                    animationSpec = activeInsulinMotionSpec(),
-                    label = "activeInsulinCorner"
-                )
-                val activeInsulinShape = RoundedCornerShape(activeInsulinCorner)
-                // Collapsed stays under half the chart so it never reaches the date chip;
-                // expanded is allowed a little more room but still stops short of it.
-                val activeInsulinMaxWidth = maxWidth * if (isActiveInsulinExpanded) {
-                    ACTIVE_INSULIN_EXPANDED_MAX_WIDTH_FRACTION
-                } else {
-                    ACTIVE_INSULIN_MAX_WIDTH_FRACTION
-                }
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = headerSideInset, top = headerTopInset)
-                        .widthIn(max = activeInsulinMaxWidth)
-                        .zIndex(1.6f)
-                        .clip(activeInsulinShape)
-                        .clickable(enabled = summary != null || activeCarbsGrams != null) { isActiveInsulinExpanded = !isActiveInsulinExpanded },
-                    shape = activeInsulinShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .animateContentSize(animationSpec = activeInsulinMotionSpec())
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        // Expanding spells the abbreviations out in place instead of
-                        // repeating the same two numbers in a second block below.
-                        if (iobValue != null) {
-                            if (isActiveInsulinExpanded) {
-                                Text(
-                                    text = stringResource(R.string.dashboard_iob_full, iobValue),
-                                    style = MaterialTheme.typography.labelLargeEmphasized
-                                )
-                                if (showEiob && eiobValue != null) {
-                                    Text(
-                                        text = stringResource(R.string.dashboard_eiob_full, eiobValue),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                    val iobValue = summary?.let { stringResource(R.string.unit_insulin_value, unitsLabel(it.iobUnits)) }
+                    val eiobValue = summary?.let { stringResource(R.string.unit_insulin_value, unitsLabel(it.eiobUnits)) }
+                    val totalUnitsLabel = summary?.let { unitsLabel(it.totalUnits) }
+                    val remainingLabel = formatRemainingDuration(
+                        LocalContext.current,
+                        summary?.activeUntil?.minus(System.currentTimeMillis())
+                    )
+                    val doseHintAmount = remember(stateDoseHint?.kind, stateDoseHint?.amount) {
+                        stateDoseHint?.let { hint ->
+                            NumberFormat.getNumberInstance().apply {
+                                minimumFractionDigits =
+                                    if (hint.kind == StateDoseHintKind.INSULIN) 1 else 0
+                                maximumFractionDigits = minimumFractionDigits
+                                isGroupingUsed = false
+                            }.format(hint.amount)
+                        }
+                    }
+                    val doseHintTargetLabel = stateDoseHint?.let { hint ->
+                        if (isMmol) {
+                            stringResource(
+                                R.string.predictive_dose_target_value_mmol,
+                                GlucoseFormatter.mgToMmol(hint.targetMgDl)
+                            )
+                        } else {
+                            stringResource(R.string.predictive_dose_target_value_mgdl, hint.targetMgDl)
+                        }
+                    }
+                    // Collapsed shows the bare amount and, where there is one, when the state it
+                    // is about arrives — a number with no time reads as "do this now", which is
+                    // only true of the insulin case. Expanded has room to name both.
+                    val doseHintLabel = if (stateDoseHint != null && doseHintAmount != null) {
+                        val minutesAhead = stateDoseHint.minutesAhead?.takeIf { it > 0 }
+                        when (stateDoseHint.kind) {
+                            StateDoseHintKind.CARBS -> if (!isActiveInsulinExpanded) {
+                                val amount = stringResource(R.string.unit_carbs_value, doseHintAmount)
+                                if (minutesAhead != null) {
+                                    stringResource(R.string.dashboard_dose_hint_short_in, amount, minutesAhead)
+                                } else {
+                                    stringResource(R.string.dashboard_dose_hint_short, amount)
                                 }
+                            } else if (minutesAhead != null && doseHintTargetLabel != null) {
+                                stringResource(
+                                    R.string.dashboard_dose_hint_carbs_in,
+                                    doseHintAmount,
+                                    doseHintTargetLabel,
+                                    minutesAhead
+                                )
+                            } else if (doseHintTargetLabel != null) {
+                                stringResource(
+                                    R.string.dashboard_dose_hint_carbs_below,
+                                    doseHintAmount,
+                                    doseHintTargetLabel
+                                )
                             } else {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.Bottom
-                                ) {
+                                stringResource(R.string.dashboard_dose_hint_carbs, doseHintAmount)
+                            }
+                            StateDoseHintKind.INSULIN -> if (summary == null || isActiveInsulinExpanded) {
+                                stringResource(R.string.dashboard_dose_hint_insulin, doseHintAmount)
+                            } else {
+                                stringResource(
+                                    R.string.dashboard_dose_hint_short,
+                                    stringResource(R.string.unit_insulin_value, doseHintAmount)
+                                )
+                            }
+                        }
+                    } else null
+                    val activeInsulinCorner by animateDpAsState(
+                        targetValue = if (isActiveInsulinExpanded) 24.dp else 16.dp,
+                        animationSpec = activeInsulinMotionSpec(),
+                        label = "activeInsulinCorner"
+                    )
+                    val activeInsulinShape = RoundedCornerShape(activeInsulinCorner)
+                    // Collapsed stays under half the chart so it never reaches the date chip;
+                    // expanded is allowed a little more room but still stops short of it.
+                    val activeInsulinMaxWidth = maxWidth * if (isActiveInsulinExpanded) {
+                        ACTIVE_INSULIN_EXPANDED_MAX_WIDTH_FRACTION
+                    } else {
+                        ACTIVE_INSULIN_MAX_WIDTH_FRACTION
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .widthIn(max = activeInsulinMaxWidth)
+                            .zIndex(1.6f)
+                            .clip(activeInsulinShape)
+                            .clickable(enabled = summary != null || activeCarbsGrams != null) { isActiveInsulinExpanded = !isActiveInsulinExpanded },
+                        shape = activeInsulinShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .animateContentSize(animationSpec = activeInsulinMotionSpec())
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            // Expanding spells the abbreviations out in place instead of
+                            // repeating the same two numbers in a second block below.
+                            if (iobValue != null) {
+                                if (isActiveInsulinExpanded) {
                                     Text(
-                                        text = stringResource(R.string.dashboard_iob_short, iobValue),
-                                        style = MaterialTheme.typography.labelLargeEmphasized,
-                                        maxLines = 1
+                                        text = stringResource(R.string.dashboard_iob_full, iobValue),
+                                        style = MaterialTheme.typography.labelLargeEmphasized
                                     )
                                     if (showEiob && eiobValue != null) {
                                         Text(
-                                            text = stringResource(R.string.dashboard_eiob_short, eiobValue),
+                                            text = stringResource(R.string.dashboard_eiob_full, eiobValue),
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                } else {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.Bottom
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.dashboard_iob_short, iobValue),
+                                            style = MaterialTheme.typography.labelLargeEmphasized,
                                             maxLines = 1
                                         )
+                                        if (showEiob && eiobValue != null) {
+                                            Text(
+                                                text = stringResource(R.string.dashboard_eiob_short, eiobValue),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
-                        activeCarbsGrams?.let { grams ->
-                            val carbsValue = stringResource(R.string.unit_carbs_value, unitsLabel(grams))
-                            Text(
-                                text = if (isActiveInsulinExpanded) {
-                                    stringResource(R.string.dashboard_cob_full, carbsValue)
-                                } else {
-                                    stringResource(R.string.journal_cob_value, carbsValue)
-                                },
-                                style = MaterialTheme.typography.labelLargeEmphasized
-                            )
-                        }
-                        // The hint, or — collapsed and with nothing to suggest — how long the
-                        // insulin still runs. Not both on one collapsed line: the hint already
-                        // carries its own time, and the card is under half the chart wide.
-                        // Expanded states the end time in full below either way.
-                        if (doseHintLabel != null) {
-                            Text(
-                                text = doseHintLabel,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = if (isActiveInsulinExpanded) 2 else 1
-                            )
-                        } else if (remainingLabel != null && !isActiveInsulinExpanded) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.AccessTime,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+                            activeCarbsGrams?.let { grams ->
+                                val carbsValue = stringResource(R.string.unit_carbs_value, unitsLabel(grams))
                                 Text(
-                                    text = remainingLabel,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
+                                    text = if (isActiveInsulinExpanded) {
+                                        stringResource(R.string.dashboard_cob_full, carbsValue)
+                                    } else {
+                                        stringResource(R.string.journal_cob_value, carbsValue)
+                                    },
+                                    style = MaterialTheme.typography.labelLargeEmphasized
                                 )
                             }
-                        }
-                        if (isActiveInsulinExpanded && summary != null && totalUnitsLabel != null) {
-                            Text(
-                                text = stringResource(
-                                    R.string.journal_active_insulin_summary,
-                                    summary.activeEntryCount,
-                                    totalUnitsLabel,
-                                    summary.weightedActivityPercent
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            summary.activeUntil?.let { activeUntil ->
+                            // The hint, or — collapsed and with nothing to suggest — how long the
+                            // insulin still runs. Not both on one collapsed line: the hint already
+                            // carries its own time, and the card is under half the chart wide.
+                            // Expanded states the end time in full below either way.
+                            if (doseHintLabel != null) {
+                                Text(
+                                    text = doseHintLabel,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = if (isActiveInsulinExpanded) 2 else 1
+                                )
+                            } else if (remainingLabel != null && !isActiveInsulinExpanded) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccessTime,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = remainingLabel,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                            if (isActiveInsulinExpanded && summary != null && totalUnitsLabel != null) {
                                 Text(
                                     text = stringResource(
-                                        R.string.journal_active_insulin_until,
-                                        java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
-                                            .format(java.util.Date(activeUntil))
+                                        R.string.journal_active_insulin_summary,
+                                        summary.activeEntryCount,
+                                        totalUnitsLabel,
+                                        summary.weightedActivityPercent
                                     ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            }
-                            if (activeInsulinFromRemote) {
-                                Text(
-                                    text = stringResource(R.string.journal_iob_source_remote),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                summary.activeUntil?.let { activeUntil ->
+                                    Text(
+                                        text = stringResource(
+                                            R.string.journal_active_insulin_until,
+                                            java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
+                                                .format(java.util.Date(activeUntil))
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (activeInsulinFromRemote) {
+                                    Text(
+                                        text = stringResource(R.string.journal_iob_source_remote),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
                 }
+
             }
 
             selectedPoint?.let { point ->
@@ -5173,68 +5158,76 @@ fun InteractiveGlucoseChart(
                 java.text.SimpleDateFormat("EEEE, d MMMM", java.util.Locale.getDefault()).format(java.util.Date(centerTime))
             }
 
-            androidx.compose.animation.AnimatedVisibility(
-                visible = showHeaderDate,
-                // Grows out of its own top-right corner, where it is anchored, so it reads
-                // as the chart putting the label up rather than a rectangle materialising.
-                enter = fadeIn(ExpressiveMotion.defaultEffects()) + scaleIn(
-                    animationSpec = ExpressiveMotion.defaultSpatial(),
-                    initialScale = 0.85f,
-                    transformOrigin = TransformOrigin(1f, 0f)
-                ),
-                exit = fadeOut(ExpressiveMotion.fastEffects()) + scaleOut(
-                    animationSpec = ExpressiveMotion.fastSpatial(),
-                    targetScale = 0.85f,
-                    transformOrigin = TransformOrigin(1f, 0f)
-                ),
-                // The shared row follows any calibration values. Its side inset moves
-                // from the card's corner to the host cards' edge as the backdrop opens.
+            ChartHeaderRow(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(
-                        top = headerTopInset,
-                        end = headerSideInset
+                    .align(Alignment.TopStart)
+                    .fillMaxWidth()
+                    .padding(start = headerSideInset, end = headerSideInset, top = headerTopInset)
+                    .zIndex(1.6f),
+                hasCalibrations = visibleCalibrationsTooltip.isNotEmpty(),
+                hasDate = showHeaderDate,
+                start = insulinHeader,
+                calibrations = {
+                    ChartCalibrationValueChips(
+                        calibrations = visibleCalibrationsTooltip,
+                        unit = unit,
+                        onCalibrationClick = onCalibrationClick
                     )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .height(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Crossing midnight slides the new date in from the side the pan came
-                    // from, so the label moves with the finger instead of blinking. The
-                    // pill itself is outside this, so only the text travels; SizeTransform
-                    // still morphs its width as the day names change length.
-                    AnimatedContent(
-                        targetState = headerDay to headerDate,
-                        transitionSpec = {
-                            val backwards = targetState.first < initialState.first
-                            val entryEdge = if (backwards) -1 else 1
-                            val enter = slideInHorizontally(ExpressiveMotion.defaultSpatial()) {
-                                entryEdge * it / 2
-                            } + fadeIn(ExpressiveMotion.defaultEffects())
-                            val exit = slideOutHorizontally(ExpressiveMotion.defaultSpatial()) {
-                                -entryEdge * it / 2
-                            } + fadeOut(ExpressiveMotion.fastEffects())
-                            enter togetherWith exit using SizeTransform(clip = false) { _, _ ->
-                                ExpressiveMotion.defaultSpatial()
+                },
+                end = {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showHeaderDate,
+                        // Grows out of its own top-right corner, where it is anchored, so it reads
+                        // as the chart putting the label up rather than a rectangle materialising.
+                        enter = fadeIn(ExpressiveMotion.defaultEffects()) + scaleIn(
+                            animationSpec = ExpressiveMotion.defaultSpatial(),
+                            initialScale = 0.85f,
+                            transformOrigin = TransformOrigin(1f, 0f)
+                        ),
+                        exit = fadeOut(ExpressiveMotion.fastEffects()) + scaleOut(
+                            animationSpec = ExpressiveMotion.fastSpatial(),
+                            targetScale = 0.85f,
+                            transformOrigin = TransformOrigin(1f, 0f)
+                        ),
+                    ) {
+                        ChartHeaderChip(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ) {
+                            // Crossing midnight slides the new date in from the side the pan came
+                            // from, so the label moves with the finger instead of blinking. The
+                            // pill itself is outside this, so only the text travels; SizeTransform
+                            // still morphs its width as the day names change length.
+                            AnimatedContent(
+                                targetState = headerDay to headerDate,
+                                transitionSpec = {
+                                    val backwards = targetState.first < initialState.first
+                                    val entryEdge = if (backwards) -1 else 1
+                                    val enter = slideInHorizontally(ExpressiveMotion.defaultSpatial()) {
+                                        entryEdge * it / 2
+                                    } + fadeIn(ExpressiveMotion.defaultEffects())
+                                    val exit = slideOutHorizontally(ExpressiveMotion.defaultSpatial()) {
+                                        -entryEdge * it / 2
+                                    } + fadeOut(ExpressiveMotion.fastEffects())
+                                    enter togetherWith exit using SizeTransform(clip = false) { _, _ ->
+                                        ExpressiveMotion.defaultSpatial()
+                                    }
+                                },
+                                label = "chartDateHeader"
+                            ) { (_, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
-                        },
-                        label = "chartDateHeader"
-                    ) { (_, label) ->
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            softWrap = false
-                        )
+                        }
                     }
                 }
-            }
+            )
 
             /*
             // --- BACK TO NOW BUTTON ---
@@ -5629,19 +5622,19 @@ fun InteractiveGlucoseChart(
             }
             }
         }
-        ChartCalibrationValueRow(
-            calibrations = visibleCalibrations,
-            viewportStart = {
-                centerTime - visibleDurationAnimation.value.coerceAtLeast(minDuration.toFloat()).toLong() / 2
-            },
-            viewportDuration = { visibleDurationAnimation.value.coerceAtLeast(minDuration.toFloat()) },
-            rightInset = if (hasPredictionOverlay) 0.dp else 16.dp * safeExpandedProgress,
-            topInset = androidx.compose.ui.unit.lerp(8.dp, 0.dp, backdropAlpha),
-            unit = unit,
-            onCalibrationClick = onCalibrationClick
-        )
         }
-    )
+    ) { measurables, constraints ->
+        val picker = measurables[1].measure(constraints.copy(minHeight = 0))
+        val liftPx = pickerLift.roundToPx()
+        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else picker.height
+        val plotHeight = (height - picker.height + liftPx).coerceAtLeast(0)
+        val plot = measurables[0].measure(constraints.copy(minHeight = plotHeight, maxHeight = plotHeight))
+        pickerOverhangPx.floatValue = (picker.height - liftPx).toFloat()
+        layout(constraints.maxWidth, height) {
+            plot.place(0, 0)
+            picker.place(0, plotHeight - liftPx, zIndex = 1f)
+        }
+    }
 
     // Date Picker Dialog
     if (showDatePicker) {

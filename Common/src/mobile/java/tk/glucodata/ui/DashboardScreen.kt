@@ -1118,7 +1118,6 @@ fun DashboardScreen(
             }
             val density = LocalDensity.current
             var measuredHeaderHeightPx by rememberSaveable { mutableIntStateOf(0) }
-            var measuredReadinessBannerHeightPx by remember { mutableIntStateOf(-1) }
             var measuredReadingBaselineHeightPx by rememberSaveable { mutableIntStateOf(0) }
             val measuredHeaderHeight = with(density) {
                 if (measuredHeaderHeightPx > 0) measuredHeaderHeightPx.toDp() else heroFallbackHeight
@@ -1862,13 +1861,10 @@ fun DashboardScreen(
                 }
 
                 item {
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = contentHorizontalPadding)
-                            .onSizeChanged { measuredReadinessBannerHeightPx = it.height }
-                    ) {
-                        DashboardCgmReadinessBanner(onOpenReadiness = onNavigateToReadiness)
-                    }
+                    DashboardCgmReadinessBanner(
+                        modifier = Modifier.padding(horizontal = contentHorizontalPadding),
+                        onOpenReadiness = onNavigateToReadiness
+                    )
                 }
 
                 if (appUpdateBannerVisible) {
@@ -1972,8 +1968,6 @@ fun DashboardScreen(
                                         // from anywhere the chart can sit; the list clips it.
                                         backdropBleed = viewportHeight,
                                         backdropContentInset = contentHorizontalPadding,
-                                        backdropHeaderClearance = dashboardItemSpacing *
-                                            if (appUpdateBannerVisible || measuredReadinessBannerHeightPx != 0) 1 else 2,
                                         onPointClick = { point ->
                                             clearJournalAction()
                                             triggerCalibrationIfEnabled(

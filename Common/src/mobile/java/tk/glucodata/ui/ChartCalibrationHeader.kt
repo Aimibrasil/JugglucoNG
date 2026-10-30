@@ -1,14 +1,19 @@
 package tk.glucodata.ui
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.WaterDrop
@@ -21,115 +26,157 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.AlignmentLine
+import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
-import androidx.compose.ui.unit.offset
 import tk.glucodata.data.calibration.CalibrationEntity
 import kotlin.math.roundToInt
 
+/** Fixed corner anchors, with calibration values immediately before the date. */
 @Composable
-internal fun calibrationHeaderStripHeight(): Dp {
-    val measurer = rememberTextMeasurer()
-    val textHeight = measurer.measure(
-        text = "0",
-        style = MaterialTheme.typography.labelMediumEmphasized,
-        maxLines = 1,
-        softWrap = false
-    ).size.height
-    // Keep 4dp of clear space above and below the compact value pill.
-    return with(LocalDensity.current) { maxOf(12.dp, textHeight.toDp()) + 8.dp }
-}
-
-internal fun chartHeaderTopInset(chipHeight: Dp, backdropProgress: Float): Dp =
-    lerp(16.dp + chipHeight, 0.dp, backdropProgress)
-
-/** Include the upper strip in layout and hit testing, using only the host's available gap. */
-internal fun Modifier.extendChartTop(gutter: Dp, clearance: Dp): Modifier = layout { measurable, constraints ->
-    val extension = minOf(gutter, clearance).coerceAtLeast(0.dp).roundToPx()
-    val child = measurable.measure(constraints.offset(vertical = extension))
-    layout(child.width, (child.height - extension).coerceAtLeast(0)) {
-        child.place(0, -extension)
-    }
-}
-
-/** Children are the plot, range picker, and calibration strip, in that order. */
-@Composable
-internal fun ChartPlotLayout(
-    topGutter: Dp,
-    pickerLift: Dp,
-    onPickerOverhangChanged: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
+internal fun ChartHeaderRow(
+    hasCalibrations: Boolean,
+    hasDate: Boolean,
+    start: @Composable () -> Unit,
+    calibrations: @Composable () -> Unit,
+    end: @Composable () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Layout(content = content, modifier = modifier) { measurables, constraints ->
-        val picker = measurables[1].measure(constraints.copy(minHeight = 0))
-        val lift = pickerLift.roundToPx()
-        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else picker.height
-        val gutter = topGutter.roundToPx().coerceIn(0, height)
-        val plotHeight = (height - gutter - picker.height + lift).coerceAtLeast(0)
-        val plot = measurables[0].measure(constraints.copy(minHeight = plotHeight, maxHeight = plotHeight))
-        val calibration = measurables[2].measure(constraints.copy(minHeight = 0))
-        onPickerOverhangChanged((picker.height - lift).toFloat())
+    Layout(
+        modifier = modifier,
+        content = {
+            Box { start() }
+            // Only the two end labels share height; an expanded insulin panel stays independent.
+            ChartHeaderEndGroup(hasCalibrations, hasDate, calibrations, end)
+        }
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val startChip = measurables[0].measure(loose)
+        val gap = if (startChip.width > 0) 8.dp.roundToPx() else 0
+        val endGroup = measurables[1].measure(
+            loose.copy(maxWidth = (constraints.maxWidth - startChip.width - gap).coerceAtLeast(0))
+        )
+        val height = constraints.constrainHeight(maxOf(startChip.height, endGroup.height))
         layout(constraints.maxWidth, height) {
-            plot.place(0, gutter)
-            picker.place(0, gutter + plotHeight - lift, zIndex = 1f)
-            calibration.place(0, 0, zIndex = 1f)
+            startChip.placeRelative(0, 0)
+            endGroup.placeRelative(constraints.maxWidth - endGroup.width, 0)
         }
     }
 }
 
 @Composable
-internal fun ChartCalibrationValueRow(
+private fun ChartHeaderEndGroup(
+    hasCalibrations: Boolean,
+    hasDate: Boolean,
+    calibrations: @Composable () -> Unit,
+    end: @Composable () -> Unit
+) {
+    Layout(
+        modifier = Modifier.height(IntrinsicSize.Min),
+        content = {
+            Box { calibrations() }
+            Box { end() }
+        }
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val gap = 8.dp.roundToPx()
+        // Preserve date space on narrow screens. Extra calibrations scroll inside their slot.
+        val calibrationWidth = if (!hasCalibrations) 0 else if (hasDate) constraints.maxWidth / 2 else constraints.maxWidth
+        val values = measurables[0].measure(loose.copy(maxWidth = calibrationWidth))
+        val reservedGap = if (values.width > 0) gap else 0
+        val date = measurables[1].measure(
+            loose.copy(maxWidth = (constraints.maxWidth - values.width - reservedGap).coerceAtLeast(0))
+        )
+        val endGap = if (values.width > 0 && date.width > 0) gap else 0
+        val height = constraints.constrainHeight(maxOf(values.height, date.height))
+        layout(constraints.maxWidth, height) {
+            date.placeRelative(constraints.maxWidth - date.width, 0)
+            values.placeRelative(constraints.maxWidth - date.width - endGap - values.width, 0)
+        }
+    }
+}
+
+/** Both the date and calibration values use this container and label typography. */
+@Composable
+internal fun ChartHeaderChip(
+    color: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable RowScope.() -> Unit
+) {
+    val shape = RoundedCornerShape(8.dp)
+    val reference = rememberTextMeasurer().measure(
+        text = "0123456789",
+        style = MaterialTheme.typography.labelLarge,
+        maxLines = 1,
+        softWrap = false
+    )
+    Surface(
+        modifier = modifier.fillMaxHeight().clip(shape).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = shape,
+        color = color,
+        contentColor = contentColor,
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .layout { measurable, constraints ->
+                    val child = measurable.measure(constraints.copy(minHeight = 0))
+                    val height = constraints.constrainHeight(maxOf(32.dp.roundToPx(), child.height + 8.dp.roundToPx()))
+                    val baseline = child[FirstBaseline]
+                    // Date truncation can change its line bounds; use one numeric baseline for both chips.
+                    val top = if (baseline != AlignmentLine.Unspecified) {
+                        ((height - reference.size.height) / 2f + reference.firstBaseline - baseline).roundToInt()
+                    } else {
+                        (height - child.height) / 2
+                    }
+                    layout(child.width, height) {
+                        child.placeRelative(0, top.coerceIn(0, (height - child.height).coerceAtLeast(0)))
+                    }
+                }
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
+    }
+}
+
+@Composable
+internal fun ChartCalibrationValueChips(
     calibrations: List<CalibrationEntity>,
-    viewportStart: () -> Long,
-    viewportDuration: () -> Float,
-    rightInset: Dp,
-    topInset: Dp,
     unit: String,
-    onCalibrationClick: ((CalibrationEntity) -> Unit)?
+    onCalibrationClick: ((CalibrationEntity) -> Unit)?,
+    modifier: Modifier = Modifier
 ) {
     val locale = java.util.Locale.getDefault()
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val start = viewportStart()
-        val duration = viewportDuration().coerceAtLeast(1f)
-        val end = start + duration.toLong()
-        val dataWidth = (constraints.maxWidth - with(LocalDensity.current) { rightInset.toPx() }).coerceAtLeast(1f)
-        calibrations.filter { it.timestamp in start..end }.forEach { calibration ->
-            val value = remember(calibration.userValue, unit, locale) {
-                String.format(locale, if (unit.contains("mmol", true)) "%.1f" else "%.0f", calibration.userValue)
-            }
-            val x = dataWidth * ((calibration.timestamp - start).toFloat() / duration)
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .offset { IntOffset(x.coerceIn(0f, dataWidth).roundToInt(), (topInset + 4.dp).roundToPx()) }
-                    .graphicsLayer { translationX = -size.width / 2f }
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onCalibrationClick?.invoke(calibration) },
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shadowElevation = 0.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+    if (calibrations.isNotEmpty()) {
+        Row(
+            modifier = modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            calibrations.forEach { calibration ->
+                val value = remember(calibration.userValue, unit, locale) {
+                    String.format(locale, if (unit.contains("mmol", true)) "%.1f" else "%.0f", calibration.userValue)
+                }
+                ChartHeaderChip(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    onClick = { onCalibrationClick?.invoke(calibration) }
                 ) {
                     Icon(
                         imageVector = Icons.Filled.WaterDrop,
                         contentDescription = null,
-                        modifier = Modifier.size(12.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text(value, style = MaterialTheme.typography.labelMediumEmphasized, maxLines = 1, softWrap = false)
+                    Text(value, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
                 }
             }
         }
