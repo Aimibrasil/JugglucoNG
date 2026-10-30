@@ -3946,12 +3946,10 @@ fun InteractiveGlucoseChart(
             val calibrationValueChipHeight = with(LocalDensity.current) {
                 maxOf(12.dp, calibrationValueTextHeight.toDp()) + 8.dp
             }
-            // Keep calibration values inside the chart, above the shared corner-chip row.
-            // The backdrop can extend behind banners, but interactive chips must not.
-            val calibrationHeaderSpace =
-                if (visibleCalibrationsTooltip.isNotEmpty()) calibrationValueChipHeight else 0.dp
+            // Always reserve the calibration row, including when no calibration is in view.
+            // Panning must not move the insulin/date row, and chips stay clear of banners.
             val headerTopInset =
-                androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha) + calibrationHeaderSpace
+                androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha) + calibrationValueChipHeight
             val headerSideInset = androidx.compose.ui.unit.lerp(16.dp, backdropContentInset, backdropAlpha)
             val calibrationValueTop = androidx.compose.ui.unit.lerp(
                 8.dp,
