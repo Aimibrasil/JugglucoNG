@@ -81,6 +81,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Vaccines
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -2525,6 +2526,7 @@ fun InteractiveGlucoseChart(
                 }
         ) {
             android.os.Trace.beginSection("DashboardPlot.compose")
+            // Smooth zoom animation (DO NOT TOUCH)
             val animatedVisibleDuration by animateFloatAsState(
                 targetValue = visibleDuration.toFloat(),
                 animationSpec = spring<Float>(stiffness = Spring.StiffnessMedium),
@@ -3930,8 +3932,6 @@ fun InteractiveGlucoseChart(
             val overlayDurationMillis = overlayDuration.toLong()
             val overlayViewportStart = centerTime - overlayDurationMillis / 2
             val overlayViewportEnd = centerTime + overlayDurationMillis / 2
-            val headerTopInset = androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha)
-            val headerSideInset = androidx.compose.ui.unit.lerp(16.dp, backdropContentInset, backdropAlpha)
             val journalChipMinTopPx = with(LocalDensity.current) { 8.dp.toPx() }
             val journalActionChipYOffsetPx = with(LocalDensity.current) { (chartHeightPx - 34.dp.toPx()).coerceAtLeast(12.dp.toPx()) }
             val journalActionDotInsetPx = with(LocalDensity.current) { 12.dp.toPx() }
@@ -4615,13 +4615,13 @@ fun InteractiveGlucoseChart(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = headerSideInset, top = headerTopInset)
+                        .padding(start = 12.dp, top = 12.dp)
                         .widthIn(max = activeInsulinMaxWidth)
                         .zIndex(1.6f)
                         .clip(activeInsulinShape)
                         .clickable(enabled = summary != null || activeCarbsGrams != null) { isActiveInsulinExpanded = !isActiveInsulinExpanded },
                     shape = activeInsulinShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
                     tonalElevation = 0.dp,
                     shadowElevation = 0.dp
                 ) {
@@ -5094,13 +5094,24 @@ fun InteractiveGlucoseChart(
             val calibrationTimestampTextMeasurer = rememberTextMeasurer()
             val calibrationTimestampTextStyle = MaterialTheme.typography.labelSmall
             val calibrationTimestampChipHeightPx = with(LocalDensity.current) { 24.dp.toPx() }
+            // Align only the value text baseline with the existing date label.
+            val dateChipHeightPx = with(LocalDensity.current) { 32.dp.roundToPx() }
+            val dateTextLayout = calibrationTimestampTextMeasurer.measure(
+                text = headerDate,
+                style = MaterialTheme.typography.labelLarge,
+                constraints = androidx.compose.ui.unit.Constraints(maxHeight = dateChipHeightPx),
+                maxLines = 1,
+                softWrap = false
+            )
+            val dateTextBaselinePx = with(LocalDensity.current) {
+                androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha).toPx()
+            } + (dateChipHeightPx - dateTextLayout.size.height) / 2 + dateTextLayout.firstBaseline
             val viewportStartTooltip = overlayViewportStart
             val viewportEndTooltip = overlayViewportEnd
             val visibleCalibrationsTooltip = visibleCalibrations.filter {
                 it.timestamp in viewportStartTooltip..viewportEndTooltip
             }
 
-            val calibrationValueBaselinePx = chartDateTextBaseline(headerDate, headerTopInset)
             val calibrationLabelLocale = java.util.Locale.getDefault()
             val calibrationLabelTimeZone = java.util.TimeZone.getDefault()
             visibleCalibrationsTooltip.forEach { cal ->
@@ -5132,14 +5143,56 @@ fun InteractiveGlucoseChart(
                 val calibrationTimestampChipTopPx =
                     chartTimeLabelBaselinePx - calibrationTimestampTextBaselineOffsetPx
 
-                // Keep the value centered on its calibration line; only its vertical baseline moves.
-                ChartCalibrationValueChip(
-                    value = calValueStr,
-                    anchorX = calXOffset,
-                    textBaseline = calibrationValueBaselinePx,
-                    onClick = { onCalibrationClick?.invoke(cal) },
-                    modifier = Modifier.align(Alignment.TopStart).zIndex(1f)
+                val valueTextLayout = calibrationTimestampTextMeasurer.measure(
+                    text = calValueStr,
+                    style = MaterialTheme.typography.labelMediumEmphasized,
+                    maxLines = 1,
+                    softWrap = false
                 )
+                val valueTextBaselineOffsetPx = with(LocalDensity.current) {
+                    4.dp.roundToPx() +
+                        (maxOf(12.dp.roundToPx(), valueTextLayout.size.height) - valueTextLayout.size.height) / 2
+                } + valueTextLayout.firstBaseline
+
+                // Top: Value chip with waterdrop icon (clickable to edit)
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .zIndex(1f) // Below scrubbing tooltip
+                        .offset {
+                            androidx.compose.ui.unit.IntOffset(
+                                x = calXOffset.toInt(),
+                                y = (dateTextBaselinePx - valueTextBaselineOffsetPx).roundToInt()
+                            )
+                        }
+                        .graphicsLayer { translationX = -size.width / 2f }
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            // Open CalibrationBottomSheet to edit this calibration
+                            onCalibrationClick?.invoke(cal)
+                        },
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shadowElevation = 0.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.WaterDrop,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = calValueStr,
+                            style = MaterialTheme.typography.labelMediumEmphasized
+                        )
+                    }
+                }
 
                 // Bottom: Time chip
                 Box(
@@ -5190,8 +5243,8 @@ fun InteractiveGlucoseChart(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(
-                        top = headerTopInset,
-                        end = headerSideInset
+                        top = androidx.compose.ui.unit.lerp(16.dp, 0.dp, backdropAlpha),
+                        end = androidx.compose.ui.unit.lerp(16.dp, backdropContentInset, backdropAlpha)
                     )
             ) {
                 Box(
