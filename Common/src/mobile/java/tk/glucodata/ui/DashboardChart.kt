@@ -302,14 +302,14 @@ internal data class PeerSensorChartSeries(
 
 /** The whole data-to-model pipeline, in one place so it can run on any thread. */
 internal fun resolveDashboardChart(inputs: ChartResolutionInputs): ChartResolution {
-    val renderData = buildSmoothedChartData(inputs.safeData, inputs.graphSmoothingMinutes, inputs.collapseSmoothedData)
+    val renderData = buildSmoothedChartData(inputs.safeData, inputs.graphSmoothingMinutes, inputs.graphCollapseMinutes)
     val peerChartSeries = inputs.multiSensorDisplay.series.mapNotNull { series ->
         if (series.points.size < 2) return@mapNotNull null
         PeerSensorChartSeries(
             sensorId = series.sensorId,
             viewMode = series.viewMode,
             color = Color(series.colorArgb),
-            points = buildSmoothedChartData(series.points, inputs.graphSmoothingMinutes, inputs.collapseSmoothedData)
+            points = buildSmoothedChartData(series.points, inputs.graphSmoothingMinutes, inputs.graphCollapseMinutes)
         )
     }
     val chartModel = buildDashboardChartModel(
@@ -440,11 +440,11 @@ internal fun previewCenterTimeContainingViewport(
 private fun buildSmoothedChartData(
     points: List<GlucosePoint>,
     smoothingMinutes: Int,
-    collapseIntoChunks: Boolean
+    collapseMinutes: Int
 ): List<GlucosePoint> = tk.glucodata.GlucoseSmoothing.smooth(
     points = points,
     smoothingMinutes = smoothingMinutes,
-    collapseIntoChunks = collapseIntoChunks,
+    collapseMinutes = collapseMinutes,
     timestamp = { it.timestamp },
     value = { it.value },
     rawValue = { it.rawValue },
@@ -776,7 +776,7 @@ fun DashboardChartSection(
     predictionPoints: List<GlucosePredictionPoint> = emptyList(),
     predictionSeries: List<GlucosePredictionSeries> = emptyList(),
     graphSmoothingMinutes: Int = 0,
-    collapseSmoothedData: Boolean = false,
+    graphCollapseMinutes: Int = 0,
     previewWindowMode: Int = 0,
     graphLow: Float,
     graphHigh: Float,
@@ -843,7 +843,7 @@ fun DashboardChartSection(
                         predictionPoints = predictionPoints,
                         predictionSeries = predictionSeries,
                         graphSmoothingMinutes = graphSmoothingMinutes,
-                        collapseSmoothedData = collapseSmoothedData,
+                        graphCollapseMinutes = graphCollapseMinutes,
                         previewWindowMode = previewWindowMode,
                         graphLow = graphLow,
                         graphHigh = graphHigh,
@@ -959,7 +959,7 @@ fun InteractiveGlucoseChart(
     predictionPoints: List<GlucosePredictionPoint> = emptyList(),
     predictionSeries: List<GlucosePredictionSeries> = emptyList(),
     graphSmoothingMinutes: Int = 0,
-    collapseSmoothedData: Boolean = false,
+    graphCollapseMinutes: Int = 0,
     previewWindowMode: Int = 0,
     graphLow: Float,
     graphHigh: Float,
@@ -1185,7 +1185,7 @@ fun InteractiveGlucoseChart(
     // builder are each a pass over the whole timeline, and the timeline is the
     // whole store. See rememberChartResolution.
     val resolutionInputs = remember(
-        safeData, multiSensorDisplay, graphSmoothingMinutes, collapseSmoothedData,
+        safeData, multiSensorDisplay, graphSmoothingMinutes, graphCollapseMinutes,
         mainSensorOwnership, calibrationRevision, viewMode, inputHasCalibration,
         hideInitialWhenCalibrated, inputPrimarySerial, inputPrimaryIdentityColor,
     ) {
@@ -1193,7 +1193,7 @@ fun InteractiveGlucoseChart(
             safeData = safeData,
             multiSensorDisplay = multiSensorDisplay,
             graphSmoothingMinutes = graphSmoothingMinutes,
-            collapseSmoothedData = collapseSmoothedData,
+            graphCollapseMinutes = graphCollapseMinutes,
             mainSensorOwnership = mainSensorOwnership,
             calibrationRevision = calibrationRevision,
             viewMode = viewMode,
@@ -1222,7 +1222,7 @@ fun InteractiveGlucoseChart(
         }
     }
     val interactionData = remember(renderedInputs, renderData) {
-        if (renderedInputs.graphSmoothingMinutes > 0) renderData else renderedInputs.safeData
+        if (renderedInputs.graphSmoothingMinutes > 0 || renderedInputs.graphCollapseMinutes > 0) renderData else renderedInputs.safeData
     }
     val calibrationIsRawMode = renderViewMode == 1 || renderViewMode == 3
     val visibleCalibrations = remember(calibrationRevision, calibrationIsRawMode, primarySerial) {

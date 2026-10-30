@@ -197,6 +197,21 @@ internal fun buildSmoothedConsumerHistory(
     points: List<GlucosePoint>,
     evaluationSmoothingMinutes: Int,
     collapseChunks: Boolean
+): List<GlucosePoint> = buildSmoothedConsumerHistory(
+    points,
+    evaluationSmoothingMinutes,
+    evaluationCollapseMinutes = if (collapseChunks && evaluationSmoothingMinutes > 0) {
+        DataSmoothing.collapseIntervalMinutes(evaluationSmoothingMinutes)
+    } else {
+        0
+    }
+)
+
+/** As above, thinned to one reading per [evaluationCollapseMinutes] (0 = every reading), smoothed or not. */
+internal fun buildSmoothedConsumerHistory(
+    points: List<GlucosePoint>,
+    evaluationSmoothingMinutes: Int,
+    evaluationCollapseMinutes: Int
 ): List<GlucosePoint> {
     if (points.isEmpty()) {
         return points
@@ -206,7 +221,7 @@ internal fun buildSmoothedConsumerHistory(
     } else {
         points
     }
-    if (evaluationSmoothingMinutes <= 0) {
+    if (evaluationSmoothingMinutes <= 0 && evaluationCollapseMinutes <= 0) {
         return source
     }
 
@@ -216,7 +231,7 @@ internal fun buildSmoothedConsumerHistory(
         val smoothed = DataSmoothing.smoothNativePoints(
             segment.map { tk.glucodata.GlucosePoint(it.timestamp, it.value, it.rawValue) },
             evaluationSmoothingMinutes,
-            collapseChunks
+            evaluationCollapseMinutes
         )
 
         smoothed.forEach { point ->

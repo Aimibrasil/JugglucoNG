@@ -136,9 +136,7 @@ fun ExpressiveSettingsScreen(
     val unit by viewModel.unit.collectAsStateWithLifecycle()
     val isMmol = tk.glucodata.ui.util.GlucoseFormatter.isMmol(unit)
     val chartSmoothingMinutes by viewModel.chartSmoothingMinutes.collectAsStateWithLifecycle()
-    val dataSmoothingGraphOnly by viewModel.dataSmoothingGraphOnly.collectAsStateWithLifecycle()
-    val dataSmoothingCollapseChunks by viewModel.dataSmoothingCollapseChunks.collectAsStateWithLifecycle()
-    val dataSmoothingExchangeOnly by viewModel.dataSmoothingExchangeOnly.collectAsStateWithLifecycle()
+    val dataSmoothingTargets by viewModel.dataSmoothingTargets.collectAsStateWithLifecycle()
     val journalEnabled by viewModel.journalEnabled.collectAsStateWithLifecycle()
     val predictiveSimulationEnabled by viewModel.predictiveSimulationEnabled.collectAsStateWithLifecycle()
     val alertsMasterEnabled by viewModel.alertsMasterEnabled.collectAsStateWithLifecycle()
@@ -257,18 +255,14 @@ fun ExpressiveSettingsScreen(
         val collapseIntervalMinutes = DataSmoothing.collapseIntervalMinutes(chartSmoothingMinutes)
         buildList {
             add(stringResource(R.string.minutes_short_format, chartSmoothingMinutes))
-            if (dataSmoothingExchangeOnly) {
-                add(stringResource(R.string.data_smoothing_exchange_only_title))
-            } else if (dataSmoothingGraphOnly) {
-                add(stringResource(
-                    if (dataSmoothingCollapseChunks) R.string.data_smoothing_scope_graph_and_sent
-                    else R.string.data_smoothing_graph_only_title
-                ))
-            } else {
-                add(stringResource(R.string.data_smoothing_scope_all))
-            }
-            if (dataSmoothingCollapseChunks) {
-                add(stringResource(R.string.data_smoothing_collapse_summary_format, collapseIntervalMinutes))
+            val smoothedScope = dataSmoothingScopeLabel(dataSmoothingTargets)
+            val fewerScope = dataSmoothingFewerScopeLabel(dataSmoothingTargets)
+            smoothedScope?.let { add(stringResource(it)) }
+            when (fewerScope) {
+                null -> Unit
+                // Fewer readings wherever it is smoothed: the interval says it all.
+                smoothedScope -> add(stringResource(R.string.data_smoothing_collapse_summary_format, collapseIntervalMinutes))
+                else -> add(stringResource(R.string.data_smoothing_fewer_summary_format, stringResource(fewerScope)))
             }
         }.joinToString(" · ")
     }

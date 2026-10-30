@@ -26,7 +26,7 @@ class ChartHandoffTests {
         listOf(GlucosePoint(100f, "", 1_793_314_600_123L, sensorSerial = primary)),
         MultiSensorDisplayData(listOf(PeerSensorSeries(peer, 0, 0,
             listOf(GlucosePoint(110f, "", 1_793_314_600_123L, sensorSerial = peer)))), emptyMap()),
-        0, false, MainSensorOwnership.NONE, 0L, mode, false, false, primary, 0)
+        0, 0, MainSensorOwnership.NONE, 0L, mode, false, false, primary, 0)
 
     @Test fun actualScrollAnimationMovesMonotonicallyWithinTheRequestedMinute() {
         val start = 1_793_314_600_123L
