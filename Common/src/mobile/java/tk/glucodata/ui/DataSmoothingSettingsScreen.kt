@@ -37,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -328,7 +329,7 @@ private fun FewerReadingsCard(
         // A control card, as the window card above: one padded column on one surface.
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             // The whole heading is the switch's touch target, read as one switch by TalkBack.
-            // It shares its press with the switch, which shows it, so no row surface appears.
+            // It shares its press with the switch, so a tap anywhere on it ripples and moves the switch.
             val headingInteraction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
@@ -337,7 +338,7 @@ private fun FewerReadingsCard(
                     .toggleable(
                         value = checked,
                         interactionSource = headingInteraction,
-                        indication = null,
+                        indication = ripple(bounded = true),
                         enabled = enabled,
                         role = Role.Switch,
                         onValueChange = onCheckedChange

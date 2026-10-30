@@ -191,8 +191,8 @@ read at 18dp.
     control. A revealed section carries its own 16dp top gap inside `AnimatedVisibility`, so
     the card closes to the heading when it's hidden.
   - A heading switch makes the whole heading its touch target (`toggleable`,
-    `Role.Switch`). The row draws no indication and passes its `interactionSource` to the
-    switch, which shows the press. When the feature is off, every control in the card is
+    `Role.Switch`) with `indication = ripple(bounded = true)`, and passes its
+    `interactionSource` to the switch (`onCheckedChange = null`), so both show the press. When the feature is off, every control in the card is
     disabled, not only dimmed.
   - Examples: Smoothing window (slider) and Fewer readings (switch that reveals a
     multi-select group).
@@ -202,6 +202,8 @@ read at 18dp.
 ### Actions
 
 - An action is a **button**, never a settings row. A row is a place or a setting.
+- Every interactive surface shows visible press feedback. Don't pass `indication = null`
+  unless another press feedback is implemented and seen working.
 - Emphasis tracks importance: `Button` for the one you want pressed, `FilledTonalButton` or
   `OutlinedButton` for the rest, `TextButton` in dialogs. A screen-level action spans the
   width at 56dp.
