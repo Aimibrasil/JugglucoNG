@@ -35,7 +35,7 @@ import tk.glucodata.data.calibration.CalibrationEntity
 import kotlin.math.roundToInt
 
 @Composable
-internal fun calibrationValueChipHeight(): Dp {
+internal fun calibrationHeaderStripHeight(): Dp {
     val measurer = rememberTextMeasurer()
     val textHeight = measurer.measure(
         text = "0",
@@ -43,6 +43,7 @@ internal fun calibrationValueChipHeight(): Dp {
         maxLines = 1,
         softWrap = false
     ).size.height
+    // Keep 4dp of clear space above and below the compact value pill.
     return with(LocalDensity.current) { maxOf(12.dp, textHeight.toDp()) + 8.dp }
 }
 
@@ -108,7 +109,7 @@ internal fun ChartCalibrationValueRow(
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .offset { IntOffset(x.coerceIn(0f, dataWidth).roundToInt(), topInset.roundToPx()) }
+                    .offset { IntOffset(x.coerceIn(0f, dataWidth).roundToInt(), (topInset + 4.dp).roundToPx()) }
                     .graphicsLayer { translationX = -size.width / 2f }
                     .clip(RoundedCornerShape(8.dp))
                     .clickable { onCalibrationClick?.invoke(calibration) },
@@ -118,7 +119,7 @@ internal fun ChartCalibrationValueRow(
                 shadowElevation = 0.dp
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(

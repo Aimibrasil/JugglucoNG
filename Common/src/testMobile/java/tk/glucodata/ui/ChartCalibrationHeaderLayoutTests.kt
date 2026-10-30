@@ -59,7 +59,7 @@ class ChartCalibrationHeaderLayoutTests {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, fontScale)) {
                 MaterialTheme(typography = tk.glucodata.ui.theme.AppTypography) {
-                    val chipHeight = calibrationValueChipHeight()
+                    val chipHeight = calibrationHeaderStripHeight()
                     val progress = expansion.floatValue
                     Column(Modifier.fillMaxSize().background(Color.Black)) {
                         Box(Modifier.fillMaxWidth().height(100.dp).testTag("preceding"))
@@ -130,8 +130,8 @@ class ChartCalibrationHeaderLayoutTests {
     private fun assertCalibrationClearAndClickable() {
         val chip = compose.onNodeWithText("3.0")
         val rect = chip.fetchSemanticsNode().boundsInRoot
-        assertTrue("Calibration overlaps preceding card: $rect", rect.top >= bounds("preceding").bottom)
-        assertTrue("Calibration overlaps date: $rect", rect.bottom <= bounds("date").top)
+        assertTrue("Calibration needs 4dp above it: $rect", rect.top - bounds("preceding").bottom >= 4f)
+        assertTrue("Calibration needs 4dp below it: $rect", bounds("date").top - rect.bottom >= 4f)
         // A real coordinate tap also checks the part of the strip above the old chart bounds.
         chip.performTouchInput { click(center) }
     }
@@ -164,9 +164,10 @@ class ChartCalibrationHeaderLayoutTests {
             assertEquals(picker, bounds("picker"))
             assertEquals(plotHeight, bounds("plot").height, 0.5f)
         }
-        val directory = File("/private/tmp/chart-header-render").apply { mkdirs() }
+        val directory = File("build/reports/chart-header-layout")
+        check(directory.isDirectory || directory.mkdirs()) { "Cannot create ${directory.absolutePath}" }
         File(directory, "expanded.png").outputStream().use {
-            compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
+            assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it))
         }
     }
 }

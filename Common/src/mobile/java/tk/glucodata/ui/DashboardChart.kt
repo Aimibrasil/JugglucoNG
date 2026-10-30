@@ -818,7 +818,7 @@ fun DashboardChartSection(
     /** Free space above this chart, before another card or banner starts. */
     backdropHeaderClearance: androidx.compose.ui.unit.Dp = 0.dp
 ) {
-    val calibrationHeaderHeight = calibrationValueChipHeight()
+    val calibrationHeaderHeight = calibrationHeaderStripHeight()
     val chartContent: @Composable () -> Unit = {
         Column(modifier = Modifier.padding(bottom = 0.dp)) {
              Box(modifier = Modifier.weight(1f)) {
@@ -2008,7 +2008,7 @@ fun InteractiveGlucoseChart(
     // axis labels. Laid out rather than offset: an offset only moved the picker's paint,
     // and left the space it was measured into as a hole underneath it.
     val pickerLift = chartUnderlayBottomDp + (8.dp * safeExpandedProgress)
-    val calibrationHeaderHeight = calibrationValueChipHeight()
+    val calibrationHeaderHeight = calibrationHeaderStripHeight()
     // Share the zoom state without reading it here: only the plot and strip recompose per frame.
     val visibleDurationAnimation = animateFloatAsState(
         targetValue = visibleDuration.toFloat(),
